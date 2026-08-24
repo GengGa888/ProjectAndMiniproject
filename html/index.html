@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>หน้าแรก - คลังโปรเจกต์ SDU</title>
+    <!-- เรียกใช้งาน Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* กำหนดโทนสี และฟอนต์ */
+        :root {
+            --sdu-pdf-blue: #5ab1d8; 
+        }
+        
+        body { 
+            background-color: #ffffff; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        
+        /* -------------------------------------
+           ตกแต่งแถบเมนู (Navbar)
+           ------------------------------------- */
+        .custom-header {
+            /* สีฟ้าไล่ระดับ */
+            background: linear-gradient(to right, #4da4d9, #2b7bb3); 
+            padding: 8px 0 15px 0;
+            border-bottom: 2px solid #1a5a8a;
+        }
+
+        /* เมนูชั้นบน (ล็อกอิน / สมัครสมาชิก) */
+        .top-links {
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+        .top-links a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+        }
+        .top-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* โลโก้มหาวิทยาลัย */
+        .sdu-logo {
+            width: 45px;
+            height: auto;
+            background-color: white; /* ใส่พื้นหลังขาวกลมๆ ให้โลโก้เด่นขึ้นจากพื้นฟ้า */
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        /* เมนูชั้นล่าง (หน้าแรก) */
+        .main-menu .nav-link {
+            color: white !important;
+            font-size: 1.05rem;
+            padding-left: 0;
+            margin-right: 20px;
+            font-weight: 500;
+        }
+        .main-menu .nav-link:hover {
+            color: #e2f0fb !important;
+            text-decoration: underline;
+        }
+
+        /* กล่องค้นหาด้านขวา */
+        .search-box {
+            display: flex;
+            gap: 5px;
+        }
+        .search-box input {
+            border-radius: 2px;
+            border: none;
+            padding: 5px 10px;
+            width: 250px;
+        }
+        .search-box input:focus {
+            outline: none;
+            box-shadow: 0 0 3px rgba(255,255,255,0.8);
+        }
+        .search-box button {
+            border-radius: 2px;
+            background-color: white;
+            color: #333;
+            border: none;
+            padding: 5px 15px;
+            font-weight: 500;
+        }
+        .search-box button:hover {
+            background-color: #f1f1f1;
+        }
+
+        /* -------------------------------------
+           ตกแต่งส่วนรายการโปรเจกต์ 
+           ------------------------------------- */
+        .project-title { font-size: 1.1rem; color: #2a7cbd; text-decoration: none; font-weight: 500; }
+        .project-title:hover { text-decoration: underline; color: #1c5b8e; }
+        .author-text { font-size: 0.9rem; color: #737373; margin-bottom: 0.15rem; }
+        .page-text { font-size: 0.85rem; color: #737373; }
+        .btn-pdf { background-color: var(--sdu-pdf-blue); border: none; color: white; border-radius: 4px; padding: 4px 16px; font-size: 0.9rem; }
+        .btn-pdf:hover { background-color: #459cbf; color: white; }
+    </style>
+</head>
+<body>
+
+    <!-- แถบเมนูด้านบน (Header แบบใหม่) -->
+    <header class="custom-header">
+        <div class="container">
+            
+            <!-- ชั้นที่ 1: เมนูด้านบนขวา -->
+            <div class="d-flex justify-content-end top-links">
+                <a href="register.html">สมัครสมาชิก</a>
+                <a href="login.html">ล็อกอิน</a>
+            </div>
+
+            <!-- ชั้นที่ 2: โลโก้, เมนูหลัก และ กล่องค้นหา -->
+            <div class="d-flex justify-content-between align-items-center flex-wrap mt-2">
+                
+                <!-- ด้านซ้าย: โลโก้ + เมนู -->
+                <div class="d-flex align-items-center gap-3">
+                    <!-- โลโก้ -->
+                    <a href="index.html">
+                        <img src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png" alt="SDU Logo" class="sdu-logo">
+                    </a>
+                    
+                    <!-- เมนู -->
+                    <ul class="nav main-menu">
+                        <li class="nav-item">
+                            <a class="nav-link" href="index.html">หน้าแรก</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- ด้านขวา: กล่องค้นหา -->
+                <form class="search-box">
+                    <input type="text" placeholder="ค้นหาโปรเจกต์...">
+                    <button type="submit">ค้นหา</button>
+                </form>
+
+            </div>
+        </div>
+    </header>
+
+    <!-- รายการบทความวิชาการ/โปรเจกต์ -->
+    <div class="container mt-5 mb-5">
+        
+        <div class="project-item border-bottom pb-4 mb-4">
+            <a href="#" class="project-title">การเพิ่มประสิทธิภาพในการตรวจจับไฟป่าโดยใช้ Google’s Teachable Machine</a>
+            <p class="author-text mt-2">ศุภาพิชญ์ ขวัญอยู่<sup>1</sup> สืบสกุล ครุรัตน์<sup>1,*</sup></p>
+            <p class="author-text">ศุภาพิชญ์ ขวัญอยู่</p>
+            <p class="page-text">1-18</p>
+            <button class="btn btn-pdf mt-1">PDF</button>
+        </div>
+
+        <div class="project-item border-bottom pb-4 mb-4">
+            <a href="#" class="project-title">ศึกษาทางเลือกการผลิตพลังงานทดแทนจากผักตบชวา กรณีศึกษา บริเวณลุ่มแม่น้ำท่าจีน</a>
+            <p class="author-text mt-2">นนทนันท์ เกื้อชาติ<sup>1,*</sup> และอรทัย ชวาลภาฤทธิ์<sup>2</sup></p>
+            <p class="author-text">Nontanan Kuerchart</p>
+            <p class="page-text">19-32</p>
+            <button class="btn btn-pdf mt-1">PDF</button>
+        </div>
+
+        <div class="project-item border-bottom pb-4 mb-4">
+            <a href="#" class="project-title">การรับรู้ผลกระทบด้านสุขภาพของสมาชิกโครงการธนาคารขยะในพื้นที่ชุมชนสวนอ้อยและมหาวิทยาลัยสวนดุสิต ประเทศไทย</a>
+            <p class="author-text mt-2">ภูริพจน์ แก้วย่อง<sup>1</sup> แทนทัศน เพียกขุนทด<sup>1</sup> ทิพย์วรรณ บุณยาภรณ์<sup>3,*</sup> ชุติวรรณ บุญอาชาทอง<sup>1</sup> และ สายสุดา ปั้นตระกูล<sup>2</sup></p>
+            <p class="author-text">ภูริพจน์ แก้วย่อง</p>
+            <p class="page-text">33-43</p>
+            <button class="btn btn-pdf mt-1">PDF</button>
+        </div>
+
+    </div>
+
+    <!-- เรียกใช้งาน Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
