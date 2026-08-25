@@ -1,13 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=<!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>เข้าสู่ระบบสืบค้นโปรเจกต์และมินิโปรเจกต์</title>
+  <title>เข้าสู่ระบบ - ระบบสืบค้นโปรเจกต์</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     * {
@@ -22,47 +18,45 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      /* พื้นหลังไล่เฉดสีฟ้าแบบในตัวอย่าง */
-      background: linear-gradient(135deg, #29b6f6 0%, #b3e5fc 50%, #e1f5fe 100%);
+      background: linear-gradient(135deg, #b3e5fc 0%, #e1f5fe 100%);
+      padding: 20px;
     }
 
     .login-wrapper {
       position: relative;
       width: 100%;
       max-width: 400px;
-      padding: 0 20px;
-      margin-top: 50px;
+      margin-top: 40px;
     }
 
     .logo-container {
       position: absolute;
-      top: -65px;
+      top: -50px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 2;
     }
 
     .logo-container img {
-      width: 130px;
-      height: 130px;
+      width: 100px;
+      height: 100px;
       object-fit: contain;
       filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.15));
     }
 
     .login-card {
       background: #ffffff;
-      border-radius: 6px;
-      padding: 85px 35px 35px 35px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      border-radius: 8px;
+      padding: 60px 30px 30px 30px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
       text-align: center;
     }
 
     .login-card h2 {
-      font-size: 1.25rem;
+      font-size: 1.5rem;
       color: #2b2b2b;
       font-weight: 600;
       margin-bottom: 25px;
-      text-align: left;
     }
 
     .form-group {
@@ -73,8 +67,9 @@
     .form-group label {
       display: block;
       font-size: 0.9rem;
-      color: #333333;
-      margin-bottom: 6px;
+      color: #333;
+      margin-bottom: 8px;
+      font-weight: 500;
     }
 
     .input-wrapper {
@@ -83,35 +78,36 @@
 
     .input-wrapper input {
       width: 100%;
-      padding: 10px 35px 10px 12px;
+      padding: 12px 40px 12px 15px;
       font-size: 0.95rem;
       border: 1px solid #bce0fd;
       background-color: #f0f7ff;
-      border-radius: 5px;
+      border-radius: 6px;
       outline: none;
       transition: all 0.2s ease;
+      color: #333;
     }
 
     .input-wrapper input:focus {
       border-color: #29b6f6;
-      box-shadow: 0 0 5px rgba(41, 182, 246, 0.5);
+      box-shadow: 0 0 5px rgba(41, 182, 246, 0.4);
     }
 
     .input-wrapper i {
       position: absolute;
-      right: 12px;
+      right: 15px;
       top: 50%;
       transform: translateY(-50%);
-      color: #888888;
-      font-size: 0.9rem;
+      color: #777;
+      font-size: 1rem;
     }
 
     .btn-submit {
       width: 100%;
-      padding: 11px;
+      padding: 12px;
       background: linear-gradient(to bottom, #34b3c7, #258ca3);
       border: none;
-      border-radius: 5px;
+      border-radius: 6px;
       color: #ffffff;
       font-size: 1rem;
       font-weight: bold;
@@ -125,32 +121,26 @@
     }
 
     .footer-links {
-      margin-top: 25px;
-      font-size: 0.85rem;
+      margin-top: 20px;
+      font-size: 0.9rem;
     }
 
     .footer-links a {
-      color: #0095ff;
+      color: #0088cc;
       text-decoration: none;
+      font-weight: 500;
     }
 
     .footer-links a:hover {
       text-decoration: underline;
     }
 
-    .divider {
-      height: 1px;
-      background-color: #e6e6e6;
-      margin: 15px 0;
-    }
-
-    .user-count {
-      color: #333333;
+    .online-count {
+      margin-top: 25px;
+      padding-top: 15px;
+      border-top: 1px solid #eeeeee;
       font-size: 0.85rem;
-    }
-
-    .user-count span {
-      font-weight: bold;
+      color: #555;
     }
   </style>
 </head>
@@ -162,9 +152,10 @@
     </div>
 
     <div class="login-card">
-  <h2 style="text-align: center;">เข้าสู่ระบบ</h2>
-      
-      <form action="#" method="POST">
+      <h2>เข้าสู่ระบบ</h2>
+
+      <form id="loginForm">
+        <!-- ชื่อผู้ใช้งาน -->
         <div class="form-group">
           <label for="username">ชื่อผู้ใช้งาน</label>
           <div class="input-wrapper">
@@ -173,6 +164,7 @@
           </div>
         </div>
 
+        <!-- รหัสผ่าน -->
         <div class="form-group">
           <label for="password">รหัสผ่าน</label>
           <div class="input-wrapper">
@@ -186,19 +178,31 @@
 
       <div class="footer-links">
         <a href="sign-up.html">สมัครสมาชิก</a>
-        <div class="divider"></div>
-        <div class="user-count">
-          จำนวนผู้ใช้งานระบบปัจจุบัน <span>0</span> คน
-        </div>
+      </div>
+
+      <div class="online-count">
+        จำนวนผู้ใช้งานระบบปัจจุบัน <strong>0</strong> คน
       </div>
     </div>
   </div>
-  
-</body>
-</html>
-    <title>Document</title>
-</head>
-<body>
-    
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      e.preventDefault(); // ป้องกันหน้าเว็บรีเฟรช
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      // ตรวจสอบข้อมูลก่อนล็อกอิน
+      if (username === "" || password === "") {
+        alert("กรุณากรอกชื่อผู้ใช้งานและรหัสผ่าน");
+        return;
+      }
+
+      // เปลี่ยนหน้าไปยัง home.html
+      window.location.href = "index.html";
+    });
+  </script>
+
 </body>
 </html>
