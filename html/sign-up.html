@@ -1,8 +1,4 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=<!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="UTF-8">
@@ -92,7 +88,7 @@
       outline: none;
       transition: all 0.2s ease;
       color: #333;
-      appearance: none; /* ซ่อนลูกศรเดิมของ select */
+      appearance: none;
     }
 
     .input-wrapper input:focus,
@@ -156,32 +152,39 @@
     <div class="register-card">
       <h2>ลงทะเบียนใช้งานระบบ</h2>
     
+      <form id="registerForm">
+        <!-- ชื่อผู้ใช้ -->
         <div class="form-group">
-          <label for="student_id">user</label>
+          <label for="username">Username</label>
           <div class="input-wrapper">
-            <input type="text" id="student_id" name="student_id" placeholder="user" required>
+            <input type="text" id="username" name="username" placeholder="ชื่อผู้ใช้งาน" required>
             <i class="fa-solid fa-user"></i>
           </div>
         </div>
-<div class="form-group">
-          <label for="student_id">ชื่อ</label>
+
+        <!-- ชื่อ -->
+        <div class="form-group">
+          <label for="firstname">ชื่อ</label>
           <div class="input-wrapper">
-            <input type="text" id="student_id" name="student_id" placeholder="ชื่อ" required>
-            <i class="fa-solid fa-user"></i>
+            <input type="text" id="firstname" name="firstname" placeholder="กรอกชื่อ" required>
+            <i class="fa-solid fa-id-card"></i>
           </div>
         </div>
+
+        <!-- นามสกุล -->
         <div class="form-group">
-          <label for="student_id">นามสกุล</label>
+          <label for="lastname">นามสกุล</label>
           <div class="input-wrapper">
-            <input type="text" id="student_id" name="student_id" placeholder="นามสกุล" required>
-            <i class="fa-solid fa-user"></i>
+            <input type="text" id="lastname" name="lastname" placeholder="กรอกนามสกุล" required>
+            <i class="fa-solid fa-id-card"></i>
           </div>
         </div>
-        <!-- อีเมล -->
+
+        <!-- อีเมล Gmail -->
         <div class="form-group">
-          <label for="email">อีเมลสถาบัน</label>
+          <label for="email">อีเมล (ต้องเป็น Gmail เท่านั้น)</label>
           <div class="input-wrapper">
-            <input type="email" id="email" name="email" placeholder="example@mail.com" required>
+            <input type="email" id="email" name="email" placeholder="example@gmail.com" required>
             <i class="fa-solid fa-envelope"></i>
           </div>
         </div>
@@ -195,8 +198,8 @@
               <option value="it">เทคโนโลยีสารสนเทศ</option>
               <option value="cs">วิทยาการคอมพิวเตอร์</option>
               <option value="se">วิศวกรรมซอฟต์แวร์</option>
-              <option value="other">สาขาอื่นๆ</option>
-              <option value="other">ไม่ใช่บุลคลในมหาวิทยาลัย</option>
+              <option value="other_dept">สาขาอื่นๆ</option>
+              <option value="external">ไม่ใช่บุคคลในมหาวิทยาลัย</option>
             </select>
             <i class="fa-solid fa-chevron-down"></i>
           </div>
@@ -229,11 +232,39 @@
     </div>
   </div>
 
-</body>
-</html>
-    <title>Document</title>
-</head>
-<body>
-    
+  <script>
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+      e.preventDefault(); // ระงับการส่งฟอร์มเพื่อตรวจสอบก่อน
+
+      const firstname = document.getElementById('firstname').value.trim();
+      const lastname = document.getElementById('lastname').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirm_password').value;
+
+      // 1. ตรวจสอบว่าใส่ชื่อและนามสกุลหรือไม่
+      if (firstname === "" || lastname === "") {
+        alert("กรุณากรอกชื่อและนามสกุลให้ครบถ้วน");
+        return;
+      }
+
+      // 2. ตรวจสอบว่าเป็น Gmail หรือไม่ (ต้องลงท้ายด้วย @gmail.com)
+      if (!email.toLowerCase().endsWith("@gmail.com")) {
+        alert("กรุณาใช้อีเมลที่เป็น @gmail.com เท่านั้น");
+        return;
+      }
+
+      // 3. ตรวจสอบรหัสผ่านตรงกันหรือไม่
+      if (password !== confirmPassword) {
+        alert("รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน");
+        return;
+      }
+
+      // ผ่านเงื่อนไขทั้งหมด -> สำเร็จ และเปลี่ยนหน้าไปยัง login.html
+      alert("สมัครสมาชิกสำเร็จ!");
+      window.location.href = "login.html";
+    });
+  </script>
+
 </body>
 </html>
