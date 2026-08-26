@@ -7,6 +7,8 @@
 
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <style>
         :root {
@@ -26,17 +28,17 @@
         }
 
         .profile-image {
-            width: 55px;
-            height: 55px;
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
             object-fit: cover;
-            border: 3px solid white;
+            border: 2px solid white;
             cursor: pointer;
             transition: 0.2s;
         }
 
         .profile-image:hover {
-            opacity: 0.8;
+            opacity: 0.85;
             transform: scale(1.05);
         }
 
@@ -61,35 +63,48 @@
             text-decoration: underline;
         }
 
-        /* Search Box */
-        .search-box {
+        /* Modern Dark Dropdown Profile (สไตล์เกมการ์ด) */
+        .custom-profile-menu {
+            background-color: #1a1b26;
+            border: 1px solid #2f334d;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            min-width: 220px;
+            padding: 8px;
+        }
+
+        .custom-profile-menu .dropdown-item {
+            color: #a9b1d6;
+            font-size: 0.95rem;
+            padding: 10px 14px;
+            border-radius: 8px;
             display: flex;
-            gap: 5px;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
         }
 
-        .search-box input {
-            border-radius: 2px;
-            border: none;
-            padding: 7px 10px;
-            width: 250px;
+        .custom-profile-menu .dropdown-item i {
+            font-size: 1.1rem;
         }
 
-        .search-box input:focus {
-            outline: none;
-            box-shadow: 0 0 3px rgba(255,255,255,0.8);
+        .custom-profile-menu .dropdown-item:hover {
+            background-color: #24283b;
+            color: #ffffff;
         }
 
-        .search-box button {
-            border-radius: 2px;
-            background-color: white;
-            color: #333;
-            border: none;
-            padding: 7px 15px;
-            font-weight: 500;
+        .custom-profile-menu .dropdown-item.logout-btn {
+            color: #f7768e;
         }
 
-        .search-box button:hover {
-            background-color: #f1f1f1;
+        .custom-profile-menu .dropdown-item.logout-btn:hover {
+            background-color: rgba(247, 118, 142, 0.15);
+            color: #ff6c6b;
+        }
+
+        .custom-profile-menu .dropdown-divider {
+            border-color: #2f334d;
+            margin: 6px 0;
         }
 
         /* Filter Section Style */
@@ -162,19 +177,31 @@
                     </ul>
                 </div>
 
-                <div class="d-flex align-items-center gap-4">
-                    <form class="search-box">
-                        <input type="text" placeholder="ค้นหาโปรเจกต์...">
-                        <button type="submit">ค้นหา</button>
-                    </form>
-
-                    <a href="profile.html">
+                <!-- โปรไฟล์ Dropdown สไตล์ภาพตัวอย่าง -->
+                <div class="dropdown">
+                    <a href="#" role="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <img 
                             src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
                             alt="โปรไฟล์"
                             class="profile-image"
                         >
                     </a>
+                    
+                    <ul class="dropdown-menu dropdown-menu-end custom-profile-menu mt-2" aria-labelledby="profileDropdown">
+                        <li>
+                            <a class="dropdown-item" href="profile.html">
+                                <i class="bi bi-person-fill"></i>
+                                <span>ข้อมูลส่วนตัว</span>
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item logout-btn" href="login.html">
+                                <i class="bi bi-box-arrow-right"></i>
+                                <span>ออกจากระบบ</span>
+                            </a>
+                        </li>
+                    </ul>
                 </div>
 
             </div>
@@ -184,22 +211,50 @@
     <!-- เนื้อหาหลัก -->
     <div class="container mt-4 mb-5">
         
-        <!-- ส่วนกรองระดับหลักสูตร -->
+        <!-- ส่วนกรองและค้นหาโปรเจกต์ -->
         <div class="filter-section mb-4">
-            <form class="row align-items-center g-3">
-                <div class="col-auto">
-                    <label for="degreeSelect" class="col-form-label fw-bold text-secondary">
+            <form class="row g-3 align-items-end">
+                
+                <!-- ช่องพิมพ์ค้นหา -->
+                <div class="col-md-4">
+                    <label for="searchKeyword" class="form-label fw-bold text-secondary mb-1">
+                        ค้นหาคำขวัญ/โปรเจกต์:
+                    </label>
+                    <input type="text" class="form-control form-control-sm" id="searchKeyword" placeholder="พิมพ์ชื่อโปรเจกต์ หรือผู้แต่ง...">
+                </div>
+
+                <!-- เลือกระดับหลักสูตร -->
+                <div class="col-md-3">
+                    <label for="degreeSelect" class="form-label fw-bold text-secondary mb-1">
                         ระดับหลักสูตร:
                     </label>
-                </div>
-                <div class="col-auto">
-                    <select class="form-select form-select-sm" id="degreeSelect" style="min-width: 200px;">
+                    <select class="form-select form-select-sm" id="degreeSelect">
                         <option value="all" selected>ทุกระดับการศึกษา</option>
                         <option value="bachelor">ปริญญาตรี</option>
                         <option value="master">ปริญญาโท</option>
                         <option value="doctorate">ปริญญาเอก</option>
                     </select>
                 </div>
+
+                <!-- เลือกสาขาวิชา -->
+                <div class="col-md-3">
+                    <label for="majorSelect" class="form-label fw-bold text-secondary mb-1">
+                        สาขาวิชา:
+                    </label>
+                    <select class="form-select form-select-sm" id="majorSelect">
+                        <option value="all" selected>ทุกสาขาวิชา</option>
+                        <option value="it">เทคโนโลยีสารสนเทศ</option>
+                        <option value="cs">วิทยาการคอมพิวเตอร์</option>
+                        <option value="env">วิทยาศาสตร์สิ่งแวดล้อม</option>
+                        <option value="food">เทคโนโลยีการประกอบอาหาร</option>
+                    </select>
+                </div>
+
+                <!-- ปุ่มค้นหา -->
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-primary btn-sm w-100">ค้นหา</button>
+                </div>
+
             </form>
         </div>
 
@@ -209,6 +264,7 @@
                 การเพิ่มประสิทธิภาพในการตรวจจับไฟป่าโดยใช้ Google’s Teachable Machine
             </a>
             <span class="badge bg-light text-dark ms-2 border">ปริญญาตรี</span>
+            <span class="badge bg-info text-dark ms-1">เทคโนโลยีสารสนเทศ</span>
             
             <p class="author-text mt-2">
                 ศุภาพิชญ์ ขวัญอยู่<sup>1</sup>
@@ -225,6 +281,7 @@
                 ศึกษาทางเลือกการผลิตพลังงานทดแทนจากผักตบชวา กรณีศึกษา บริเวณลุ่มแม่น้ำท่าจีน
             </a>
             <span class="badge bg-light text-dark ms-2 border">ปริญญาโท</span>
+            <span class="badge bg-info text-dark ms-1">วิทยาศาสตร์สิ่งแวดล้อม</span>
 
             <p class="author-text mt-2">
                 นนทนันท์ เกื้อชาติ<sup>1,*</sup>
@@ -241,6 +298,7 @@
                 การรับรู้ผลกระทบด้านสุขภาพของสมาชิกโครงการธนาคารขยะในพื้นที่ชุมชนสวนอ้อยและมหาวิทยาลัยสวนดุสิต ประเทศไทย
             </a>
             <span class="badge bg-light text-dark ms-2 border">ปริญญาเอก</span>
+            <span class="badge bg-info text-dark ms-1">วิทยาศาสตร์สิ่งแวดล้อม</span>
 
             <p class="author-text mt-2">
                 ภูริพจน์ แก้วย่อง<sup>1</sup>
