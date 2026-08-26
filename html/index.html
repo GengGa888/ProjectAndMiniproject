@@ -91,6 +91,16 @@
         }
 
         /* -------------------------------------
+           ส่วนตัวกรองหลักสูตร (Filter Box)
+           ------------------------------------- */
+        .filter-container {
+            background-color: #f8f9fa;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px 20px;
+        }
+
+        /* -------------------------------------
            ตกแต่งส่วนรายการโปรเจกต์ 
            ------------------------------------- */
         .project-title { font-size: 1.1rem; color: #2a7cbd; text-decoration: none; font-weight: 500; }
@@ -142,10 +152,24 @@
     </header>
 
     <!-- รายการบทความวิชาการ/โปรเจกต์ -->
-    <div class="container mt-5 mb-5">
+    <div class="container mt-4 mb-5">
         
+        <!-- ส่วนเลือกระดับหลักสูตร (Filter Box) -->
+        <div class="filter-container mb-4 d-flex align-items-center gap-3">
+            <label for="degreeSelect" class="fw-bold text-secondary text-nowrap">
+                เลือกหลักสูตร:
+            </label>
+            <select class="form-select" id="degreeSelect" style="max-width: 250px;">
+                <option value="all" selected>ทุกระดับการศึกษา</option>
+                <option value="bachelor">ปริญญาตรี (Bachelor's Degree)</option>
+                <option value="master">ปริญญาโท (Master's Degree)</option>
+                <option value="doctorate">ปริญญาเอก (Doctoral Degree)</option>
+            </select>
+        </div>
+
         <div class="project-item border-bottom pb-4 mb-4">
             <a href="project-detail.html" class="project-title">การเพิ่มประสิทธิภาพในการตรวจจับไฟป่าโดยใช้ Google’s Teachable Machine</a>
+            <span class="badge bg-secondary ms-2">ปริญญาตรี</span>
             <p class="author-text mt-2">ศุภาพิชญ์ ขวัญอยู่<sup>1</sup> สืบสกุล ครุรัตน์<sup>1,*</sup></p>
             <p class="author-text">ศุภาพิชญ์ ขวัญอยู่</p>
             <p class="page-text">1-18</p>
@@ -154,6 +178,7 @@
 
         <div class="project-item border-bottom pb-4 mb-4">
             <a href="" class="project-title">ศึกษาทางเลือกการผลิตพลังงานทดแทนจากผักตบชวา กรณีศึกษา บริเวณลุ่มแม่น้ำท่าจีน</a>
+            <span class="badge bg-secondary ms-2">ปริญญาโท</span>
             <p class="author-text mt-2">นนทนันท์ เกื้อชาติ<sup>1,*</sup> และอรทัย ชวาลภาฤทธิ์<sup>2</sup></p>
             <p class="author-text">Nontanan Kuerchart</p>
             <p class="page-text">19-32</p>
@@ -162,6 +187,7 @@
 
         <div class="project-item border-bottom pb-4 mb-4">
             <a href="" class="project-title">การรับรู้ผลกระทบด้านสุขภาพของสมาชิกโครงการธนาคารขยะในพื้นที่ชุมชนสวนอ้อยและมหาวิทยาลัยสวนดุสิต ประเทศไทย</a>
+            <span class="badge bg-secondary ms-2">ปริญญาเอก</span>
             <p class="author-text mt-2">ภูริพจน์ แก้วย่อง<sup>1</sup> แทนทัศน เพียกขุนทด<sup>1</sup> ทิพย์วรรณ บุณยาภรณ์<sup>3,*</sup> ชุติวรรณ บุญอาชาทอง<sup>1</sup> และ สายสุดา ปั้นตระกูล<sup>2</sup></p>
             <p class="author-text">ภูริพจน์ แก้วย่อง</p>
             <p class="page-text">33-43</p>
