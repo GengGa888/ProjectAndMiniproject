@@ -42,6 +42,28 @@
             transform: scale(1.05);
         }
 
+        /* ปุ่มบวกเพิ่มโปรเจกต์ */
+        .btn-upload-project {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 1.4rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-upload-project:hover {
+            background-color: white;
+            color: #2b7bb3;
+            transform: scale(1.05);
+        }
+
         .sdu-logo {
             width: 45px;
             height: auto;
@@ -177,31 +199,41 @@
                     </ul>
                 </div>
 
-                <!-- โปรไฟล์ Dropdown สไตล์ภาพตัวอย่าง -->
-                <div class="dropdown">
-                    <a href="#" role="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img 
-                            src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
-                            alt="โปรไฟล์"
-                            class="profile-image"
-                        >
+                <!-- ฝั่งขวา: ปุ่มเพิ่มโปรเจกต์ + โปรไฟล์ Dropdown -->
+                <div class="d-flex align-items-center gap-3">
+
+                    <!-- ปุ่มเพิ่มโปรเจกต์ (รูปบวก) -->
+                    <a href="upload-project.html" class="btn-upload-project" title="ส่งโปรเจกต์">
+                        <i class="bi bi-plus-lg"></i>
                     </a>
-                    
-                    <ul class="dropdown-menu dropdown-menu-end custom-profile-menu mt-2" aria-labelledby="profileDropdown">
-                        <li>
-                            <a class="dropdown-item" href="Personal Information.html">
-                                <i class="bi bi-person-fill"></i>
-                                <span>ข้อมูลส่วนตัว</span>
-                            </a>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <a class="dropdown-item logout-btn" href="index.html">
-                                <i class="bi bi-box-arrow-right"></i>
-                                <span>ออกจากระบบ</span>
-                            </a>
-                        </li>
-                    </ul>
+
+                    <!-- โปรไฟล์ Dropdown -->
+                    <div class="dropdown">
+                        <a href="#" role="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <img 
+                                src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+                                alt="โปรไฟล์"
+                                class="profile-image"
+                            >
+                        </a>
+                        
+                        <ul class="dropdown-menu dropdown-menu-end custom-profile-menu mt-2" aria-labelledby="profileDropdown">
+                            <li>
+                                <a class="dropdown-item" href="Personal Information.html">
+                                    <i class="bi bi-person-fill"></i>
+                                    <span>ข้อมูลส่วนตัว</span>
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item logout-btn" href="index.html">
+                                    <i class="bi bi-box-arrow-right"></i>
+                                    <span>ออกจากระบบ</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
                 </div>
 
             </div>
