@@ -100,6 +100,7 @@
       transform: translateY(-50%);
       color: #777;
       font-size: 1rem;
+      pointer-events: none;
     }
 
     .btn-submit {
@@ -154,7 +155,8 @@
     <div class="login-card">
       <h2>เข้าสู่ระบบ</h2>
 
-      <form id="loginForm">
+      <!-- ส่งข้อมูลไปยังไฟล์ login.php -->
+      <form action="login.php" method="POST">
         <!-- ชื่อผู้ใช้งาน -->
         <div class="form-group">
           <label for="username">ชื่อผู้ใช้งาน</label>
@@ -185,24 +187,6 @@
       </div>
     </div>
   </div>
-
-  <script>
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
-      e.preventDefault(); // ป้องกันหน้าเว็บรีเฟรช
-
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value.trim();
-
-      // ตรวจสอบข้อมูลก่อนล็อกอิน
-      if (username === "" || password === "") {
-        alert("กรุณากรอกชื่อผู้ใช้งานและรหัสผ่าน");
-        return;
-      }
-
-      // เปลี่ยนหน้าไปยัง home.html
-      window.location.href = "index2.html";
-    });
-  </script>
 
 </body>
 </html>
