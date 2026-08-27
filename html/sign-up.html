@@ -152,7 +152,7 @@
     <div class="register-card">
       <h2>ลงทะเบียนใช้งานระบบ</h2>
     
-      <form id="registerForm">
+      <form action="register.php" method="POST" id="registerForm">
         <!-- Username -->
         <div class="form-group">
           <label for="username">Username</label>
@@ -180,12 +180,25 @@
           </div>
         </div>
 
-        <!-- อีเมล Gmail -->
+        <!-- อีเมล -->
         <div class="form-group">
-          <label for="email">อีเมล (ต้องเป็น Gmail มหาลัยเท่านั้น)</label>
+          <label for="email">อีเมล</label>
           <div class="input-wrapper">
-            <input type="email" id="email" name="email" placeholder="example@mail.dusit.ac.th.com" required>
+            <input type="email" id="email" name="email" placeholder="example@mail.dusit.ac.th" required>
             <i class="fa-solid fa-envelope"></i>
+          </div>
+        </div>
+
+        <!-- ประเภทผู้ใช้งาน (Role) -->
+        <div class="form-group">
+          <label for="role">ประเภทผู้ใช้งาน</label>
+          <div class="input-wrapper">
+            <select id="role" name="role" required>
+              <option value="" disabled selected>-- เลือกสิทธิ์การใช้งาน --</option>
+              <option value="student">นักศึกษา</option>
+              <option value="teacher">อาจารย์ / ที่ปรึกษา</option>
+            </select>
+            <i class="fa-solid fa-users"></i>
           </div>
         </div>
 
@@ -233,31 +246,13 @@
 
   <script>
     document.getElementById('registerForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-
-      const firstname = document.getElementById('firstname').value.trim();
-      const lastname = document.getElementById('lastname').value.trim();
-      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       const confirmPassword = document.getElementById('confirm_password').value;
 
-      if (firstname === "" || lastname === "") {
-        alert("กรุณากรอกชื่อและนามสกุลให้ครบถ้วน");
-        return;
-      }
-
-      if (!email.toLowerCase().endsWith("@gmail.com")) {
-        alert("กรุณาใช้อีเมลที่เป็น @gmail.com เท่านั้น");
-        return;
-      }
-
       if (password !== confirmPassword) {
+        e.preventDefault();
         alert("รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน");
-        return;
       }
-
-      alert("สมัครสมาชิกสำเร็จ!");
-      window.location.href = "login.html";
     });
   </script>
 
