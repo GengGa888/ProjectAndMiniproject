@@ -208,11 +208,11 @@ $result = mysqli_stmt_get_result($stmt);
                         <img src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png" alt="SDU Logo" class="sdu-logo">
                     </a>
                     <ul class="nav main-menu">
-                        <li class="nav-item">
-                            <!-- ปรับเปลี่ยนให้ปุ่มหน้าแรกกดไม่ได้ใน index2.php -->
-                            <span class="nav-link" style="cursor: default; opacity: 0.9;">หน้าแรก</span>
-                        </li>
-                    </ul>
+    <li class="nav-item">
+        <!-- แก้ไขจากเดิมที่เป็น span ให้เป็นลิงก์ไปที่ index2.php -->
+        <a class="nav-link" href="index2.php">หน้าแรก</a>
+    </li>
+</ul>
                 </div>
 
                 <!-- ฝั่งขวา: ปุ่มเพิ่มโปรเจกต์ + โปรไฟล์ Dropdown -->
