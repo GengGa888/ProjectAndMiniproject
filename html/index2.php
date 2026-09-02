@@ -191,14 +191,14 @@ include 'db_connect.php';
     <!-- แถบเมนูด้านบน -->
     <header class="custom-header">
         <div class="container">
-            <div class="d-flex justify-content-between align-items-center flex-wrap mt-2">
-                        <img 
-                            src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png"
-                            alt="SDU Logo"
-                            class="sdu-logo"
-                        >
-                    </a>
-                    <ul class="nav main-menu">
+    <div class="d-flex justify-content-between align-items-center flex-wrap mt-2">
+            <img 
+                src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png
+                alt="SDU Logo"
+                class="sdu-logo"
+            >
+        </a> <!-- จุดนี้เกินมาเพราะไม่มี <a> เปิดครอบ -->
+        <ul class="nav main-menu">
                         <li class="nav-item">
                             <a class="nav-link" href="index.php">หน้าแรก</a>
                         </li>
