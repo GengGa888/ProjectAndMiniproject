@@ -60,17 +60,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     mysqli_stmt_bind_param($stmt_insert, "sssssss", $username, $firstname, $lastname, $email, $role, $department, $hashed_password);
 
     if (mysqli_stmt_execute($stmt_insert)) {
+        mysqli_stmt_close($stmt_insert);
+        mysqli_close($conn);
         echo "<script>
                 alert('สมัครสมาชิกสำเร็จ!');
                 window.location.href='login.php';
               </script>";
+        exit();
     } else {
         echo "เกิดข้อผิดพลาดในการบันทึกข้อมูล: " . mysqli_error($conn);
+        mysqli_stmt_close($stmt_insert);
+        mysqli_close($conn);
+        exit();
     }
-    
-    mysqli_stmt_close($stmt_insert);
-    mysqli_close($conn);
-    exit();
 }
 ?>
 
