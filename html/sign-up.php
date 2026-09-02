@@ -8,18 +8,16 @@ include 'db_connect.php';
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // รับข้อมูลจากฟอร์ม
-    $username   = trim($_POST['username']);
-    $firstname  = trim($_POST['firstname']);
-    $lastname   = trim($_POST['lastname']);
-    $email      = trim($_POST['email']);
-    $role       = trim($_POST['role']);
-    $department = trim($_POST['department']);
-    $password   = $_POST['password'];
-    $confirm_password = $_POST['confirm_password'];
+    $username   = trim($_POST['username'] ?? '');
+    $firstname  = trim($_POST['firstname'] ?? '');
+    $lastname   = trim($_POST['lastname'] ?? '');
+    $email      = trim($_POST['email'] ?? '');
+    $role       = trim($_POST['role'] ?? '');
+    $department = trim($_POST['department'] ?? '');
+    $password   = $_POST['password'] ?? '';
+    $confirm_password = $_POST['confirm_password'] ?? '';
 
-    // ===============================
     // 1. ตรวจสอบรหัสผ่านตรงกันหรือไม่
-    // ===============================
     if ($password !== $confirm_password) {
         echo "<script>
                 alert('รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน');
@@ -28,9 +26,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit();
     }
 
-    // ===============================
-    // 2. ตรวจสอบ Username และ Email ซ้ำด้วย Prepared Statement
-    // ===============================
+    // 2. ตรวจสอบ Username และ Email ซ้ำ
     $stmt_check = mysqli_prepare($conn, "SELECT id FROM users WHERE username = ? OR email = ?");
     mysqli_stmt_bind_param($stmt_check, "ss", $username, $email);
     mysqli_stmt_execute($stmt_check);
@@ -46,17 +42,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
     mysqli_stmt_close($stmt_check);
 
-    // ===============================
     // 3. เข้ารหัส Password
-    // ===============================
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-    // ===============================
-    // 4. บันทึกข้อมูลแบบ Prepared Statement
-    // ===============================
+    // 4. บันทึกข้อมูลลงฐานข้อมูล
     $sql = "INSERT INTO users (username, first_name, last_name, email, role, department, password) VALUES (?, ?, ?, ?, ?, ?, ?)";
     $stmt_insert = mysqli_prepare($conn, $sql);
-    
     mysqli_stmt_bind_param($stmt_insert, "sssssss", $username, $firstname, $lastname, $email, $role, $department, $hashed_password);
 
     if (mysqli_stmt_execute($stmt_insert)) {
@@ -83,7 +74,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>สมัครสมาชิก - ระบบสืบค้นโปรเจกต์และมินิโปรเจกต์</title>
-
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
@@ -99,12 +89,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       display: flex;
       justify-content: center;
       align-items: center;
-      background: linear-gradient(
-        135deg,
-        #29b6f6 0%,
-        #b3e5fc 50%,
-        #e1f5fe 100%
-      );
+      background: linear-gradient(135deg, #29b6f6 0%, #b3e5fc 50%, #e1f5fe 100%);
       padding: 40px 0;
     }
 
@@ -128,9 +113,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       width: 110px;
       height: 110px;
       object-fit: contain;
-      filter: drop-shadow(
-        0px 4px 6px rgba(0, 0, 0, 0.15)
-      );
+      filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.15));
     }
 
     .register-card {
@@ -198,11 +181,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     .btn-submit {
       width: 100%;
       padding: 11px;
-      background: linear-gradient(
-        to bottom,
-        #34b3c7,
-        #258ca3
-      );
+      background: linear-gradient(to bottom, #34b3c7, #258ca3);
       border: none;
       border-radius: 5px;
       color: #ffffff;
@@ -238,19 +217,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <body>
 
   <div class="register-wrapper">
-
-    <!-- Logo -->
     <div class="logo-container">
       <img src="https://academic.dusit.ac.th/academic/edu/util/img/login/sdu-newlogo.png" alt="ตราสัญลักษณ์">
     </div>
 
-    <!-- Register Card -->
     <div class="register-card">
       <h2>ลงทะเบียนใช้งานระบบ</h2>
 
       <form action="sign-up.php" method="POST" id="registerForm">
-
-        <!-- Username -->
         <div class="form-group">
           <label for="username">Username</label>
           <div class="input-wrapper">
@@ -259,7 +233,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           </div>
         </div>
 
-        <!-- ชื่อ -->
         <div class="form-group">
           <label for="firstname">ชื่อ</label>
           <div class="input-wrapper">
@@ -268,7 +241,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           </div>
         </div>
 
-        <!-- นามสกุล -->
         <div class="form-group">
           <label for="lastname">นามสกุล</label>
           <div class="input-wrapper">
@@ -277,7 +249,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           </div>
         </div>
 
-        <!-- Email -->
         <div class="form-group">
           <label for="email">อีเมล</label>
           <div class="input-wrapper">
@@ -286,7 +257,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           </div>
         </div>
 
-        <!-- Role -->
         <div class="form-group">
           <label for="role">ประเภทผู้ใช้งาน</label>
           <div class="input-wrapper">
@@ -299,7 +269,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           </div>
         </div>
 
-        <!-- Department -->
         <div class="form-group">
           <label for="department">สาขาวิชา / คณะ</label>
           <div class="input-wrapper">
@@ -314,7 +283,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           </div>
         </div>
 
-        <!-- Password -->
         <div class="form-group">
           <label for="password">รหัสผ่าน</label>
           <div class="input-wrapper">
@@ -323,7 +291,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           </div>
         </div>
 
-        <!-- Confirm Password -->
         <div class="form-group">
           <label for="confirm_password">ยืนยันรหัสผ่าน</label>
           <div class="input-wrapper">
@@ -332,22 +299,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           </div>
         </div>
 
-        <!-- Submit -->
         <button type="submit" class="btn-submit">ยืนยันการสมัครสมาชิก</button>
-
       </form>
 
-      <!-- Login Link -->
       <div class="footer-links">
         มีบัญชีผู้ใช้งานอยู่แล้ว?
         <a href="login.php">เข้าสู่ระบบที่นี่</a>
       </div>
-
     </div>
-
   </div>
 
-  <!-- ตรวจสอบ Password หน้า Client -->
   <script>
     document.getElementById('registerForm').addEventListener('submit', function(e) {
       const password = document.getElementById('password').value;
@@ -359,7 +320,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       }
     });
   </script>
-
 </body>
-
 </html>

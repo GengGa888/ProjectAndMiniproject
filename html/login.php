@@ -3,15 +3,59 @@ session_start(); // เรียกใช้งาน Session เป็นบร
 include 'db_connect.php'; // เรียกใช้งานการเชื่อมต่อฐานข้อมูลจากไฟล์นี้เพียงจุดเดียว
 
 $error = "";
+$success = "";
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+// ---------------------------------------------------------
+// 1. ส่วนรับข้อมูลการสมัครสมาชิก (สมัครแล้วส่งมาที่นี่)
+// ---------------------------------------------------------
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'register') {
+    $username   = trim($_POST['username'] ?? '');
+    $first_name = trim($_POST['first_name'] ?? '');
+    $last_name  = trim($_POST['last_name'] ?? '');
+    $email      = trim($_POST['email'] ?? '');
+    $department = trim($_POST['department'] ?? '');
+    $password   = trim($_POST['password'] ?? '');
+    $role       = 'student'; // กำหนดสิทธิ์เริ่มต้นเป็น student (หรือเปลี่ยนตามต้องการ)
+
+    if (!empty($username) && !empty($password) && !empty($email)) {
+        // เช็คว่า Username หรือ Email มีในระบบแล้วหรือยัง
+        $check_stmt = mysqli_prepare($conn, "SELECT id FROM users WHERE username = ? OR email = ?");
+        mysqli_stmt_bind_param($check_stmt, "ss", $username, $email);
+        mysqli_stmt_execute($check_stmt);
+        mysqli_stmt_store_result($check_stmt);
+
+        if (mysqli_stmt_num_rows($check_stmt) > 0) {
+            $error = "ชื่อผู้ใช้หรืออีเมลนี้ถูกใช้งานแล้ว";
+        } else {
+            // เข้ารหัสรหัสผ่านก่อนบันทึก
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+            $insert_stmt = mysqli_prepare($conn, "INSERT INTO users (username, first_name, last_name, email, department, password, role) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            mysqli_stmt_bind_param($insert_stmt, "sssssss", $username, $first_name, $last_name, $email, $department, $hashed_password, $role);
+
+            if (mysqli_stmt_execute($insert_stmt)) {
+                $success = "สมัครสมาชิกสำเร็จ! กรุณาล็อกอินเข้าสู่ระบบ";
+            } else {
+                $error = "เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง";
+            }
+            mysqli_stmt_close($insert_stmt);
+        }
+        mysqli_stmt_close($check_stmt);
+    } else {
+        $error = "กรุณากรอกข้อมูลให้ครบถ้วน";
+    }
+}
+
+// ---------------------------------------------------------
+// 2. ส่วนตรวจสอบการล็อกอิน
+// ---------------------------------------------------------
+if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['action'])) {
 
     $username = trim($_POST['username'] ?? '');
     $password = trim($_POST['password'] ?? '');
 
     if (!empty($username) && !empty($password)) {
         
-        // 1. ค้นหาผู้ใช้จาก Username อย่างเดียวเพื่อป้องกัน SQL Injection และเตรียมเช็ครหัสผ่าน
         $stmt = mysqli_prepare($conn, "SELECT id, username, password, role FROM users WHERE username = ?");
         mysqli_stmt_bind_param($stmt, "s", $username);
         mysqli_stmt_execute($stmt);
@@ -19,24 +63,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         if ($user = mysqli_fetch_assoc($result)) {
             
-            // 2. ตรวจสอบรหัสผ่านแบบ Hashing (รองรับทั้ง password_verify และ Plaintext ชั่วคราว)
+            // ตรวจสอบรหัสผ่าน
             $password_check = password_verify($password, $user['password']) || ($password === $user['password']);
 
             if ($password_check) {
-                // เก็บข้อมูลผู้ใช้ลง Session
-                $_SESSION['user_id'] = $user['id'];
+                // เก็บข้อมูลลง Session
+                $_SESSION['user_id']  = $user['id'];
                 $_SESSION['username'] = $user['username'];
-                $_SESSION['role'] = $user['role'];
+                $_SESSION['role']     = $user['role'];
 
-                // 3. ส่งไปยังหน้าต่างๆ ตาม Role (ปรับชื่อไฟล์ให้ตรงกับโครงสร้างจริงในเครื่อง)
+                // ส่งไปยังหน้าต่างๆ ตาม Role
                 if ($user['role'] == 'admin') {
                     header("Location: admin.php");
                 } elseif ($user['role'] == 'teacher') {
                     header("Location: arjarn.php");
-                } elseif ($user['role'] == 'student') {
-                    header("Location: Personal Information.php"); // แก้ไขตรงนี้ให้ตรงกับชื่อไฟล์ใน VS Code
                 } else {
-                    $error = "ไม่พบสิทธิ์การใช้งานของผู้ใช้";
+                    // ผู้ใช้ทั่วไป / นักศึกษา ให้ส่งไปที่ index2.php
+                    header("Location: index2.php"); 
                 }
                 exit();
             } else {
@@ -212,6 +255,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             margin-bottom: 20px;
             font-size: 0.9rem;
         }
+
+        .success-message {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 
@@ -234,6 +287,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="error-message">
                     <i class="fa-solid fa-circle-exclamation"></i>
                     <?php echo htmlspecialchars($error); ?>
+                </div>
+            <?php endif; ?>
+
+            <!-- แสดง Success -->
+            <?php if (!empty($success)): ?>
+                <div class="success-message">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <?php echo htmlspecialchars($success); ?>
                 </div>
             <?php endif; ?>
 
