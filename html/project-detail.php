@@ -9,28 +9,31 @@ if ($project_id <= 0) {
     exit();
 }
 
-// 2. ดึงข้อมูลโปรเจกต์จากฐานข้อมูล
-$sql = "SELECT * FROM projects WHERE id = ?";
-$stmt = mysqli_prepare($conn, $sql);
-mysqli_stmt_bind_param($stmt, "i", $project_id);
-mysqli_stmt_execute($stmt);
-$result = mysqli_stmt_get_result($stmt);
+// 2. ดึงข้อมูลโปรเจกต์จากฐานข้อมูลด้วย PDO
+try {
+    $sql = "SELECT * FROM projects WHERE id = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$project_id]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if ($row = mysqli_fetch_assoc($result)) {
-    $title = $row['title'] ?? 'ไม่พบชื่อโปรเจกต์';
-    $description = $row['description'] ?? 'ไม่มีคำอธิบาย';
-    $keywords = !empty($row['keywords']) ? explode(',', $row['keywords']) : [];
-    $authors = $row['authors'] ?? 'ไม่ระบุผู้แต่ง';
-    $advisor = $row['advisor'] ?? 'ไม่ระบุ';
-    $created_at = !empty($row['created_at']) ? date('d/m/Y', strtotime($row['created_at'])) : '-';
-    $academic_year = $row['academic_year'] ?? '-';
-    $github_url = $row['github_url'] ?? '#';
-    $pdf_file = $row['pdf_file'] ?? '';
-    $cover_image = !empty($row['cover_image']) ? 'uploads/' . $row['cover_image'] : 'https://ph01.tci-thaijo.org/public/journals/706/cover_issue_17385_th_TH.png';
-    $category_name = $row['category_name'] ?? 'เทคโนโลยีสารสนเทศ';
-} else {
-    echo "<div class='container mt-5'><div class='alert alert-danger'>ไม่พบข้อมูลโปรเจกต์ที่ต้องการ</div></div>";
-    exit();
+    if ($row) {
+        $title = $row['title'] ?? 'ไม่พบชื่อโปรเจกต์';
+        $description = $row['description'] ?? 'ไม่มีคำอธิบาย';
+        $keywords = !empty($row['keywords']) ? explode(',', $row['keywords']) : [];
+        $authors = $row['authors'] ?? 'ไม่ระบุผู้แต่ง';
+        $advisor = $row['advisor'] ?? 'ไม่ระบุ';
+        $created_at = !empty($row['created_at']) ? date('d/m/Y', strtotime($row['created_at'])) : '-';
+        $academic_year = $row['academic_year'] ?? '-';
+        $github_url = $row['github_url'] ?? '#';
+        $pdf_file = $row['pdf_file'] ?? '';
+        $cover_image = !empty($row['cover_image']) ? 'uploads/' . $row['cover_image'] : 'https://ph01.tci-thaijo.org/public/journals/706/cover_issue_17385_th_TH.png';
+        $category_name = $row['category_name'] ?? 'เทคโนโลยีสารสนเทศ';
+    } else {
+        echo "<div class='container mt-5'><div class='alert alert-danger'>ไม่พบข้อมูลโปรเจกต์ที่ต้องการ</div></div>";
+        exit();
+    }
+} catch (PDOException $e) {
+    die("Query Error: " . $e->getMessage());
 }
 ?>
 <!DOCTYPE html>
