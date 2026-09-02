@@ -1,13 +1,60 @@
-<?php 
-session_start();
+<?php
+session_start(); 
 include 'db_connect.php'; 
 
-// 1. รับค่าตัวกรองและการค้นหาผ่าน Query String (GET)
+$error = "";
+
+// 1. จัดการระบบล็อกอิน (POST Request)
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+
+    $username = trim($_POST['username'] ?? '');
+    $password = trim($_POST['password'] ?? '');
+
+    if (!empty($username) && !empty($password)) {
+        
+        $stmt = mysqli_prepare($conn, "SELECT id, username, password, role FROM users WHERE username = ?");
+        mysqli_stmt_bind_param($stmt, "s", $username);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+
+        if ($user = mysqli_fetch_assoc($result)) {
+            
+            // เช็กรหัสผ่านทั้งแบบ Hash และ Plaintext
+            $password_check = password_verify($password, $user['password']) || ($password === $user['password']);
+
+            if ($password_check) {
+                $_SESSION['user_id']  = $user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['role']     = $user['role'];
+
+                // ล็อกอินสำเร็จ -> ไปยังหน้าปลายทางตาม Role
+                if ($user['role'] == 'admin') {
+                    header("Location: admin.php");
+                } elseif ($user['role'] == 'teacher') {
+                    header("Location: arjarn.php");
+                } else {
+                    header("Location: index2.php"); 
+                }
+                exit();
+            } else {
+                $error = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
+            }
+        } else {
+            $error = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
+        }
+
+        mysqli_stmt_close($stmt);
+    } else {
+        $error = "กรุณากรอกข้อมูลให้ครบถ้วน";
+    }
+}
+
+// 2. จัดการระบบค้นหาและกรองข้อมูลโปรเจกต์ (GET Request)
 $search = isset($_GET['searchKeyword']) ? trim($_GET['searchKeyword']) : '';
 $degree = isset($_GET['degreeSelect']) ? $_GET['degreeSelect'] : 'all';
 $major  = isset($_GET['majorSelect']) ? $_GET['majorSelect'] : 'all';
 
-// 2. สร้าง SQL Dynamic Query
+// สร้าง SQL Dynamic Query สำหรับค้นหาโปรเจกต์
 $sql = "SELECT * FROM projects WHERE 1=1";
 $params = [];
 $types = "";
@@ -35,17 +82,16 @@ if ($major !== 'all' && !empty($major)) {
 
 $sql .= " ORDER BY created_at DESC";
 
-// 3. ประมวลผลคำสั่ง SQL ร่วมกับ Prepared Statement
-$stmt = mysqli_prepare($conn, $sql);
+// ประมวลผลคำสั่ง SQL ร่วมกับ Prepared Statement ของส่วนค้นหา
+$stmt_search = mysqli_prepare($conn, $sql);
 
 if (!empty($params)) {
-    mysqli_stmt_bind_param($stmt, $types, ...$params);
+    mysqli_stmt_bind_param($stmt_search, $types, ...$params);
 }
 
-mysqli_stmt_execute($stmt);
-$result = mysqli_stmt_get_result($stmt);
+mysqli_stmt_execute($stmt_search);
+$projects_result = mysqli_stmt_get_result($stmt_search);
 ?>
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -205,14 +251,11 @@ $result = mysqli_stmt_get_result($stmt);
             <div class="d-flex justify-content-between align-items-center flex-wrap mt-2">
                 <div class="d-flex align-items-center gap-3">
                     <a href="index2.php">
-                        <img src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png" alt="SDU Logo" class="sdu-logo">
-                    </a>
-                    <ul class="nav main-menu">
-    <li class="nav-item">
-        <a class="nav-link" href="#">หน้าแรก</a>
-    </li>
-</ul>
-                </div>
+                        <img src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png" alt="SDU Logo" class="sdu-logo"></a></div>
+                        
+                        <div class="footer-links">
+                              <a href="index2.php">หน้าแรก</a>
+                        </div>
 
                 <!-- ฝั่งขวา: ปุ่มเพิ่มโปรเจกต์ + โปรไฟล์ Dropdown -->
                 <div class="d-flex align-items-center gap-3">
