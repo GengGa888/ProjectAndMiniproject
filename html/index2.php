@@ -195,12 +195,11 @@ include 'db_connect.php';
                         <img 
                             src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png"
                             alt="SDU Logo"
-                            class="sdu-logo"
-                        >
-                    </a>
+                            class="sdu-logo">
+                    
                     <ul class="nav main-menu">
                         <li class="nav-item">
-                            <a class="nav-link" href="index.php">หน้าแรก</a>
+                            <a class="nav-link" href="index2.php">หน้าแรก</a>
                         </li>
                     </ul>
                 </div>
