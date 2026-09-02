@@ -1,3 +1,89 @@
+<?php
+session_start();
+include 'db_connect.php';
+
+// 1. ตรวจสอบสิทธิ์การเข้าใช้งาน
+if (!isset($_SESSION['user_id'])) {
+    echo "<script>alert('กรุณาเข้าสู่ระบบก่อนอัปโหลดผลงาน'); window.location.href='login.php';</script>";
+    exit();
+}
+
+$message = '';
+$error = '';
+
+// 2. จัดการเมื่อมีการกดปุ่มส่งฟอร์ม (POST Request)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $user_id       = $_SESSION['user_id'];
+    $project_type  = $_POST['projectType'] ?? 'miniproject';
+    $title         = trim($_POST['projectTitle'] ?? '');
+    $degree        = $_POST['degreeSelect'] ?? '';
+    $major         = $_POST['majorSelect'] ?? '';
+    $authors       = trim($_POST['authorNames'] ?? '');
+    $advisor       = trim($_POST['advisorName'] ?? '');
+    $github_url    = trim($_POST['githubUrl'] ?? '');
+    $abstract      = trim($_POST['projectAbstract'] ?? '');
+
+    // ตรวจสอบความถูกต้องเบื้องต้น
+    if (empty($title) || empty($degree) || empty($major) || empty($authors) || !isset($_FILES['filePdf'])) {
+        $error = "กรุณากรอกข้อมูลสำคัญที่มีเครื่องหมาย (*) ให้ครบถ้วน";
+    } else {
+        // จัดการอัปโหลดไฟล์ PDF
+        $file = $_FILES['filePdf'];
+        $fileName = $file['name'];
+        $fileTmpName = $file['tmp_name'];
+        $fileSize = $file['size'];
+        $fileError = $file['error'];
+
+        $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+        // ตรวจสอบชนิดไฟล์และขนาดไฟล์ (ไม่เกิน 25MB)
+        if ($fileExt === 'pdf') {
+            if ($fileError === 0) {
+                if ($fileSize <= 25 * 1024 * 1024) { // 25MB
+                    
+                    // สุ่มชื่อไฟล์ใหม่ป้องกันชื่อซ้ำกัน
+                    $newFileName = uniqid('proj_', true) . "." . $fileExt;
+                    $uploadDir = 'uploads/';
+
+                    // สร้างโฟลเดอร์ uploads หากยังไม่มี
+                    if (!is_dir($uploadDir)) {
+                        mkdir($uploadDir, 0777, true);
+                    }
+
+                    $fileDestination = $uploadDir . $newFileName;
+
+                    // ย้ายไฟล์ไปยังโฟลเดอร์ปลายทาง
+                    if (move_uploaded_file($fileTmpName, $fileDestination)) {
+                        
+                        // บันทึกข้อมูลลงในฐานข้อมูล
+                        $sql = "INSERT INTO projects (user_id, project_type, title, degree, department, authors, advisor_name, github_url, abstract, pdf_file, created_at) 
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+
+                        if ($stmt = mysqli_prepare($conn, $sql)) {
+                            mysqli_stmt_bind_param($stmt, "isssssssss", $user_id, $project_type, $title, $degree, $major, $authors, $advisor, $github_url, $abstract, $newFileName);
+                            
+                            if (mysqli_stmt_execute($stmt)) {
+                                $message = "อัปโหลดและส่งเอกสารเรียบร้อยแล้ว!";
+                            } else {
+                                $error = "เกิดข้อผิดพลาดในการบันทึกข้อมูลลงฐานข้อมูล: " . mysqli_error($conn);
+                            }
+                            mysqli_stmt_close($stmt);
+                        }
+                    } else {
+                        $error = "เกิดข้อผิดพลาดในการย้ายไฟล์ไปยังเซิร์ฟเวอร์";
+                    }
+                } else {
+                    $error = "ขนาดไฟล์เกินกำหนด (ต้องไม่เกิน 25 MB)";
+                }
+            } else {
+                $error = "เกิดข้อผิดพลาดในการอัปโหลดไฟล์";
+            }
+        } else {
+            $error = "รองรับเฉพาะไฟล์เอกสารประเภท PDF เท่านั้น";
+        }
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -152,7 +238,7 @@
             <div class="d-flex justify-content-between align-items-center flex-wrap mt-2">
                 
                 <div class="d-flex align-items-center gap-3">
-                    <a href="index.html">
+                    <a href="index.php">
                         <img 
                             src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png"
                             alt="SDU Logo"
@@ -161,7 +247,7 @@
                     </a>
                     <ul class="nav main-menu">
                         <li class="nav-item">
-                            <a class="nav-link" href="index.html">หน้าแรก</a>
+                            <a class="nav-link" href="index.php">หน้าแรก</a>
                         </li>
                     </ul>
                 </div>
@@ -178,14 +264,14 @@
                     
                     <ul class="dropdown-menu dropdown-menu-end custom-profile-menu mt-2" aria-labelledby="profileDropdown">
                         <li>
-                            <a class="dropdown-item" href="profile.html">
+                            <a class="dropdown-item" href="profile.php">
                                 <i class="bi bi-person-fill"></i>
                                 <span>ข้อมูลส่วนตัว</span>
                             </a>
                         </li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
-                            <a class="dropdown-item logout-btn" href="login.html">
+                            <a class="dropdown-item logout-btn" href="logout.php">
                                 <i class="bi bi-box-arrow-right"></i>
                                 <span>ออกจากระบบ</span>
                             </a>
@@ -204,7 +290,22 @@
                 <i class="bi bi-cloud-upload-fill me-2"></i>ส่งไฟล์งาน / โปรเจกต์
             </h4>
 
-            <form action="#" method="POST" enctype="multipart/form-data">
+            <!-- แสดงข้อความแจ้งเตือนสำเร็จหรือผิดพลาด -->
+            <?php if (!empty($message)): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i><?php echo $message; ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!empty($error)): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i><?php echo $error; ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
+            <form action="upload.php" method="POST" enctype="multipart/form-data">
                 
                 <!-- ตัวเลือกประเภทงาน -->
                 <div class="mb-4">
@@ -230,28 +331,28 @@
                 <!-- ชื่อโปรเจกต์ -->
                 <div class="mb-3">
                     <label for="projectTitle" class="form-label fw-bold text-secondary">ชื่อหัวข้อ / ชื่อโปรเจกต์ <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="projectTitle" placeholder="ระบุชื่อผลงานภาษาไทย หรือภาษาอังกฤษ" required>
+                    <input type="text" class="form-control" name="projectTitle" id="projectTitle" placeholder="ระบุชื่อผลงานภาษาไทย หรือภาษาอังกฤษ" required>
                 </div>
 
                 <!-- ข้อมูลระดับการศึกษาและสาขา -->
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
                         <label for="degreeSelect" class="form-label fw-bold text-secondary">ระดับหลักสูตร <span class="text-danger">*</span></label>
-                        <select class="form-select" id="degreeSelect" required>
+                        <select class="form-select" name="degreeSelect" id="degreeSelect" required>
                             <option value="" selected disabled>-- เลือกระดับการศึกษา --</option>
-                            <option value="bachelor">ปริญญาตรี</option>
-                            <option value="master">ปริญญาโท</option>
-                            <option value="doctorate">ปริญญาเอก</option>
+                            <option value="ปริญญาตรี">ปริญญาตรี</option>
+                            <option value="ปริญญาโท">ปริญญาโท</option>
+                            <option value="ปริญญาเอก">ปริญญาเอก</option>
                         </select>
                     </div>
                     <div class="col-md-6">
                         <label for="majorSelect" class="form-label fw-bold text-secondary">สาขาวิชา <span class="text-danger">*</span></label>
-                        <select class="form-select" id="majorSelect" required>
+                        <select class="form-select" name="majorSelect" id="majorSelect" required>
                             <option value="" selected disabled>-- เลือกสาขาวิชา --</option>
-                            <option value="it">เทคโนโลยีสารสนเทศ</option>
-                            <option value="cs">วิทยาการคอมพิวเตอร์</option>
-                            <option value="env">วิทยาศาสตร์สิ่งแวดล้อม</option>
-                            <option value="food">เทคโนโลยีการประกอบอาหาร</option>
+                            <option value="เทคโนโลยีสารสนเทศ">เทคโนโลยีสารสนเทศ</option>
+                            <option value="วิทยาการคอมพิวเตอร์">วิทยาการคอมพิวเตอร์</option>
+                            <option value="วิทยาศาสตร์สิ่งแวดล้อม">วิทยาศาสตร์สิ่งแวดล้อม</option>
+                            <option value="เทคโนโลยีการประกอบอาหาร">เทคโนโลยีการประกอบอาหาร</option>
                         </select>
                     </div>
                 </div>
@@ -259,31 +360,32 @@
                 <!-- รายชื่อผู้แต่ง / ผู้จัดทำ -->
                 <div class="mb-3">
                     <label for="authorNames" class="form-label fw-bold text-secondary">ชื่อผู้จัดทำ / ผู้แต่ง <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="authorNames" placeholder="เช่น นายสมชาย ใจดี, นางสาวสมหญิง รักดี" required>
+                    <input type="text" class="form-control" name="authorNames" id="authorNames" placeholder="เช่น นายสมชาย ใจดี, นางสาวสมหญิง รักดี" required>
                     <div class="form-text">หากมีหลายคน ให้ใช้เครื่องหมายจุลภาค (,) คั่น</div>
                 </div>
 
                 <!-- อาจารย์ที่ปรึกษา -->
                 <div class="mb-3">
                     <label for="advisorName" class="form-label fw-bold text-secondary">อาจารย์ที่ปรึกษา / อาจารย์ประจำวิชา</label>
-                    <input type="text" class="form-control" id="advisorName" placeholder="ระบุชื่อ-นามสกุล อาจารย์ที่ปรึกษา">
+                    <input type="text" class="form-control" name="advisorName" id="advisorName" placeholder="ระบุชื่อ-นามสกุล อาจารย์ที่ปรึกษา">
                 </div>
 
+                <!-- GitHub Repository -->
                 <div class="mb-3">
-                    <label for="advisorName" class="form-label fw-bold text-secondary">GitHub Repository:</label>
-                    <input type="text" class="form-control" id="advisorName" placeholder="GitHub">
+                    <label for="githubUrl" class="form-label fw-bold text-secondary">GitHub Repository:</label>
+                    <input type="url" class="form-control" name="githubUrl" id="githubUrl" placeholder="https://github.com/username/repository">
                 </div>
 
                 <!-- คำอธิบายย่อ / บทคัดย่อ -->
                 <div class="mb-3">
                     <label for="projectAbstract" class="form-label fw-bold text-secondary">บทคัดย่อ / รายละเอียดสังเขป</label>
-                    <textarea class="form-control" id="projectAbstract" rows="4" placeholder="กรอกเนื้อหาบทคัดย่อหรือรายละเอียดภาพรวมของโปรเจกต์..."></textarea>
+                    <textarea class="form-control" name="projectAbstract" id="projectAbstract" rows="4" placeholder="กรอกเนื้อหาบทคัดย่อหรือรายละเอียดภาพรวมของโปรเจกต์..."></textarea>
                 </div>
 
                 <!-- อัปโหลดไฟล์ PDF -->
                 <div class="mb-4">
                     <label for="filePdf" class="form-label fw-bold text-secondary">แนบไฟล์เอกสาร (PDF) <span class="text-danger">*</span></label>
-                    <input class="form-control" type="file" id="filePdf" accept=".pdf" required>
+                    <input class="form-control" type="file" name="filePdf" id="filePdf" accept=".pdf" required>
                     <div class="form-text">รองรับเฉพาะไฟล์ .pdf ขนาดไม่เกิน 25 MB</div>
                 </div>
 

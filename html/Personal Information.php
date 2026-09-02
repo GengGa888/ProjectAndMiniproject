@@ -1,3 +1,32 @@
+<?php
+session_start();
+include 'db_connect.php';
+
+// ตรวจสอบว่าผู้ใช้ Login เข้ามาหรือยัง หากยังให้ส่งกลับไปหน้า Login
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+$user_id = $_SESSION['user_id'];
+
+// 1. ดึงข้อมูลผู้ใช้งานที่กำลัง Login
+$stmt_user = mysqli_prepare($conn, "SELECT first_name, last_name FROM users WHERE id = ?");
+mysqli_stmt_bind_param($stmt_user, "i", $user_id);
+mysqli_stmt_execute($stmt_user);
+$res_user = mysqli_stmt_get_result($stmt_user);
+$user_data = mysqli_fetch_assoc($res_user);
+
+// กำหนดค่าชื่อ-นามสกุล (หากไม่มีใน DB ให้ใช้ค่าจาก Session หรือแสดงค่าเริ่มต้น)
+$first_name = $user_data['first_name'] ?? $_SESSION['username'] ?? 'ไม่ระบุ';
+$last_name = $user_data['last_name'] ?? '';
+
+// 2. ดึงรายการโปรเจกต์ของผู้ใช้นี้
+$stmt_proj = mysqli_prepare($conn, "SELECT * FROM projects WHERE user_id = ?");
+mysqli_stmt_bind_param($stmt_proj, "i", $user_id);
+mysqli_stmt_execute($stmt_proj);
+$projects_result = mysqli_stmt_get_result($stmt_proj);
+?>
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -19,7 +48,7 @@
             color: #333;
         }
 
-        /* --- Header ดึงสไตล์ธีมเดิมมาใช้ --- */
+        /* --- Header --- */
         .header {
             background-color: #3e88c7;
             color: white;
@@ -30,7 +59,6 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
-        /* ปรับส่วนหน้าแรกให้กดคลิกเพื่อเปลี่ยนหน้าได้ */
         .header-left {
             display: flex;
             align-items: center;
@@ -75,7 +103,7 @@
             border: 2px solid #fff;
         }
 
-        /* --- Main Container ตามรูปวาด --- */
+        /* --- Container --- */
         .container {
             max-width: 950px;
             margin: 40px auto;
@@ -90,7 +118,6 @@
             overflow: hidden;
         }
 
-        /* ป้ายกลม "ข้อมูลส่วนตัว" ด้านบน */
         .project-badge-container {
             display: flex;
             justify-content: center;
@@ -109,7 +136,6 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         }
 
-        /* ส่วนแสดงชื่อผู้ใช้ */
         .user-info-section {
             padding: 20px 50px 30px 50px;
             display: flex;
@@ -133,7 +159,6 @@
             margin-right: 30px;
         }
 
-        /* ส่วนแสดงรายการโปรเจกต์ที่ทำ */
         .project-list-section {
             padding: 30px 50px;
             display: flex;
@@ -149,7 +174,6 @@
             gap: 20px;
         }
 
-        /* สไตล์ของรายการผลงานวิจัย */
         .project-item {
             background-color: #fff;
             border: 1px solid #e2e8f0;
@@ -226,17 +250,23 @@
         .btn-pdf:hover {
             background-color: #42a5f5;
         }
+
+        .no-project {
+            color: #888;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
 
-    <!-- แถบ Header (ใส่ลิงก์กดไปหน้าแรก) -->
+    <!-- แถบ Header -->
     <header class="header">
-        <a href="index2.html" class="header-left">
+        <a href="index2.php" class="header-left">
             <div class="logo-placeholder">SDU</div>
             <div class="header-title">หน้าแรก</div>
         </a>
         <div class="header-right">
+            <a href="logout.php" style="color: white; text-decoration: none; margin-right: 15px; font-weight: bold;">ออกจากระบบ</a>
             <div class="user-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
             </div>
@@ -247,38 +277,46 @@
     <div class="container">
         <div class="profile-card">
             
-            <!-- ป้าย "ข้อมูลส่วนตัว" ด้านบน -->
             <div class="project-badge-container">
                 <div class="project-badge">ข้อมูลส่วนตัว</div>
             </div>
 
-            <!-- ส่วนชื่อผู้ใช้ -->
+            <!-- ดึงชื่อผู้ใช้งานจริงมาแสดง -->
             <div class="user-info-section">
                 <div class="label-title">ชื่อ</div>
-                <div class="user-name">นาย ยังเต้ย</div>
+                <div class="user-name"><?php echo htmlspecialchars($first_name); ?></div>
                 <div class="label-title">นามสกุล</div>
-                <div class="user-name">ลูกอนูทิน</div>
+                <div class="user-name"><?php echo htmlspecialchars($last_name); ?></div>
             </div>
 
-            <!-- ส่วนรายการโปรเจกต์ที่ทำ -->
+            <!-- แสดงรายการโปรเจกต์แบบ Dynamic -->
             <div class="project-list-section">
                 <div class="label-title">โปรเจกต์ที่ทำ</div>
                 
                 <div class="project-box">
-                    <div class="project-item">
-                        <a href="project-detail.html" class="project-title">
-                            การเพิ่มประสิทธิภาพในการตรวจจับไฟป่าโดยใช้ Google’s Teachable Machine
-                        </a>
-                        <div class="tag-container">
-                            <span class="badge badge-degree">ปริญญาตรี</span>
-                            <span class="badge badge-subject">เทคโนโลยีสารสนเทศ</span>
-                        </div>
-                        
-                        <p class="author-text">ศุภาพิชญ์ ขวัญอยู่<sup>1</sup>, สืบสกุล ครุรัตน์<sup>1,*</sup></p>
-                        <p class="author-text">ศุภาพิชญ์ ขวัญอยู่</p>
-                        <p class="page-text">1-18</p>
-                        <a href="#" class="btn-pdf">PDF</a>
-                    </div>
+                    <?php if (mysqli_num_rows($projects_result) > 0): ?>
+                        <?php while ($row = mysqli_fetch_assoc($projects_result)): ?>
+                            <div class="project-item">
+                                <a href="project-detail.php?id=<?php echo $row['id']; ?>" class="project-title">
+                                    <?php echo htmlspecialchars($row['title']); ?>
+                                </a>
+                                <div class="tag-container">
+                                    <span class="badge badge-degree"><?php echo htmlspecialchars($row['degree_level'] ?? 'ปริญญาตรี'); ?></span>
+                                    <span class="badge badge-subject"><?php echo htmlspecialchars($row['subject'] ?? 'เทคโนโลยีสารสนเทศ'); ?></span>
+                                </div>
+                                
+                                <p class="author-text"><?php echo htmlspecialchars($row['authors'] ?? ''); ?></p>
+                                <p class="page-text"><?php echo htmlspecialchars($row['page_range'] ?? ''); ?></p>
+                                
+                                <?php if (!empty($row['pdf_file'])): ?>
+                                    <a href="uploads/<?php echo htmlspecialchars($row['pdf_file']); ?>" target="_blank" class="btn-pdf">PDF</a>
+                                <?php endif; ?>
+                            </div>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <!-- กรณีผู้ใช้ยังไม่มีโปรเจกต์ -->
+                        <p class="no-project">ยังไม่มีข้อมูลโปรเจกต์ที่ทำ</p>
+                    <?php endif; ?>
                 </div>
 
             </div>

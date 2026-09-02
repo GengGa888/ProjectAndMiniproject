@@ -1,11 +1,11 @@
+<?php 
+include 'db_connect.php'; 
+
+// ตัวอย่างการดึงข้อมูลจากฐานข้อมูล (ปรับชื่อตารางและ column ตามของคุณ)
+// $sql = "SELECT * FROM projects ORDER BY id DESC";
+// $result = mysqli_query($conn, $sql);
+?>
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
@@ -92,7 +92,7 @@
             text-decoration: underline;
         }
 
-        /* Modern Dark Dropdown Profile (สไตล์เกมการ์ด) */
+        /* Modern Dark Dropdown Profile */
         .custom-profile-menu {
             background-color: #1a1b26;
             border: 1px solid #2f334d;
@@ -175,6 +175,8 @@
             border-radius: 4px;
             padding: 4px 16px;
             font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-block;
         }
 
         .btn-pdf:hover {
@@ -192,7 +194,7 @@
             <div class="d-flex justify-content-between align-items-center flex-wrap mt-2">
                 
                 <div class="d-flex align-items-center gap-3">
-                    <a href="index.html">
+                    <a href="index.php">
                         <img 
                             src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png"
                             alt="SDU Logo"
@@ -201,7 +203,7 @@
                     </a>
                     <ul class="nav main-menu">
                         <li class="nav-item">
-                            <a class="nav-link" href="index.html">หน้าแรก</a>
+                            <a class="nav-link" href="index.php">หน้าแรก</a>
                         </li>
                     </ul>
                 </div>
@@ -210,7 +212,7 @@
                 <div class="d-flex align-items-center gap-3">
 
                     <!-- ปุ่มเพิ่มโปรเจกต์ (รูปบวก) -->
-                    <a href="create.html" class="btn-upload-project" title="ส่งโปรเจกต์">
+                    <a href="create.php" class="btn-upload-project" title="ส่งโปรเจกต์">
                         <i class="bi bi-plus-lg"></i>
                     </a>
 
@@ -226,14 +228,14 @@
                         
                         <ul class="dropdown-menu dropdown-menu-end custom-profile-menu mt-2" aria-labelledby="profileDropdown">
                             <li>
-                                <a class="dropdown-item" href="Personal Information.html">
+                                <a class="dropdown-item" href="Personal Information.php">
                                     <i class="bi bi-person-fill"></i>
                                     <span>ข้อมูลส่วนตัว</span>
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <a class="dropdown-item logout-btn" href="index.html">
+                                <a class="dropdown-item logout-btn" href="logout.php">
                                     <i class="bi bi-box-arrow-right"></i>
                                     <span>ออกจากระบบ</span>
                                 </a>
@@ -252,14 +254,14 @@
         
         <!-- ส่วนกรองและค้นหาโปรเจกต์ -->
         <div class="filter-section mb-4">
-            <form class="row g-3 align-items-end">
+            <form action="index.php" method="GET" class="row g-3 align-items-end">
                 
                 <!-- ช่องพิมพ์ค้นหา -->
                 <div class="col-md-4">
                     <label for="searchKeyword" class="form-label fw-bold text-secondary mb-1">
                         ค้นหาคำขวัญ/โปรเจกต์:
                     </label>
-                    <input type="text" class="form-control form-control-sm" id="searchKeyword" placeholder="พิมพ์ชื่อโปรเจกต์ หรือผู้แต่ง...">
+                    <input type="text" name="keyword" class="form-control form-control-sm" id="searchKeyword" placeholder="พิมพ์ชื่อโปรเจกต์ หรือผู้แต่ง...">
                 </div>
 
                 <!-- เลือกระดับหลักสูตร -->
@@ -267,7 +269,7 @@
                     <label for="degreeSelect" class="form-label fw-bold text-secondary mb-1">
                         ระดับหลักสูตร:
                     </label>
-                    <select class="form-select form-select-sm" id="degreeSelect">
+                    <select name="degree" class="form-select form-select-sm" id="degreeSelect">
                         <option value="all" selected>ทุกระดับการศึกษา</option>
                         <option value="bachelor">ปริญญาตรี</option>
                         <option value="master">ปริญญาโท</option>
@@ -280,7 +282,7 @@
                     <label for="majorSelect" class="form-label fw-bold text-secondary mb-1">
                         สาขาวิชา:
                     </label>
-                    <select class="form-select form-select-sm" id="majorSelect">
+                    <select name="major" class="form-select form-select-sm" id="majorSelect">
                         <option value="all" selected>ทุกสาขาวิชา</option>
                         <option value="it">เทคโนโลยีสารสนเทศ</option>
                         <option value="cs">วิทยาการคอมพิวเตอร์</option>
@@ -291,7 +293,7 @@
 
                 <!-- ปุ่มค้นหา -->
                 <div class="col-md-2">
-                    <button type="button" class="btn btn-primary btn-sm w-100">ค้นหา</button>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">ค้นหา</button>
                 </div>
 
             </form>
@@ -299,7 +301,7 @@
 
         <!-- รายการโปรเจกต์ 1 -->
         <div class="project-item border-bottom pb-4 mb-4">
-            <a href="project-detail.html" class="project-title">
+            <a href="project-detail.php?id=1" class="project-title">
                 การเพิ่มประสิทธิภาพในการตรวจจับไฟป่าโดยใช้ Google’s Teachable Machine
             </a>
             <span class="badge bg-light text-dark ms-2 border">ปริญญาตรี</span>
@@ -311,12 +313,12 @@
             </p>
             <p class="author-text">ศุภาพิชญ์ ขวัญอยู่</p>
             <p class="page-text">1-18</p>
-            <button class="btn btn-pdf mt-1">PDF</button>
+            <a href="uploads/project1.pdf" target="_blank" class="btn btn-pdf mt-1">PDF</a>
         </div>
 
         <!-- รายการโปรเจกต์ 2 -->
         <div class="project-item border-bottom pb-4 mb-4">
-            <a href="#" class="project-title">
+            <a href="project-detail.php?id=2" class="project-title">
                 ศึกษาทางเลือกการผลิตพลังงานทดแทนจากผักตบชวา กรณีศึกษา บริเวณลุ่มแม่น้ำท่าจีน
             </a>
             <span class="badge bg-light text-dark ms-2 border">ปริญญาโท</span>
@@ -328,12 +330,12 @@
             </p>
             <p class="author-text">Nontanan Kuerchart</p>
             <p class="page-text">19-32</p>
-            <button class="btn btn-pdf mt-1">PDF</button>
+            <a href="uploads/project2.pdf" target="_blank" class="btn btn-pdf mt-1">PDF</a>
         </div>
 
         <!-- รายการโปรเจกต์ 3 -->
         <div class="project-item border-bottom pb-4 mb-4">
-            <a href="#" class="project-title">
+            <a href="project-detail.php?id=3" class="project-title">
                 การรับรู้ผลกระทบด้านสุขภาพของสมาชิกโครงการธนาคารขยะในพื้นที่ชุมชนสวนอ้อยและมหาวิทยาลัยสวนดุสิต ประเทศไทย
             </a>
             <span class="badge bg-light text-dark ms-2 border">ปริญญาเอก</span>
@@ -348,7 +350,7 @@
             </p>
             <p class="author-text">ภูริพจน์ แก้วย่อง</p>
             <p class="page-text">33-43</p>
-            <button class="btn btn-pdf mt-1">PDF</button>
+            <a href="uploads/project3.pdf" target="_blank" class="btn btn-pdf mt-1">PDF</a>
         </div>
 
     </div>
