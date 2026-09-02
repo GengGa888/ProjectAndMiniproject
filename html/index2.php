@@ -209,8 +209,7 @@ $result = mysqli_stmt_get_result($stmt);
                     </a>
                     <ul class="nav main-menu">
     <li class="nav-item">
-        <!-- แก้ไขจากเดิมที่เป็น span ให้เป็นลิงก์ไปที่ index2.php -->
-        <a class="nav-link" href="index2.php">หน้าแรก</a>
+        <a class="nav-link" href="#">หน้าแรก</a>
     </li>
 </ul>
                 </div>
