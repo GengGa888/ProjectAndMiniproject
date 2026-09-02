@@ -235,12 +235,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="d-flex justify-content-between align-items-center flex-wrap mt-2">
                 
                 <div class="d-flex align-items-center gap-2">
-    <!-- ใส่แท็ก a ครอบโลโก้และข้อความ -->
-    <a href="index2.php" class="d-flex align-items-center gap-2 text-decoration-none text-white">
-        <img src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png" alt="SDU Logo" class="sdu-logo">
-        <span class="fs-5 fw-bold">หน้าแรก</span>
-    </a>
-</div>
+                    <!-- ลิงก์นี้จะพาคุณกลับไปหน้า index2.php เมื่อคลิกที่โลโก้หรือคำว่า "หน้าแรก" -->
+                    <a href="index2.php" class="d-flex align-items-center gap-2 text-decoration-none text-white">
+                        <img 
+                            src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png"
+                            alt="SDU Logo"
+                            class="sdu-logo"
+                        >
+                        <span class="fs-5 fw-bold">หน้าแรก</span>
+                    </a>
+                </div>
 
                 <!-- Profile Dropdown -->
                 <div class="dropdown">
