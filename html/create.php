@@ -235,7 +235,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="d-flex justify-content-between align-items-center flex-wrap mt-2">
                 
                 <div class="d-flex align-items-center gap-3">
-                    <!-- แก้ไขจุดที่ 1: ลิงก์โลโก้ -->
                     <a href="index2.php">
                         <img 
                             src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png"
@@ -245,9 +244,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </a>
                     <ul class="nav main-menu">
                         <li class="nav-item">
-                            <!-- แก้ไขจุดที่ 2: ลิงก์เมนูหน้าแรก -->
                             <a class="nav-link" href="index2.php">หน้าแรก</a>
                         </li>
+                        <!-- นำเมนู "ส่งไฟล์งาน" บน Navbar ออกแล้ว -->
                     </ul>
                 </div>
 
