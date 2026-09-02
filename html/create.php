@@ -13,15 +13,15 @@ $error = '';
 
 // 2. จัดการเมื่อมีการกดปุ่มส่งฟอร์ม (POST Request)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $user_id       = $_SESSION['user_id'];
+    $user_id      = $_SESSION['user_id'];
     $project_type  = $_POST['projectType'] ?? 'miniproject';
-    $title         = trim($_POST['projectTitle'] ?? '');
-    $degree        = $_POST['degreeSelect'] ?? '';
-    $major         = $_POST['majorSelect'] ?? '';
-    $authors       = trim($_POST['authorNames'] ?? '');
-    $advisor       = trim($_POST['advisorName'] ?? '');
+    $title        = trim($_POST['projectTitle'] ?? '');
+    $degree       = $_POST['degreeSelect'] ?? '';
+    $major        = $_POST['majorSelect'] ?? '';
+    $authors      = trim($_POST['authorNames'] ?? '');
+    $advisor      = trim($_POST['advisorName'] ?? '');
     $github_url    = trim($_POST['githubUrl'] ?? '');
-    $abstract      = trim($_POST['projectAbstract'] ?? '');
+    $abstract     = trim($_POST['projectAbstract'] ?? '');
 
     if (empty($title) || empty($degree) || empty($major) || empty($authors) || !isset($_FILES['filePdf'])) {
         $error = "กรุณากรอกข้อมูลสำคัญที่มีเครื่องหมาย (*) ให้ครบถ้วน";
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 echo "<script>
                                         alert('อัปโหลดและส่งเอกสารเรียบร้อยแล้ว!');
                                         window.location.href='index2.php';
-                                      </script>";
+                                     </script>";
                                 exit();
                             } else {
                                 $error = "เกิดข้อผิดพลาดในการบันทึกข้อมูลลงฐานข้อมูล: " . mysqli_error($conn);
@@ -234,20 +234,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="container">
             <div class="d-flex justify-content-between align-items-center flex-wrap mt-2">
                 
-                <div class="d-flex align-items-center gap-3">
-                    <a href="index2.php">
+                <div class="d-flex align-items-center gap-2">
+                    <!-- ใส่แท็ก a ครอบโลโก้และข้อความเพื่อให้คลิกกลับหน้าแรกได้ -->
+                    <a href="index2.php" class="d-flex align-items-center gap-2 text-decoration-none text-white">
                         <img 
                             src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png"
                             alt="SDU Logo"
                             class="sdu-logo"
                         >
+                        <span class="fs-5 fw-bold">หน้าแรก</span>
                     </a>
-                    <ul class="nav main-menu">
-                        <li class="nav-item">
-                            <a class="nav-link" href="index2.php">หน้าแรก</a>
-                        </li>
-                        <!-- นำเมนู "ส่งไฟล์งาน" บน Navbar ออกแล้ว -->
-                    </ul>
                 </div>
 
                 <!-- Profile Dropdown -->
@@ -372,7 +368,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div class="d-flex justify-content-end gap-2 pt-2 border-top">
-                    <button type="reset" class="btn btn-light border">ยกเลิก</button>
+                    <a href="index2.php" class="btn btn-light border">ยกเลิก</a>
                     <button type="submit" class="btn btn-submit">
                         <i class="bi bi-file-earmark-arrow-up me-1"></i> ส่งเอกสาร
                     </button>
