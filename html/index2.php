@@ -1,60 +1,13 @@
-<?php
-session_start(); 
+<?php 
+session_start();
 include 'db_connect.php'; 
 
-$error = "";
-
-// 1. จัดการระบบล็อกอิน (POST Request)
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-
-    $username = trim($_POST['username'] ?? '');
-    $password = trim($_POST['password'] ?? '');
-
-    if (!empty($username) && !empty($password)) {
-        
-        $stmt = mysqli_prepare($conn, "SELECT id, username, password, role FROM users WHERE username = ?");
-        mysqli_stmt_bind_param($stmt, "s", $username);
-        mysqli_stmt_execute($stmt);
-        $result = mysqli_stmt_get_result($stmt);
-
-        if ($user = mysqli_fetch_assoc($result)) {
-            
-            // เช็กรหัสผ่านทั้งแบบ Hash และ Plaintext
-            $password_check = password_verify($password, $user['password']) || ($password === $user['password']);
-
-            if ($password_check) {
-                $_SESSION['user_id']  = $user['id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['role']     = $user['role'];
-
-                // ล็อกอินสำเร็จ -> ไปยังหน้าปลายทางตาม Role
-                if ($user['role'] == 'admin') {
-                    header("Location: admin.php");
-                } elseif ($user['role'] == 'teacher') {
-                    header("Location: arjarn.php");
-                } else {
-                    header("Location: index2.php"); 
-                }
-                exit();
-            } else {
-                $error = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
-            }
-        } else {
-            $error = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
-        }
-
-        mysqli_stmt_close($stmt);
-    } else {
-        $error = "กรุณากรอกข้อมูลให้ครบถ้วน";
-    }
-}
-
-// 2. จัดการระบบค้นหาและกรองข้อมูลโปรเจกต์ (GET Request)
+// 1. รับค่าตัวกรองและการค้นหาผ่าน Query String (GET)
 $search = isset($_GET['searchKeyword']) ? trim($_GET['searchKeyword']) : '';
 $degree = isset($_GET['degreeSelect']) ? $_GET['degreeSelect'] : 'all';
 $major  = isset($_GET['majorSelect']) ? $_GET['majorSelect'] : 'all';
 
-// สร้าง SQL Dynamic Query สำหรับค้นหาโปรเจกต์
+// 2. สร้าง SQL Dynamic Query
 $sql = "SELECT * FROM projects WHERE 1=1";
 $params = [];
 $types = "";
@@ -82,16 +35,17 @@ if ($major !== 'all' && !empty($major)) {
 
 $sql .= " ORDER BY created_at DESC";
 
-// ประมวลผลคำสั่ง SQL ร่วมกับ Prepared Statement ของส่วนค้นหา
-$stmt_search = mysqli_prepare($conn, $sql);
+// 3. ประมวลผลคำสั่ง SQL ร่วมกับ Prepared Statement
+$stmt = mysqli_prepare($conn, $sql);
 
 if (!empty($params)) {
-    mysqli_stmt_bind_param($stmt_search, $types, ...$params);
+    mysqli_stmt_bind_param($stmt, $types, ...$params);
 }
 
-mysqli_stmt_execute($stmt_search);
-$projects_result = mysqli_stmt_get_result($stmt_search);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
 ?>
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
