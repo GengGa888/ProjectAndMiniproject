@@ -18,7 +18,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         if ($user = mysqli_fetch_assoc($result)) {
             
-            // เช็กรหัสผ่านทั้งแบบเข้ารหัส (Password Hash) และข้อความปกติ
+            // เช็กรหัสผ่านทั้งแบบ Hash และ Plaintext
             $password_check = password_verify($password, $user['password']) || ($password === $user['password']);
 
             if ($password_check) {
@@ -26,13 +26,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role']     = $user['role'];
 
-                // ส่งไปยังหน้าตามประเภทผู้ใช้
+                // ล็อกอินสำเร็จ -> ไปยังหน้าปลายทางตาม Role
                 if ($user['role'] == 'admin') {
                     header("Location: admin.php");
                 } elseif ($user['role'] == 'teacher') {
                     header("Location: arjarn.php");
                 } else {
-                    // นักศึกษา / สมาชิกทั่วไป ส่งไปหน้า index2.php
                     header("Location: index2.php"); 
                 }
                 exit();
@@ -253,6 +252,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             </form>
 
+            <!-- ลิงก์สำหรับคนที่ยังไม่ได้สมัคร -> กลับไปหน้า sign-up.php -->
             <div class="footer-links">
                 <a href="sign-up.php">สมัครสมาชิก</a>
             </div>

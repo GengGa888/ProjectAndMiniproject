@@ -2,22 +2,18 @@
 session_start();
 include 'db_connect.php'; 
 
-// ===============================
-// เมื่อกดปุ่มสมัครสมาชิก
-// ===============================
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-    // รับข้อมูลจากฟอร์ม
     $username   = trim($_POST['username'] ?? '');
     $firstname  = trim($_POST['firstname'] ?? '');
     $lastname   = trim($_POST['lastname'] ?? '');
     $email      = trim($_POST['email'] ?? '');
-    $role       = trim($_POST['role'] ?? '');
     $department = trim($_POST['department'] ?? '');
     $password   = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
+    $role       = 'student'; // กำหนดค่าเริ่มต้นเป็น student
 
-    // 1. ตรวจสอบรหัสผ่านตรงกันหรือไม่
+    // 1. เช็กรหัสผ่านตรงกันหรือไม่
     if ($password !== $confirm_password) {
         echo "<script>
                 alert('รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน');
@@ -26,7 +22,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit();
     }
 
-    // 2. ตรวจสอบ Username และ Email ซ้ำ
+    // 2. เช็กว่า Username หรือ Email ซ้ำหรือไม่
     $stmt_check = mysqli_prepare($conn, "SELECT id FROM users WHERE username = ? OR email = ?");
     mysqli_stmt_bind_param($stmt_check, "ss", $username, $email);
     mysqli_stmt_execute($stmt_check);
@@ -42,10 +38,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
     mysqli_stmt_close($stmt_check);
 
-    // 3. เข้ารหัส Password
+    // 3. เข้ารหัสรหัสผ่าน
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-    // 4. บันทึกข้อมูลลงฐานข้อมูล
+    // 4. บันทึกข้อมูลเข้า Database
     $sql = "INSERT INTO users (username, first_name, last_name, email, role, department, password) VALUES (?, ?, ?, ?, ?, ?, ?)";
     $stmt_insert = mysqli_prepare($conn, $sql);
     mysqli_stmt_bind_param($stmt_insert, "sssssss", $username, $firstname, $lastname, $email, $role, $department, $hashed_password);
@@ -53,13 +49,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (mysqli_stmt_execute($stmt_insert)) {
         mysqli_stmt_close($stmt_insert);
         mysqli_close($conn);
+        // สมัครสำเร็จ -> แจ้งเตือนแล้วส่งไปหน้า login.php
         echo "<script>
-                alert('สมัครสมาชิกสำเร็จ!');
+                alert('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ');
                 window.location.href='login.php';
               </script>";
         exit();
     } else {
-        echo "เกิดข้อผิดพลาดในการบันทึกข้อมูล: " . mysqli_error($conn);
+        echo "<script>alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล'); window.history.back();</script>";
         mysqli_stmt_close($stmt_insert);
         mysqli_close($conn);
         exit();
@@ -73,7 +70,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>สมัครสมาชิก - ระบบสืบค้นโปรเจกต์และมินิโปรเจกต์</title>
+  <title>สมัครสมาชิก - ระบบสืบค้นโปรเจกต์</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
@@ -250,22 +247,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </div>
 
         <div class="form-group">
-          <label for="email">อีเมล</label>
+          <label for="email">อีเมล (ต้องเป็น Gmail มหาวิทยาลัยเท่านั้น)</label>
           <div class="input-wrapper">
             <input type="email" id="email" name="email" placeholder="example@mail.dusit.ac.th" required>
             <i class="fa-solid fa-envelope"></i>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="role">ประเภทผู้ใช้งาน</label>
-          <div class="input-wrapper">
-            <select id="role" name="role" required>
-              <option value="" disabled selected>-- เลือกสิทธิ์การใช้งาน --</option>
-              <option value="student">นักศึกษา</option>
-              <option value="teacher">อาจารย์ / ที่ปรึกษา</option>
-            </select>
-            <i class="fa-solid fa-users"></i>
           </div>
         </div>
 
@@ -277,7 +262,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
               <option value="it">เทคโนโลยีสารสนเทศ</option>
               <option value="cs">วิทยาการคอมพิวเตอร์</option>
               <option value="se">วิศวกรรมซอฟต์แวร์</option>
-              <option value="other_dept">สาขาอื่นๆ</option>
+              <option value="other">สาขาอื่นๆ</option>
             </select>
             <i class="fa-solid fa-chevron-down"></i>
           </div>
@@ -302,23 +287,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <button type="submit" class="btn-submit">ยืนยันการสมัครสมาชิก</button>
       </form>
 
+      <!-- ลิงก์สำหรับคนที่สมัครอยู่แล้ว -> ไปหน้า login.php -->
       <div class="footer-links">
-        มีบัญชีผู้ใช้งานอยู่แล้ว?
-        <a href="login.php">เข้าสู่ระบบที่นี่</a>
+        มีบัญชีผู้ใช้งานอยู่แล้ว? <a href="login.php">เข้าสู่ระบบที่นี่</a>
       </div>
     </div>
   </div>
 
-  <script>
-    document.getElementById('registerForm').addEventListener('submit', function(e) {
-      const password = document.getElementById('password').value;
-      const confirmPassword = document.getElementById('confirm_password').value;
-
-      if (password !== confirmPassword) {
-        e.preventDefault();
-        alert("รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน");
-      }
-    });
-  </script>
 </body>
 </html>
