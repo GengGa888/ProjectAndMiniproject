@@ -210,11 +210,6 @@ $result = mysqli_stmt_get_result($stmt);
                         <li class="nav-item">
                             <a class="nav-link" href="index.php">หน้าแรก</a>
                         </li>
-                        <?php if (isset($_SESSION['user_id'])): ?>
-                        <li class="nav-item">
-                            <a class="nav-link" href="upload.php">ส่งไฟล์งาน</a>
-                        </li>
-                        <?php endif; ?>
                     </ul>
                 </div>
 
