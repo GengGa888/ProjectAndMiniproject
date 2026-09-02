@@ -49,7 +49,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (mysqli_stmt_execute($stmt_insert)) {
         mysqli_stmt_close($stmt_insert);
         mysqli_close($conn);
-        // สมัครสำเร็จ -> แจ้งเตือนแล้วส่งไปหน้า login.php
+        // แก้ไขจุดที่ 1: เปลี่ยนส่งกลับไป login.php แล้ว
         echo "<script>
                 alert('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ');
                 window.location.href='login.php';
@@ -221,6 +221,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <div class="register-card">
       <h2>ลงทะเบียนใช้งานระบบ</h2>
 
+      <!-- แก้ไขจุดที่ 2: เปลี่ยน action เป็น sign-up.php -->
       <form action="sign-up.php" method="POST" id="registerForm">
         <div class="form-group">
           <label for="username">Username</label>
@@ -287,7 +288,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <button type="submit" class="btn-submit">ยืนยันการสมัครสมาชิก</button>
       </form>
 
-      <!-- ลิงก์สำหรับคนที่สมัครอยู่แล้ว -> ไปหน้า login.php -->
+      <!-- แก้ไขจุดที่ 3: เปลี่ยนลิงก์เป็น login.php -->
       <div class="footer-links">
         มีบัญชีผู้ใช้งานอยู่แล้ว? <a href="login.php">เข้าสู่ระบบที่นี่</a>
       </div>
