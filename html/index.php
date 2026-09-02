@@ -208,7 +208,8 @@ $result = mysqli_stmt_get_result($stmt);
                     
                     <ul class="nav main-menu">
                         <li class="nav-item">
-                            <a class="nav-link" href="index2.php">หน้าแรก</a>
+                            <!-- แก้จาก index2.php เป็น index.php แล้ว -->
+                            <a class="nav-link" href="index.php">หน้าแรก</a>
                         </li>
                     </ul>
                 </div>
@@ -246,7 +247,7 @@ $result = mysqli_stmt_get_result($stmt);
         <div class="filter-container mb-4">
             <form method="GET" action="index.php" class="row g-3 align-items-end">
                 
-                <!-- 1. ค้นหาคำขวัญ/ชื่อโปรเจกต์ -->
+                <!-- 1. ค้นหาชื่อโปรเจกต์ / ผู้จัดทำ -->
                 <div class="col-md-4">
                     <label for="searchKeyword" class="form-label fw-bold text-secondary mb-1">ค้นหาชื่อโปรเจกต์ / ผู้จัดทำ:</label>
                     <input type="text" class="form-control" name="searchKeyword" id="searchKeyword" 

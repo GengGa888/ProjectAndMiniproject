@@ -192,9 +192,6 @@ include 'db_connect.php';
     <header class="custom-header">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center flex-wrap mt-2">
-                
-                <div class="d-flex align-items-center gap-3">
-                    <a href="index.php">
                         <img 
                             src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png"
                             alt="SDU Logo"
