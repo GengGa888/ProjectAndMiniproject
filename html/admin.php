@@ -398,7 +398,7 @@ $projects_result = mysqli_query($conn, $projects_query);
 
     <!-- แถบ Header (Admin Theme) -->
     <header class="header">
-        <a href="index.php" class="header-left">
+        <a href="index2.php" class="header-left">
             <div class="logo-placeholder">SDU</div>
             <div class="header-title">
                 หน้าแรกระบบ 
