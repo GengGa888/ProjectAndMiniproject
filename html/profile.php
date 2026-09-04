@@ -1,3 +1,25 @@
+<?php
+session_start();
+include 'db_connect.php';
+
+// 1. ตรวจสอบการเข้าสู่ระบบ
+if (!isset($_SESSION['user_id'])) {
+    echo "<script>
+            alert('กรุณาเข้าสู่ระบบก่อน!');
+            window.location.href='login.php';
+          </script>";
+    exit();
+}
+
+$user_id = intval($_SESSION['user_id']);
+
+// 2. ดึงข้อมูลผู้ใช้จากฐานข้อมูล (ใช้ mysqli_query เพื่อความยืดหยุ่น ป้องกัน Error เรื่องคอลัมน์)
+$user_query = mysqli_query($conn, "SELECT * FROM users WHERE id = $user_id LIMIT 1");
+$user_data = ($user_query) ? mysqli_fetch_assoc($user_query) : null;
+
+// 3. ดึงรายการโปรเจกต์ของผู้ใช้คนนี้
+$projects_query = mysqli_query($conn, "SELECT * FROM projects WHERE user_id = $user_id ORDER BY id DESC");
+?>
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -28,7 +50,7 @@
         .badge { padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
         .badge-degree { background-color: #e8f0fe; color: #1a73e8; border: 1px solid #c2e7ff; }
         .badge-subject { background-color: #00bcd4; color: white; }
-        .author-text { font-size: 0.95rem; color: #555; margin-top: 6px; }
+        .author-text { font-size: 0.95rem; color: #555; margin-top: 6px; margin-bottom: 15px; }
         .no-project-text { color: #777; font-size: 1rem; padding: 10px 0; }
         .btn-pdf { background-color: #64b5f6; color: white; border: none; padding: 6px 16px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; text-decoration: none; display: inline-block; }
         .btn-pdf:hover { background-color: #42a5f5; }
@@ -51,26 +73,34 @@
 
             <div class="user-info-section">
                 <div class="label-title">ชื่อ</div>
-                <div class="user-name">ตัวอย่างชื่อ</div>
+                <div class="user-name"><?php echo htmlspecialchars($user_data['firstname'] ?? $user_data['username'] ?? 'ไม่มีข้อมูล'); ?></div>
                 <div class="label-title">นามสกุล</div>
-                <div class="user-name">ตัวอย่างนามสกุล</div>
+                <div class="user-name"><?php echo htmlspecialchars($user_data['lastname'] ?? '-'); ?></div>
             </div>
 
             <div class="project-list-section">
                 <div class="label-title">โปรเจกต์ที่ทำ</div>
                 <div class="project-box">
-                    <div class="project-item">
-                        <a href="project-detail.php?id=1" class="project-title">
-                            ชื่อตัวอย่างโปรเจกต์ระบบสารสนเทศ
-                        </a>
-                        <div class="tag-container">
-                            <span class="badge badge-degree">ปริญญาตรี</span>
-                            <span class="badge badge-subject">วิทยาการคอมพิวเตอร์</span>
-                        </div>
-                        <p class="author-text"><strong>ผู้จัดทำ:</strong> นายตัวอย่าง ผู้ทดสอบ</p>
-                        <br><br>
-                        <a href="#" target="_blank" class="btn-pdf">PDF</a>
-                    </div>
+                    <?php if ($projects_query && mysqli_num_rows($projects_query) > 0): ?>
+                        <?php while ($row = mysqli_fetch_assoc($projects_query)): ?>
+                            <div class="project-item">
+                                <a href="project-detail.php?id=<?php echo $row['id']; ?>" class="project-title">
+                                    <?php echo htmlspecialchars($row['title'] ?? 'ไม่มีชื่อโปรเจกต์'); ?>
+                                </a>
+                                <div class="tag-container">
+                                    <span class="badge badge-degree"><?php echo htmlspecialchars($row['degree'] ?? 'ปริญญาตรี'); ?></span>
+                                    <span class="badge badge-subject"><?php echo htmlspecialchars($row['department'] ?? 'วิทยาการคอมพิวเตอร์'); ?></span>
+                                </div>
+                                <p class="author-text"><strong>ผู้จัดทำ:</strong> <?php echo htmlspecialchars($row['authors'] ?? '-'); ?></p>
+                                
+                                <?php if (!empty($row['pdf_file'])): ?>
+                                    <a href="uploads/<?php echo htmlspecialchars($row['pdf_file']); ?>" target="_blank" class="btn-pdf">PDF</a>
+                                <?php endif; ?>
+                            </div>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <div class="no-project-text">ยังไม่มีประวัติโครงงานหรือโปรเจกต์ในระบบ</div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
