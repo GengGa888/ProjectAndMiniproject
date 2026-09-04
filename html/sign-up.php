@@ -42,7 +42,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
     // 4. บันทึกข้อมูลเข้า Database
-    $sql = "INSERT INTO users (username, first_name, last_name, email, role, department, password) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO users (username, firstname, lastname, email, role, department, password) 
+        VALUES ('$username', '$firstname', '$lastname', '$email', '$role', '$department', '$password')";
     $stmt_insert = mysqli_prepare($conn, $sql);
     mysqli_stmt_bind_param($stmt_insert, "sssssss", $username, $firstname, $lastname, $email, $role, $department, $hashed_password);
 

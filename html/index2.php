@@ -1,3 +1,50 @@
+<?php 
+session_start();
+include 'db_connect.php'; 
+
+// 1. รับค่าตัวกรองและการค้นหาผ่าน Query String (GET)
+$search = isset($_GET['searchKeyword']) ? trim($_GET['searchKeyword']) : '';
+$degree = isset($_GET['degreeSelect']) ? $_GET['degreeSelect'] : 'all';
+$major  = isset($_GET['majorSelect']) ? $_GET['majorSelect'] : 'all';
+
+// 2. สร้าง SQL Dynamic Query
+$sql = "SELECT * FROM projects WHERE 1=1";
+$params = [];
+$types = "";
+
+if (!empty($search)) {
+    $sql .= " AND (title LIKE ? OR authors LIKE ? OR abstract LIKE ?)";
+    $searchTerm = "%{$search}%";
+    $params[] = $searchTerm;
+    $params[] = $searchTerm;
+    $params[] = $searchTerm;
+    $types .= "sss";
+}
+
+if ($degree !== 'all' && !empty($degree)) {
+    $sql .= " AND degree = ?";
+    $params[] = $degree;
+    $types .= "s";
+}
+
+if ($major !== 'all' && !empty($major)) {
+    $sql .= " AND department = ?";
+    $params[] = $major;
+    $types .= "s";
+}
+
+$sql .= " ORDER BY created_at DESC";
+
+// 3. ประมวลผลคำสั่ง SQL ร่วมกับ Prepared Statement
+$stmt = mysqli_prepare($conn, $sql);
+
+if (!empty($params)) {
+    mysqli_stmt_bind_param($stmt, $types, ...$params);
+}
+
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+?>
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -194,7 +241,7 @@
                         <ul class="dropdown-menu dropdown-menu-end custom-profile-menu mt-2" aria-labelledby="profileDropdown">
                             <li>
                                 <!-- เชื่อมโยงไปหน้า Personal Information.php ตามที่ต้องการ -->
-                                <a class="dropdown-item" href="Personal Information.php">
+                                <a class="dropdown-item" href="PersonalInformation_2.php">
                                     <i class="bi bi-person-fill"></i>
                                     <span>ข้อมูลส่วนตัว</span>
                                 </a>

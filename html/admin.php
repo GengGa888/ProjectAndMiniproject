@@ -1,3 +1,28 @@
+<?php
+session_start();
+include 'db_connect.php';
+
+// 1. ตรวจสอบว่าได้เข้าสู่ระบบและมีสิทธิ์เป็น Admin หรือไม่
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    echo "<script>
+            alert('คุณไม่มีสิทธิ์เข้าถึงหน้านี้!');
+            window.location.href='login.php';
+          </script>";
+    exit();
+}
+
+// 2. ดึงข้อมูล Admin ที่กำลังใช้งานอยู่
+$admin_id = $_SESSION['user_id'];
+$admin_stmt = mysqli_prepare($conn, "SELECT username, firstname, lastname, email, role FROM users WHERE id = ?");
+mysqli_stmt_bind_param($admin_stmt, "i", $admin_id);
+mysqli_stmt_execute($admin_stmt);
+$admin_result = mysqli_stmt_get_result($admin_stmt);
+$admin_data = mysqli_fetch_assoc($admin_result);
+
+// 3. ดึงรายการโครงงานทั้งหมดจากฐานข้อมูล
+$projects_query = "SELECT * FROM projects ORDER BY id DESC";
+$projects_result = mysqli_query($conn, $projects_query);
+?>
 <!DOCTYPE html>
 <html lang="th">
 <head>
