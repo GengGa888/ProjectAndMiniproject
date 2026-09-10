@@ -1,67 +1,197 @@
 <?php
 session_start();
-include 'db_connect.php';
+require_once "db_connect.php";
 
-if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
-    echo "<script>
-        alert('คุณไม่มีสิทธิ์เข้าถึงหน้านี้!');
-        window.location.href='login.php';
-    </script>";
-    exit();
+/* =========================================================
+   ตรวจสอบการ Login
+========================================================= */
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
 }
 
-$admin_id = (int)$_SESSION['user_id'];
 
-/* ข้อมูล Admin */
-$stmt = mysqli_prepare($conn,
-    "SELECT username, first_name, last_name, email, role
-     FROM users WHERE id = ?"
-);
+/* =========================================================
+   ตรวจสอบว่าเป็น Admin
+========================================================= */
 
-mysqli_stmt_bind_param($stmt, "i", $admin_id);
-mysqli_stmt_execute($stmt);
+if (($_SESSION['role'] ?? '') !== 'admin') {
 
-$admin_data = mysqli_fetch_assoc(
-    mysqli_stmt_get_result($stmt)
-);
+    echo "<script>
+        alert('หน้านี้สำหรับ Admin เท่านั้น');
+        window.location.href='index2.php';
+    </script>";
 
-mysqli_stmt_close($stmt);
+    exit;
+}
 
-/* จำนวนผู้ใช้ */
-$user_count_result = mysqli_query(
-    $conn,
-    "SELECT COUNT(*) AS total FROM users"
-);
 
-$user_count = mysqli_fetch_assoc(
-    $user_count_result
-)['total'];
+/* =========================================================
+   ข้อมูล Admin ปัจจุบัน
+========================================================= */
 
-/* จำนวนโปรเจกต์ */
-$project_count_result = mysqli_query(
-    $conn,
-    "SELECT COUNT(*) AS total FROM projects"
-);
+$current_user_id = (int)$_SESSION['user_id'];
 
-$project_count = mysqli_fetch_assoc(
-    $project_count_result
-)['total'];
+$current_first_name =
+    $_SESSION['first_name'] ?? 'Admin';
 
-/* โปรเจกต์ทั้งหมด */
-$projects_result = mysqli_query(
-    $conn,
-    "SELECT * FROM projects ORDER BY id DESC"
-);
+$current_last_name =
+    $_SESSION['last_name'] ?? '';
 
-/* ผู้ใช้ทั้งหมด */
-$users_result = mysqli_query(
-    $conn,
-    "SELECT id, username, first_name, last_name,
-            email, role, department, created_at
-     FROM users
-     ORDER BY id DESC"
-);
+
+/* =========================================================
+   นับจำนวน Users
+========================================================= */
+
+$total_users = 0;
+$total_students = 0;
+$total_teachers = 0;
+$total_admins = 0;
+$total_projects = 0;
+
+
+/* จำนวน Users ทั้งหมด */
+
+$result = $conn->query("
+    SELECT COUNT(*) AS total
+    FROM users
+");
+
+if ($result) {
+
+    $row = $result->fetch_assoc();
+
+    $total_users = (int)$row['total'];
+}
+
+
+/* Student */
+
+$result = $conn->query("
+    SELECT COUNT(*) AS total
+    FROM users
+    WHERE role = 'student'
+");
+
+if ($result) {
+
+    $row = $result->fetch_assoc();
+
+    $total_students = (int)$row['total'];
+}
+
+
+/* Teacher */
+
+$result = $conn->query("
+    SELECT COUNT(*) AS total
+    FROM users
+    WHERE role = 'teacher'
+");
+
+if ($result) {
+
+    $row = $result->fetch_assoc();
+
+    $total_teachers = (int)$row['total'];
+}
+
+
+/* Admin */
+
+$result = $conn->query("
+    SELECT COUNT(*) AS total
+    FROM users
+    WHERE role = 'admin'
+");
+
+if ($result) {
+
+    $row = $result->fetch_assoc();
+
+    $total_admins = (int)$row['total'];
+}
+
+
+/* Projects */
+
+$result = $conn->query("
+    SELECT COUNT(*) AS total
+    FROM projects
+");
+
+if ($result) {
+
+    $row = $result->fetch_assoc();
+
+    $total_projects = (int)$row['total'];
+}
+
+
+/* =========================================================
+   ดึง Users
+========================================================= */
+
+$users = [];
+
+$result = $conn->query("
+    SELECT
+        id,
+        username,
+        first_name,
+        last_name,
+        email,
+        role,
+        department
+    FROM users
+    ORDER BY id DESC
+");
+
+if ($result) {
+
+    while ($row = $result->fetch_assoc()) {
+
+        $users[] = $row;
+    }
+}
+
+
+/* =========================================================
+   ดึง Projects
+========================================================= */
+
+$projects = [];
+
+$result = $conn->query("
+    SELECT
+        id,
+        title,
+        project_name,
+        authors,
+        student_name,
+        degree,
+        project_type,
+        department,
+        advisor,
+        pdf_file,
+        github_url,
+        status,
+        created_at
+    FROM projects
+    ORDER BY id DESC
+");
+
+if ($result) {
+
+    while ($row = $result->fetch_assoc()) {
+
+        $projects[] = $row;
+    }
+}
+
 ?>
+
 
 <!DOCTYPE html>
 <html lang="th">
@@ -73,302 +203,689 @@ $users_result = mysqli_query(
 <meta name="viewport"
       content="width=device-width, initial-scale=1.0">
 
-<title>Admin Console - คลังโปรเจกต์ SDU</title>
+<title>Admin Dashboard - คลังโปรเจกต์ SDU</title>
+
+
+<!-- Bootstrap Icons -->
 
 <link rel="stylesheet"
-href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
 
 <style>
 
+/* =========================================================
+   RESET
+========================================================= */
+
 * {
     box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
 }
+
 
 body {
-    background: #f4f7fb;
-    color: #172033;
+
+    margin: 0;
+
+    font-family:
+        Arial,
+        "Sarabun",
+        sans-serif;
+
+    background: #f4f7fa;
+
+    color: #333;
 }
 
-/* HEADER */
 
-.header {
-    height: 80px;
-    background: linear-gradient(
-        135deg,
-        #172033,
-        #263653
-    );
+/* =========================================================
+   HEADER
+========================================================= */
+
+.custom-header {
+
+    background:
+        linear-gradient(
+            90deg,
+            #4aa4d6,
+            #4297cd,
+            #3287bb
+        );
 
     color: white;
 
+    min-height: 90px;
+
     display: flex;
-    justify-content: space-between;
+
     align-items: center;
 
-    padding: 0 40px;
+    padding: 15px 35px;
 
     box-shadow:
-        0 3px 15px rgba(0,0,0,0.15);
+        0 3px 10px
+        rgba(0,0,0,.12);
 }
+
+
+.header-inner {
+
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content:
+        space-between;
+
+    gap: 20px;
+}
+
 
 .header-left {
-    display: flex;
-    align-items: center;
-    gap: 14px;
 
-    color: white;
-    text-decoration: none;
+    display: flex;
+
+    align-items: center;
+
+    gap: 15px;
 }
+
 
 .logo {
-    width: 48px;
-    height: 48px;
 
-    border-radius: 12px;
+    width: 58px;
 
-    background: #4aa4d6;
+    height: 58px;
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    font-weight: 800;
+    object-fit: contain;
 }
+
 
 .header-title {
-    font-size: 21px;
-    font-weight: 700;
+
+    font-size: 23px;
+
+    font-weight: bold;
 }
 
-.admin-badge {
-    background: #ef4444;
 
-    font-size: 12px;
+.header-right {
 
-    padding: 4px 9px;
+    display: flex;
 
-    border-radius: 5px;
+    align-items: center;
 
-    margin-left: 8px;
+    gap: 10px;
 }
 
-.logout {
+
+.admin-name {
+
+    background:
+        rgba(255,255,255,.15);
+
+    padding:
+        9px 14px;
+
+    border-radius: 8px;
+}
+
+
+.logout-btn {
+
     color: white;
+
     text-decoration: none;
 
-    background: #ef4444;
+    background:
+        rgba(220,53,69,.9);
 
-    padding: 9px 15px;
+    padding:
+        9px 14px;
+
+    border-radius: 8px;
+}
+
+
+.logout-btn:hover {
+
+    opacity: .85;
+}
+
+
+/* =========================================================
+   CONTAINER
+========================================================= */
+
+.container {
+
+    max-width: 1400px;
+
+    margin:
+        35px auto;
+
+    padding:
+        0 20px;
+}
+
+
+/* =========================================================
+   TITLE
+========================================================= */
+
+.page-title {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content:
+        space-between;
+
+    gap: 15px;
+
+    margin-bottom: 25px;
+}
+
+
+.page-title h1 {
+
+    margin: 0;
+
+    color: #2879ad;
+
+    font-size: 30px;
+}
+
+
+.page-title p {
+
+    margin:
+        6px 0 0;
+
+    color: #777;
+}
+
+
+/* =========================================================
+   BUTTON
+========================================================= */
+
+.btn {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 6px;
+
+    border: none;
+
+    text-decoration: none;
+
+    cursor: pointer;
 
     border-radius: 8px;
 
-    font-weight: 600;
+    padding:
+        9px 14px;
+
+    font-size: 14px;
+
+    transition: .2s;
 }
 
-.logout:hover {
-    background: #dc2626;
+
+.btn:hover {
+
+    opacity: .85;
+
+    transform:
+        translateY(-1px);
 }
 
-/* CONTAINER */
 
-.container {
-    max-width: 1250px;
+.btn-primary {
 
-    margin: 35px auto;
+    background: #3287bb;
 
-    padding: 0 20px;
+    color: white;
 }
 
-.welcome {
-    margin-bottom: 25px;
+
+.btn-success {
+
+    background: #198754;
+
+    color: white;
 }
 
-.welcome h1 {
-    font-size: 30px;
+
+.btn-warning {
+
+    background: #f0ad4e;
+
+    color: white;
 }
 
-.welcome p {
-    margin-top: 6px;
-    color: #64748b;
+
+.btn-danger {
+
+    background: #dc3545;
+
+    color: white;
 }
 
-/* STAT */
 
-.stats {
+.btn-info {
+
+    background: #0dcaf0;
+
+    color: #111;
+}
+
+
+.btn-secondary {
+
+    background: #6c757d;
+
+    color: white;
+}
+
+
+/* =========================================================
+   DASHBOARD CARDS
+========================================================= */
+
+.dashboard {
+
     display: grid;
 
     grid-template-columns:
-        repeat(2, 1fr);
+        repeat(5, 1fr);
 
-    gap: 20px;
+    gap: 18px;
 
-    margin-bottom: 25px;
+    margin-bottom: 35px;
 }
 
-.stat-card {
-    background: white;
-
-    border: 1px solid #e2e8f0;
-
-    border-radius: 16px;
-
-    padding: 25px;
-
-    box-shadow:
-        0 5px 20px rgba(0,0,0,0.05);
-}
-
-.stat-icon {
-    font-size: 32px;
-    color: #3287bb;
-}
-
-.stat-number {
-    font-size: 30px;
-    font-weight: 700;
-
-    margin-top: 7px;
-}
-
-.stat-title {
-    color: #64748b;
-}
-
-/* CARD */
 
 .card {
+
     background: white;
 
-    border: 1px solid #e2e8f0;
+    border-radius: 14px;
 
-    border-radius: 16px;
-
-    overflow: hidden;
-
-    margin-bottom: 25px;
+    padding: 22px;
 
     box-shadow:
-        0 5px 20px rgba(0,0,0,0.05);
-}
-
-.card-header {
-    padding: 20px 24px;
-
-    border-bottom:
-        1px solid #e2e8f0;
+        0 4px 14px
+        rgba(0,0,0,.07);
 
     display: flex;
 
     align-items: center;
-    justify-content: space-between;
+
+    gap: 15px;
 }
 
-.card-header h2 {
-    font-size: 20px;
+
+.card-icon {
+
+    width: 55px;
+
+    height: 55px;
+
+    border-radius: 12px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 25px;
+
+    background: #e8f4fb;
+
+    color: #3287bb;
 }
+
+
+.card h3 {
+
+    margin: 0;
+
+    font-size: 27px;
+
+    color: #333;
+}
+
+
+.card p {
+
+    margin:
+        3px 0 0;
+
+    color: #777;
+
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   SECTION
+========================================================= */
+
+.section {
+
+    background: white;
+
+    border-radius: 14px;
+
+    padding: 25px;
+
+    margin-bottom: 30px;
+
+    box-shadow:
+        0 4px 14px
+        rgba(0,0,0,.07);
+}
+
+
+.section-header {
+
+    display: flex;
+
+    justify-content:
+        space-between;
+
+    align-items: center;
+
+    margin-bottom: 20px;
+
+    gap: 15px;
+}
+
+
+.section-header h2 {
+
+    margin: 0;
+
+    color: #2879ad;
+
+    font-size: 22px;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
 
 .table-wrapper {
+
     overflow-x: auto;
 }
 
+
 table {
+
     width: 100%;
-    border-collapse: collapse;
+
+    border-collapse:
+        collapse;
+
+    min-width: 900px;
 }
+
 
 th {
-    background: #f8fafc;
 
-    color: #475569;
+    background: #eef6fb;
 
-    font-size: 14px;
+    color: #2879ad;
+
+    padding:
+        13px 10px;
 
     text-align: left;
-
-    padding: 14px;
-}
-
-td {
-    padding: 14px;
-
-    border-top:
-        1px solid #edf2f7;
 
     font-size: 14px;
 
     white-space: nowrap;
 }
 
+
+td {
+
+    padding:
+        12px 10px;
+
+    border-bottom:
+        1px solid #eee;
+
+    font-size: 14px;
+
+    vertical-align: middle;
+}
+
+
+tr:hover td {
+
+    background: #fafafa;
+}
+
+
+/* =========================================================
+   ROLE
+========================================================= */
+
+.role {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    padding:
+        5px 9px;
+
+    border-radius: 20px;
+
+    font-size: 12px;
+
+    font-weight: bold;
+}
+
+
+.role-student {
+
+    background: #e7f5ff;
+
+    color: #0877b9;
+}
+
+
+.role-teacher {
+
+    background: #fff3cd;
+
+    color: #997404;
+}
+
+
+.role-admin {
+
+    background: #f8d7da;
+
+    color: #a71d2a;
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
 .status {
-    background: #e0f2fe;
 
-    color: #0369a1;
+    display: inline-block;
 
-    padding: 5px 9px;
+    padding:
+        5px 9px;
 
-    border-radius: 6px;
+    border-radius: 20px;
+
+    background: #e8f5e9;
+
+    color: #198754;
 
     font-size: 12px;
 }
 
-.actions {
+
+/* =========================================================
+   ACTION BUTTONS
+========================================================= */
+
+.action-buttons {
+
     display: flex;
+
+    align-items: center;
+
     gap: 7px;
+
+    flex-wrap: wrap;
 }
 
-.btn {
-    text-decoration: none;
 
-    border: none;
+.action-buttons .btn {
 
-    padding: 7px 11px;
-
-    border-radius: 7px;
+    padding:
+        7px 10px;
 
     font-size: 13px;
-
-    cursor: pointer;
 }
 
-.btn-edit {
-    background: #dbeafe;
-    color: #1d4ed8;
+
+/* =========================================================
+   PROJECT TITLE
+========================================================= */
+
+.project-title {
+
+    font-weight: bold;
+
+    color: #2879ad;
+
+    max-width: 280px;
 }
 
-.btn-delete {
-    background: #fee2e2;
-    color: #b91c1c;
+
+/* =========================================================
+   EMPTY
+========================================================= */
+
+.empty {
+
+    text-align: center;
+
+    padding: 40px;
+
+    color: #888;
 }
 
-.btn-edit:hover {
-    background: #bfdbfe;
+
+.empty i {
+
+    display: block;
+
+    font-size: 40px;
+
+    margin-bottom: 10px;
 }
 
-.btn-delete:hover {
-    background: #fecaca;
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.footer {
+
+    text-align: center;
+
+    color: #888;
+
+    padding:
+        20px;
+
+    font-size: 13px;
 }
 
-/* MOBILE */
 
-@media(max-width:700px) {
+/* =========================================================
+   RESPONSIVE
+========================================================= */
 
-    .header {
-        padding: 0 15px;
+@media (max-width: 1100px) {
+
+    .dashboard {
+
+        grid-template-columns:
+            repeat(3, 1fr);
+    }
+}
+
+
+@media (max-width: 750px) {
+
+    .custom-header {
+
+        padding:
+            15px 20px;
     }
 
     .header-title {
-        font-size: 16px;
+
+        font-size: 18px;
     }
 
-    .stats {
-        grid-template-columns: 1fr;
+    .admin-name {
+
+        display: none;
     }
 
-    .container {
-        padding: 0 12px;
+    .dashboard {
+
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+    .page-title {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+}
+
+
+@media (max-width: 500px) {
+
+    .dashboard {
+
+        grid-template-columns:
+            1fr;
+    }
+
+    .section {
+
+        padding: 15px;
     }
 
 }
@@ -377,96 +894,243 @@ td {
 
 </head>
 
+
 <body>
 
-<header class="header">
 
-    <a href="index2.php" class="header-left">
+<!-- =====================================================
+     HEADER
+===================================================== -->
 
-        <div class="logo">
-            SDU
+<header class="custom-header">
+
+    <div class="header-inner">
+
+
+        <div class="header-left">
+
+            <a href="index2.php">
+
+                <img
+                    src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png"
+                    class="logo"
+                    alt="SDU Logo">
+
+            </a>
+
+
+            <div class="header-title">
+
+                คลังโปรเจกต์ SDU
+
+            </div>
+
         </div>
 
-        <div class="header-title">
 
-            Admin Console
+        <div class="header-right">
 
-            <span class="admin-badge">
-                ADMIN
-            </span>
+            <div class="admin-name">
+
+                <i class="bi bi-person-circle"></i>
+
+                <?= htmlspecialchars(
+                    $current_first_name . ' ' . $current_last_name
+                ) ?>
+
+                <strong>(Admin)</strong>
+
+            </div>
+
+
+            <a
+                href="logout.php"
+                class="logout-btn"
+                onclick="return confirm('ต้องการออกจากระบบหรือไม่?');">
+
+                <i class="bi bi-box-arrow-right"></i>
+
+                ออกจากระบบ
+
+            </a>
 
         </div>
 
-    </a>
-
-    <a href="logout.php" class="logout">
-
-        <i class="bi bi-box-arrow-right"></i>
-
-        ออกจากระบบ
-
-    </a>
+    </div>
 
 </header>
 
 
+
+<!-- =====================================================
+     MAIN
+===================================================== -->
+
 <div class="container">
 
-    <div class="welcome">
 
-        <h1>
-            จัดการระบบ
-        </h1>
+    <!-- TITLE -->
 
-        <p>
-            สวัสดี
-            <?php
-            echo htmlspecialchars(
-                ($admin_data['first_name'] ?? '') .
-                ' ' .
-                ($admin_data['last_name'] ?? '')
-            );
-            ?>
+    <div class="page-title">
 
-            — Admin สามารถจัดการข้อมูลทั้งหมดได้
-        </p>
+        <div>
+
+            <h1>
+
+                <i class="bi bi-speedometer2"></i>
+
+                Admin Dashboard
+
+            </h1>
+
+            <p>
+                จัดการผู้ใช้งานและโปรเจกต์ทั้งหมดในระบบ
+            </p>
+
+        </div>
+
+
+        <a
+            href="index2.php"
+            class="btn btn-primary">
+
+            <i class="bi bi-house-fill"></i>
+
+            หน้าแรก
+
+        </a>
 
     </div>
 
 
-    <!-- สถิติ -->
 
-    <div class="stats">
+    <!-- =================================================
+         DASHBOARD
+    ================================================= -->
 
-        <div class="stat-card">
+    <div class="dashboard">
 
-            <div class="stat-icon">
+
+        <!-- USERS -->
+
+        <div class="card">
+
+            <div class="card-icon">
+
                 <i class="bi bi-people-fill"></i>
+
             </div>
 
-            <div class="stat-number">
-                <?php echo (int)$user_count; ?>
-            </div>
+            <div>
 
-            <div class="stat-title">
-                ผู้ใช้ทั้งหมด
+                <h3>
+                    <?= $total_users ?>
+                </h3>
+
+                <p>
+                    ผู้ใช้ทั้งหมด
+                </p>
+
             </div>
 
         </div>
 
 
-        <div class="stat-card">
+        <!-- STUDENTS -->
 
-            <div class="stat-icon">
+        <div class="card">
+
+            <div class="card-icon">
+
+                <i class="bi bi-person-fill"></i>
+
+            </div>
+
+            <div>
+
+                <h3>
+                    <?= $total_students ?>
+                </h3>
+
+                <p>
+                    Student
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- TEACHERS -->
+
+        <div class="card">
+
+            <div class="card-icon">
+
+                <i class="bi bi-person-workspace"></i>
+
+            </div>
+
+            <div>
+
+                <h3>
+                    <?= $total_teachers ?>
+                </h3>
+
+                <p>
+                    Teacher
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- ADMINS -->
+
+        <div class="card">
+
+            <div class="card-icon">
+
+                <i class="bi bi-shield-lock-fill"></i>
+
+            </div>
+
+            <div>
+
+                <h3>
+                    <?= $total_admins ?>
+                </h3>
+
+                <p>
+                    Admin
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- PROJECTS -->
+
+        <div class="card">
+
+            <div class="card-icon">
+
                 <i class="bi bi-folder-fill"></i>
+
             </div>
 
-            <div class="stat-number">
-                <?php echo (int)$project_count; ?>
-            </div>
+            <div>
 
-            <div class="stat-title">
-                โปรเจกต์ทั้งหมด
+                <h3>
+                    <?= $total_projects ?>
+                </h3>
+
+                <p>
+                    โปรเจกต์ทั้งหมด
+                </p>
+
             </div>
 
         </div>
@@ -474,312 +1138,599 @@ td {
     </div>
 
 
-    <!-- =========================
-         PROJECTS
-    ========================== -->
 
-    <div class="card">
-
-        <div class="card-header">
-
-            <h2>
-                <i class="bi bi-folder2-open"></i>
-
-                จัดการโปรเจกต์ทั้งหมด
-            </h2>
-
-        </div>
-
-
-        <div class="table-wrapper">
-
-            <table>
-
-                <tr>
-
-                    <th>ID</th>
-
-                    <th>ชื่อโปรเจกต์</th>
-
-                    <th>ผู้จัดทำ</th>
-
-                    <th>ระดับการศึกษา</th>
-
-                    <th>คณะ / สาขา</th>
-
-                    <th>สถานะ</th>
-
-                    <th>จัดการ</th>
-
-                </tr>
-
-
-                <?php while ($project = mysqli_fetch_assoc($projects_result)): ?>
-
-                <tr>
-
-                    <td>
-                        <?php echo (int)$project['id']; ?>
-                    </td>
-
-                    <td>
-
-                        <?php
-                        echo htmlspecialchars(
-                            $project['title']
-                            ?: $project['project_name']
-                        );
-                        ?>
-
-                    </td>
-
-                    <td>
-                        <?php
-                        echo htmlspecialchars(
-                            $project['authors']
-                            ?: $project['student_name']
-                            ?: '-'
-                        );
-                        ?>
-                    </td>
-
-                    <td>
-                        <?php
-                        echo htmlspecialchars(
-                            $project['degree'] ?: '-'
-                        );
-                        ?>
-                    </td>
-
-                    <td>
-                        <?php
-                        echo htmlspecialchars(
-                            $project['department'] ?: '-'
-                        );
-                        ?>
-                    </td>
-
-                    <td>
-
-                        <span class="status">
-
-                            <?php
-                            echo htmlspecialchars(
-                                $project['status'] ?: 'ส่งแล้ว'
-                            );
-                            ?>
-
-                        </span>
-
-                    </td>
-
-                    <td>
-
-                        <div class="actions">
-
-                            <a
-                                href="project-detail.php?id=<?php echo (int)$project['id']; ?>"
-                                class="btn btn-edit"
-                            >
-                                <i class="bi bi-eye"></i>
-                                ดู
-                            </a>
-
-
-                            <a
-                                href="admin_edit_project.php?id=<?php echo (int)$project['id']; ?>"
-                                class="btn btn-edit"
-                            >
-                                <i class="bi bi-pencil"></i>
-                                แก้ไข
-                            </a>
-
-
-                            <a
-                                href="admin_delete_project.php?id=<?php echo (int)$project['id']; ?>"
-                                class="btn btn-delete"
-
-                                onclick="
-                                return confirm(
-                                    'ยืนยันการลบโปรเจกต์นี้?'
-                                );
-                                "
-                            >
-                                <i class="bi bi-trash"></i>
-                                ลบ
-                            </a>
-
-                        </div>
-
-                    </td>
-
-                </tr>
-
-                <?php endwhile; ?>
-
-            </table>
-
-        </div>
-
-    </div>
-
-
-    <!-- =========================
+    <!-- =================================================
          USERS
-    ========================== -->
+    ================================================= -->
 
-    <div class="card">
+    <div class="section">
 
-        <div class="card-header">
+
+        <div class="section-header">
 
             <h2>
 
-                <i class="bi bi-people"></i>
+                <i class="bi bi-people-fill"></i>
 
-                จัดการผู้ใช้ทั้งหมด
+                จัดการผู้ใช้งาน
 
             </h2>
 
+
+            <a
+                href="admin_add_user.php"
+                class="btn btn-success">
+
+                <i class="bi bi-person-plus-fill"></i>
+
+                เพิ่มผู้ใช้
+
+            </a>
+
         </div>
+
+
+
+        <?php if (count($users) > 0): ?>
 
 
         <div class="table-wrapper">
 
             <table>
 
-                <tr>
+                <thead>
 
-                    <th>ID</th>
+                    <tr>
 
-                    <th>Username</th>
+                        <th>ID</th>
 
-                    <th>ชื่อ</th>
+                        <th>Username</th>
 
-                    <th>Email</th>
+                        <th>ชื่อ - นามสกุล</th>
 
-                    <th>สิทธิ์</th>
+                        <th>Email</th>
 
-                    <th>คณะ / สาขา</th>
+                        <th>Role</th>
 
-                    <th>จัดการ</th>
+                        <th>สาขา</th>
 
-                </tr>
+                        <th>จัดการ</th>
 
+                    </tr>
 
-                <?php while ($user = mysqli_fetch_assoc($users_result)): ?>
-
-                <tr>
-
-                    <td>
-                        <?php echo (int)$user['id']; ?>
-                    </td>
-
-                    <td>
-                        <?php
-                        echo htmlspecialchars(
-                            $user['username']
-                        );
-                        ?>
-                    </td>
-
-                    <td>
-
-                        <?php
-                        echo htmlspecialchars(
-                            ($user['first_name'] ?? '') .
-                            ' ' .
-                            ($user['last_name'] ?? '')
-                        );
-                        ?>
-
-                    </td>
-
-                    <td>
-
-                        <?php
-                        echo htmlspecialchars(
-                            $user['email'] ?? '-'
-                        );
-                        ?>
-
-                    </td>
-
-                    <td>
-
-                        <span class="status">
-
-                            <?php
-                            echo htmlspecialchars(
-                                $user['role'] ?? '-'
-                            );
-                            ?>
-
-                        </span>
-
-                    </td>
-
-                    <td>
-
-                        <?php
-                        echo htmlspecialchars(
-                            $user['department'] ?? '-'
-                        );
-                        ?>
-
-                    </td>
-
-                    <td>
-
-                        <div class="actions">
-
-                            <a
-                                href="admin_edit_user.php?id=<?php echo (int)$user['id']; ?>"
-                                class="btn btn-edit"
-                            >
-
-                                <i class="bi bi-pencil"></i>
-
-                                แก้ไข
-
-                            </a>
+                </thead>
 
 
-                            <?php if ((int)$user['id'] !== $admin_id): ?>
+                <tbody>
 
-                            <a
-                                href="admin_delete_user.php?id=<?php echo (int)$user['id']; ?>"
-                                class="btn btn-delete"
 
-                                onclick="
-                                return confirm(
-                                    'ยืนยันการลบผู้ใช้นี้?'
-                                );
-                                "
-                            >
+                <?php foreach ($users as $row): ?>
 
-                                <i class="bi bi-trash"></i>
 
-                                ลบ
+                    <tr>
 
-                            </a>
+
+                        <!-- ID -->
+
+                        <td>
+
+                            <?= (int)$row['id'] ?>
+
+                        </td>
+
+
+                        <!-- USERNAME -->
+
+                        <td>
+
+                            <strong>
+
+                                <?= htmlspecialchars(
+                                    $row['username']
+                                ) ?>
+
+                            </strong>
+
+                        </td>
+
+
+                        <!-- NAME -->
+
+                        <td>
+
+                            <?= htmlspecialchars(
+                                $row['first_name'] .
+                                ' ' .
+                                $row['last_name']
+                            ) ?>
+
+                        </td>
+
+
+                        <!-- EMAIL -->
+
+                        <td>
+
+                            <?= htmlspecialchars(
+                                $row['email']
+                            ) ?>
+
+                        </td>
+
+
+                        <!-- ROLE -->
+
+                        <td>
+
+
+                            <?php if ($row['role'] === 'admin'): ?>
+
+                                <span class="role role-admin">
+
+                                    <i class="bi bi-shield-fill"></i>
+
+                                    Admin
+
+                                </span>
+
+
+                            <?php elseif ($row['role'] === 'teacher'): ?>
+
+                                <span class="role role-teacher">
+
+                                    <i class="bi bi-person-workspace"></i>
+
+                                    Teacher
+
+                                </span>
+
+
+                            <?php else: ?>
+
+                                <span class="role role-student">
+
+                                    <i class="bi bi-person-fill"></i>
+
+                                    Student
+
+                                </span>
 
                             <?php endif; ?>
 
-                        </div>
 
-                    </td>
+                        </td>
 
-                </tr>
 
-                <?php endwhile; ?>
+                        <!-- DEPARTMENT -->
+
+                        <td>
+
+                            <?= htmlspecialchars(
+                                $row['department'] ?? '-'
+                            ) ?>
+
+                        </td>
+
+
+                        <!-- ACTION -->
+
+                        <td>
+
+                            <div class="action-buttons">
+
+
+                                <!-- EDIT -->
+
+                                <a
+                                    href="admin_edit_user.php?id=<?= (int)$row['id'] ?>"
+                                    class="btn btn-warning">
+
+                                    <i class="bi bi-pencil-square"></i>
+
+                                    แก้ไข
+
+                                </a>
+
+
+                                <!-- DELETE -->
+
+                                <?php if (
+                                    (int)$row['id']
+                                    !==
+                                    $current_user_id
+                                ): ?>
+
+
+                                    <a
+                                        href="admin_delete_user.php?id=<?= (int)$row['id'] ?>"
+                                        class="btn btn-danger"
+                                        onclick="return confirm('ต้องการลบผู้ใช้นี้ใช่หรือไม่?\\n\\nข้อมูลผู้ใช้จะถูกลบออกจากระบบ');">
+
+                                        <i class="bi bi-trash-fill"></i>
+
+                                        ลบ
+
+                                    </a>
+
+
+                                <?php else: ?>
+
+
+                                    <span
+                                        class="role role-admin">
+
+                                        <i class="bi bi-person-check-fill"></i>
+
+                                        บัญชีปัจจุบัน
+
+                                    </span>
+
+
+                                <?php endif; ?>
+
+
+                            </div>
+
+                        </td>
+
+
+                    </tr>
+
+
+                <?php endforeach; ?>
+
+
+                </tbody>
 
             </table>
 
         </div>
 
+
+        <?php else: ?>
+
+
+            <div class="empty">
+
+                <i class="bi bi-people"></i>
+
+                ยังไม่มีผู้ใช้งาน
+
+            </div>
+
+
+        <?php endif; ?>
+
+
     </div>
+
+
+
+    <!-- =================================================
+         PROJECTS
+    ================================================= -->
+
+    <div class="section">
+
+
+        <div class="section-header">
+
+            <h2>
+
+                <i class="bi bi-folder-fill"></i>
+
+                จัดการโปรเจกต์ทั้งหมด
+
+            </h2>
+
+        </div>
+
+
+
+        <?php if (count($projects) > 0): ?>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>ID</th>
+
+                        <th>ชื่อโปรเจกต์</th>
+
+                        <th>ผู้จัดทำ</th>
+
+                        <th>ระดับ</th>
+
+                        <th>สาขา</th>
+
+                        <th>อาจารย์ที่ปรึกษา</th>
+
+                        <th>สถานะ</th>
+
+                        <th>วันที่ส่ง</th>
+
+                        <th>จัดการ</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+
+                <?php foreach ($projects as $row): ?>
+
+
+                    <?php
+
+                    $display_title =
+                        !empty($row['title'])
+                        ? $row['title']
+                        : $row['project_name'];
+
+                    $display_authors =
+                        !empty($row['authors'])
+                        ? $row['authors']
+                        : $row['student_name'];
+
+                    $display_degree =
+                        !empty($row['degree'])
+                        ? $row['degree']
+                        : $row['project_type'];
+
+                    ?>
+
+
+                    <tr>
+
+
+                        <!-- ID -->
+
+                        <td>
+
+                            <?= (int)$row['id'] ?>
+
+                        </td>
+
+
+                        <!-- TITLE -->
+
+                        <td>
+
+                            <div class="project-title">
+
+                                <?= htmlspecialchars(
+                                    $display_title
+                                ) ?>
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- AUTHORS -->
+
+                        <td>
+
+                            <?= htmlspecialchars(
+                                $display_authors ?: '-'
+                            ) ?>
+
+                        </td>
+
+
+                        <!-- DEGREE -->
+
+                        <td>
+
+                            <?= htmlspecialchars(
+                                $display_degree ?: '-'
+                            ) ?>
+
+                        </td>
+
+
+                        <!-- DEPARTMENT -->
+
+                        <td>
+
+                            <?= htmlspecialchars(
+                                $row['department'] ?: '-'
+                            ) ?>
+
+                        </td>
+
+
+                        <!-- ADVISOR -->
+
+                        <td>
+
+                            <?= htmlspecialchars(
+                                $row['advisor'] ?: '-'
+                            ) ?>
+
+                        </td>
+
+
+                        <!-- STATUS -->
+
+                        <td>
+
+                            <span class="status">
+
+                                <?= htmlspecialchars(
+                                    $row['status'] ?: 'ส่งแล้ว'
+                                ) ?>
+
+                            </span>
+
+                        </td>
+
+
+                        <!-- CREATED -->
+
+                        <td>
+
+                            <?php
+
+                            if (!empty($row['created_at'])) {
+
+                                echo date(
+                                    'd/m/Y H:i',
+                                    strtotime(
+                                        $row['created_at']
+                                    )
+                                );
+
+                            } else {
+
+                                echo '-';
+                            }
+
+                            ?>
+
+                        </td>
+
+
+                        <!-- ACTION -->
+
+                        <td>
+
+                            <div class="action-buttons">
+
+
+                                <!-- VIEW -->
+
+                                <a
+                                    href="project-detail.php?id=<?= (int)$row['id'] ?>"
+                                    class="btn btn-info">
+
+                                    <i class="bi bi-eye-fill"></i>
+
+                                    ดู
+
+                                </a>
+
+
+                                <!-- EDIT -->
+
+                                <a
+                                    href="admin_edit_project.php?id=<?= (int)$row['id'] ?>"
+                                    class="btn btn-warning">
+
+                                    <i class="bi bi-pencil-square"></i>
+
+                                    แก้ไข
+
+                                </a>
+
+
+                                <!-- PDF -->
+
+                                <?php if (!empty($row['pdf_file'])): ?>
+
+                                    <a
+                                        href="uploads/<?= urlencode(basename($row['pdf_file'])) ?>"
+                                        target="_blank"
+                                        class="btn btn-primary">
+
+                                        <i class="bi bi-file-earmark-pdf-fill"></i>
+
+                                        PDF
+
+                                    </a>
+
+                                <?php endif; ?>
+
+
+                                <!-- GITHUB -->
+
+                                <?php if (!empty($row['github_url'])): ?>
+
+                                    <a
+                                        href="<?= htmlspecialchars($row['github_url']) ?>"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="btn btn-secondary">
+
+                                        <i class="bi bi-github"></i>
+
+                                        GitHub
+
+                                    </a>
+
+                                <?php endif; ?>
+
+
+                                <!-- DELETE -->
+
+                                <a
+                                    href="admin_delete_project.php?id=<?= (int)$row['id'] ?>"
+                                    class="btn btn-danger"
+                                    onclick="return confirm('ต้องการลบโปรเจกต์นี้ใช่หรือไม่?\\n\\nไฟล์ PDF และข้อมูลโปรเจกต์จะถูกลบด้วย');">
+
+                                    <i class="bi bi-trash-fill"></i>
+
+                                    ลบ
+
+                                </a>
+
+
+                            </div>
+
+                        </td>
+
+
+                    </tr>
+
+
+                <?php endforeach; ?>
+
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <?php else: ?>
+
+
+            <div class="empty">
+
+                <i class="bi bi-folder-x"></i>
+
+                ยังไม่มีโปรเจกต์ในระบบ
+
+            </div>
+
+
+        <?php endif; ?>
+
+
+    </div>
+
 
 </div>
 
+
+
+<!-- FOOTER -->
+
+<div class="footer">
+
+    ระบบสืบค้นโปรเจกต์ SDU
+
+</div>
+
+
 </body>
+
 </html>

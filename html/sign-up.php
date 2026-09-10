@@ -5,13 +5,14 @@ include 'db_connect.php';
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $username   = trim($_POST['username'] ?? '');
+    $user_code  = trim($_POST['user_code'] ?? ''); // รหัสนักศึกษา / รหัสอาจารย์
     $firstname  = trim($_POST['firstname'] ?? '');
     $lastname   = trim($_POST['lastname'] ?? '');
     $email      = trim($_POST['email'] ?? '');
     $department = trim($_POST['department'] ?? '');
+    $role       = $_POST['role'] ?? 'student'; // รับค่า role จากฟอร์ม (student หรือ teacher)
     $password   = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
-    $role       = 'student'; // กำหนดค่าเริ่มต้นเป็น student
 
     // 1. เช็กรหัสผ่านตรงกันหรือไม่
     if ($password !== $confirm_password) {
@@ -24,6 +25,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // 2. เช็กว่า Username หรือ Email ซ้ำหรือไม่
     $stmt_check = mysqli_prepare($conn, "SELECT id FROM users WHERE username = ? OR email = ?");
+    if (!$stmt_check) {
+        die("SQL Error (Check): " . mysqli_error($conn));
+    }
     mysqli_stmt_bind_param($stmt_check, "ss", $username, $email);
     mysqli_stmt_execute($stmt_check);
     mysqli_stmt_store_result($stmt_check);
@@ -41,15 +45,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // 3. เข้ารหัสรหัสผ่าน
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-    // 4. บันทึกข้อมูลเข้า Database
+    // 4. บันทึกข้อมูลเข้า Database (หมายเหตุ: หากต้องการเก็บบันทึกรหัสประจำตัวลงฐานข้อมูลด้วย ให้เพิ่มคอลัมน์ user_code หรือ id_card ในตาราง users ก่อน)
     $sql = "INSERT INTO users (username, first_name, last_name, email, role, department, password) VALUES (?, ?, ?, ?, ?, ?, ?)";
     $stmt_insert = mysqli_prepare($conn, $sql);
+    
+    if (!$stmt_insert) {
+        die("SQL Error (Insert): " . mysqli_error($conn));
+    }
+
     mysqli_stmt_bind_param($stmt_insert, "sssssss", $username, $firstname, $lastname, $email, $role, $department, $hashed_password);
 
     if (mysqli_stmt_execute($stmt_insert)) {
         mysqli_stmt_close($stmt_insert);
         mysqli_close($conn);
-        // แก้ไขจุดที่ 1: เปลี่ยนส่งกลับไป login.php แล้ว
         echo "<script>
                 alert('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ');
                 window.location.href='login.php';
@@ -66,168 +74,67 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>สมัครสมาชิก - ระบบสืบค้นโปรเจกต์</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Sarabun', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    body {
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: linear-gradient(135deg, #29b6f6 0%, #b3e5fc 50%, #e1f5fe 100%);
-      padding: 40px 0;
-    }
-
-    .register-wrapper {
-      position: relative;
-      width: 100%;
-      max-width: 480px;
-      padding: 0 20px;
-      margin-top: 40px;
-    }
-
-    .logo-container {
-      position: absolute;
-      top: -55px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 2;
-    }
-
-    .logo-container img {
-      width: 110px;
-      height: 110px;
-      object-fit: contain;
-      filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.15));
-    }
-
-    .register-card {
-      background: #ffffff;
-      border-radius: 6px;
-      padding: 70px 35px 35px 35px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-    }
-
-    .register-card h2 {
-      font-size: 1.25rem;
-      color: #2b2b2b;
-      font-weight: 600;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-
-    .form-group {
-      margin-bottom: 15px;
-      text-align: left;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 0.85rem;
-      color: #333333;
-      margin-bottom: 5px;
-      font-weight: 500;
-    }
-
-    .input-wrapper {
-      position: relative;
-    }
-
-    .input-wrapper input,
-    .input-wrapper select {
-      width: 100%;
-      padding: 9px 35px 9px 12px;
-      font-size: 0.9rem;
-      border: 1px solid #bce0fd;
-      background-color: #f0f7ff;
-      border-radius: 5px;
-      outline: none;
-      transition: all 0.2s ease;
-      color: #333;
-      appearance: none;
-    }
-
-    .input-wrapper input:focus,
-    .input-wrapper select:focus {
-      border-color: #29b6f6;
-      box-shadow: 0 0 5px rgba(41, 182, 246, 0.5);
-    }
-
-    .input-wrapper i {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #888888;
-      font-size: 0.85rem;
-      pointer-events: none;
-    }
-
-    .btn-submit {
-      width: 100%;
-      padding: 11px;
-      background: linear-gradient(to bottom, #34b3c7, #258ca3);
-      border: none;
-      border-radius: 5px;
-      color: #ffffff;
-      font-size: 0.95rem;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 15px;
-      transition: opacity 0.2s ease;
-    }
-
-    .btn-submit:hover {
-      opacity: 0.9;
-    }
-
-    .footer-links {
-      margin-top: 20px;
-      text-align: center;
-      font-size: 0.85rem;
-    }
-
-    .footer-links a {
-      color: #0088cc;
-      text-decoration: none;
-      font-weight: 500;
-    }
-
-    .footer-links a:hover {
-      text-decoration: underline;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Sarabun', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { min-height: 100vh; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #29b6f6 0%, #b3e5fc 50%, #e1f5fe 100%); padding: 40px 0; }
+    .register-wrapper { position: relative; width: 100%; max-width: 480px; padding: 0 20px; margin-top: 40px; }
+    .logo-container { position: absolute; top: -55px; left: 50%; transform: translateX(-50%); z-index: 2; }
+    .logo-container img { width: 110px; height: 110px; object-fit: contain; filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.15)); }
+    .register-card { background: #ffffff; border-radius: 6px; padding: 70px 35px 35px 35px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15); }
+    .register-card h2 { font-size: 1.25rem; color: #2b2b2b; font-weight: 600; margin-bottom: 20px; text-align: center; }
+    .form-group { margin-bottom: 15px; text-align: left; }
+    .form-group label { display: block; font-size: 0.85rem; color: #333333; margin-bottom: 5px; font-weight: 500; }
+    .input-wrapper { position: relative; }
+    .input-wrapper input, .input-wrapper select { width: 100%; padding: 9px 35px 9px 12px; font-size: 0.9rem; border: 1px solid #bce0fd; background-color: #f0f7ff; border-radius: 5px; outline: none; transition: all 0.2s ease; color: #333; appearance: none; }
+    .input-wrapper input:focus, .input-wrapper select:focus { border-color: #29b6f6; box-shadow: 0 0 5px rgba(41, 182, 246, 0.5); }
+    .input-wrapper i { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #888888; font-size: 0.85rem; pointer-events: none; }
+    .btn-submit { width: 100%; padding: 11px; background: linear-gradient(to bottom, #34b3c7, #258ca3); border: none; border-radius: 5px; color: #ffffff; font-size: 0.95rem; font-weight: bold; cursor: pointer; margin-top: 15px; transition: opacity 0.2s ease; }
+    .btn-submit:hover { opacity: 0.9; }
+    .footer-links { margin-top: 20px; text-align: center; font-size: 0.85rem; }
+    .footer-links a { color: #0088cc; text-decoration: none; font-weight: 500; }
+    .footer-links a:hover { text-decoration: underline; }
   </style>
 </head>
-
 <body>
-
   <div class="register-wrapper">
     <div class="logo-container">
       <img src="https://academic.dusit.ac.th/academic/edu/util/img/login/sdu-newlogo.png" alt="ตราสัญลักษณ์">
     </div>
-
     <div class="register-card">
       <h2>ลงทะเบียนใช้งานระบบ</h2>
-
-      <!-- แก้ไขจุดที่ 2: เปลี่ยน action เป็น sign-up.php -->
       <form action="sign-up.php" method="POST" id="registerForm">
+        
+        <!-- เลือกประเภทผู้ใช้งาน (Role) -->
+        <div class="form-group">
+          <label for="role">ประเภทผู้ใช้งาน <span class="text-danger">*</span></label>
+          <div class="input-wrapper">
+            <select id="role" name="role" required>
+              <option value="student" selected>นักศึกษา (Student)</option>
+              <option value="teacher">อาจารย์ / ที่ปรึกษา (Teacher)</option>
+            </select>
+            <i class="fa-solid fa-chevron-down"></i>
+          </div>
+        </div>
+
         <div class="form-group">
           <label for="username">Username</label>
           <div class="input-wrapper">
             <input type="text" id="username" name="username" placeholder="ชื่อผู้ใช้งาน" required>
             <i class="fa-solid fa-user"></i>
+          </div>
+        </div>
+
+        <!-- รหัสนักศึกษา / รหัสประจำตัวอาจารย์ -->
+        <div class="form-group">
+          <label for="user_code">รหัสนักศึกษา / รหัสประจำตัวบุคลากร</label>
+          <div class="input-wrapper">
+            <input type="text" id="user_code" name="user_code" placeholder="กรอกรหัสประจำตัว" required>
+            <i class="fa-solid fa-address-card"></i>
           </div>
         </div>
 
@@ -260,10 +167,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
           <div class="input-wrapper">
             <select id="department" name="department" required>
               <option value="" disabled selected>-- เลือกสาขาวิชา --</option>
-              <option value="it">เทคโนโลยีสารสนเทศ</option>
-              <option value="cs">วิทยาการคอมพิวเตอร์</option>
-              <option value="se">วิศวกรรมซอฟต์แวร์</option>
-              <option value="other">สาขาอื่นๆ</option>
+              <option value="เทคโนโลยีสารสนเทศ">เทคโนโลยีสารสนเทศ</option>
+              <option value="วิทยาการคอมพิวเตอร์">วิทยาการคอมพิวเตอร์</option>
+              <option value="วิศวกรรมซอฟต์แวร์">วิศวกรรมซอฟต์แวร์</option>
+              <option value="สาขาอื่นๆ">สาขาอื่นๆ</option>
             </select>
             <i class="fa-solid fa-chevron-down"></i>
           </div>
@@ -288,12 +195,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <button type="submit" class="btn-submit">ยืนยันการสมัครสมาชิก</button>
       </form>
 
-      <!-- แก้ไขจุดที่ 3: เปลี่ยนลิงก์เป็น login.php -->
       <div class="footer-links">
         มีบัญชีผู้ใช้งานอยู่แล้ว? <a href="login.php">เข้าสู่ระบบที่นี่</a>
       </div>
     </div>
   </div>
-
 </body>
 </html>

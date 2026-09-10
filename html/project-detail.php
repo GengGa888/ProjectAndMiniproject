@@ -1,11 +1,10 @@
 <?php
 session_start();
-
 include 'db_connect.php';
 
-/* =====================================================
-   ตรวจสอบ ID โปรเจกต์
-===================================================== */
+/* ==============================
+   PROJECT ID
+============================== */
 
 $project_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
@@ -15,9 +14,9 @@ if ($project_id <= 0) {
 }
 
 
-/* =====================================================
-   ดึงข้อมูลโปรเจกต์
-===================================================== */
+/* ==============================
+   GET PROJECT
+============================== */
 
 $sql = "SELECT * FROM projects WHERE id = ? LIMIT 1";
 
@@ -28,84 +27,21 @@ if (!$stmt) {
 }
 
 mysqli_stmt_bind_param($stmt, "i", $project_id);
-
 mysqli_stmt_execute($stmt);
 
 $result = mysqli_stmt_get_result($stmt);
 
-
-/* =====================================================
-   ตรวจสอบว่าพบโปรเจกต์หรือไม่
-===================================================== */
-
 if (!$result || mysqli_num_rows($result) === 0) {
-    ?>
-
-    <!DOCTYPE html>
-    <html lang="th">
-
-    <head>
-
-        <meta charset="UTF-8">
-
-        <meta name="viewport"
-              content="width=device-width, initial-scale=1.0">
-
-        <title>ไม่พบโปรเจกต์</title>
-
-        <link
-            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-            rel="stylesheet"
-        >
-
-    </head>
-
-    <body>
-
-        <div
-            class="text-center"
-            style="
-                margin-top:120px;
-                font-family:Arial;
-            "
-        >
-
-            <h2>
-                ไม่พบโปรเจกต์
-            </h2>
-
-            <p class="text-muted">
-                ไม่พบข้อมูลโปรเจกต์ที่ต้องการ
-            </p>
-
-            <a
-                href="index2.php"
-                class="btn btn-primary"
-            >
-                กลับหน้าแรก
-            </a>
-
-        </div>
-
-    </body>
-
-    </html>
-
-    <?php
+    header("Location: index2.php");
     exit();
 }
-
-
-/* =====================================================
-   เก็บข้อมูล
-===================================================== */
 
 $row = mysqli_fetch_assoc($result);
 
 
-/* =====================================================
-   ข้อมูลหลัก
-===================================================== */
+/* ==============================
+   DATA
+============================== */
 
 $title = $row['title'] ?? 'ไม่พบชื่อโปรเจกต์';
 
@@ -121,73 +57,42 @@ $github_url = trim($row['github_url'] ?? '');
 
 $pdf_file = $row['pdf_file'] ?? '';
 
-$category_name = $row['category_name'] ?? 'เทคโนโลยีสารสนเทศ';
-
 $created_at = '-';
 
 
-/* =====================================================
-   วันที่
-===================================================== */
+/* ==============================
+   DATE
+============================== */
 
 if (!empty($row['created_at'])) {
 
-    $created_timestamp = strtotime($row['created_at']);
+    $timestamp = strtotime($row['created_at']);
 
-    if ($created_timestamp !== false) {
-
-        $created_at = date(
-            'd/m/Y',
-            $created_timestamp
-        );
-
+    if ($timestamp !== false) {
+        $created_at = date('d/m/Y', $timestamp);
     }
-
 }
 
 
-/* =====================================================
-   Keywords
-===================================================== */
+/* ==============================
+   KEYWORDS
+============================== */
 
 $keywords = [];
 
 if (!empty($row['keywords'])) {
-
-    $keywords = explode(
-        ',',
-        $row['keywords']
-    );
-
+    $keywords = explode(',', $row['keywords']);
 }
 
 
-/* =====================================================
-   รูปปก
-===================================================== */
-
-$cover_image =
-    'https://ph01.tci-thaijo.org/public/journals/706/cover_issue_17385_th_TH.png';
-
-if (!empty($row['cover_image'])) {
-
-    $cover_image =
-        'uploads/' . basename($row['cover_image']);
-
-}
-
-
-/* =====================================================
+/* ==============================
    PDF
-===================================================== */
+============================== */
 
 $pdf_path = '';
 
 if (!empty($pdf_file)) {
-
-    $pdf_path =
-        'uploads/' . basename($pdf_file);
-
+    $pdf_path = 'uploads/' . basename($pdf_file);
 }
 
 ?>
@@ -229,19 +134,21 @@ if (!empty($pdf_file)) {
 
     <style>
 
-        /* =====================================================
-           GENERAL
-        ===================================================== */
-
         * {
             box-sizing: border-box;
         }
+
 
         body {
 
             margin: 0;
 
-            background: #ffffff;
+            background:
+                linear-gradient(
+                    180deg,
+                    #f5f9fc 0%,
+                    #ffffff 35%
+                );
 
             font-family:
                 'Segoe UI',
@@ -249,14 +156,14 @@ if (!empty($pdf_file)) {
                 Arial,
                 sans-serif;
 
-            color: #333;
+            color: #263238;
 
         }
 
 
-        /* =====================================================
+        /* =========================================
            HEADER
-        ===================================================== */
+        ========================================= */
 
         .custom-header {
 
@@ -264,15 +171,15 @@ if (!empty($pdf_file)) {
 
             background:
                 linear-gradient(
-                    to right,
+                    135deg,
                     #4aa4d6,
                     #4297CD,
                     #3287BB
                 );
 
             box-shadow:
-                0 3px 12px
-                rgba(0, 0, 0, 0.12);
+                0 4px 18px
+                rgba(38, 119, 164, 0.20);
 
         }
 
@@ -285,7 +192,7 @@ if (!empty($pdf_file)) {
 
             margin: auto;
 
-            padding: 0 20px;
+            padding: 0 25px;
 
             display: flex;
 
@@ -302,7 +209,7 @@ if (!empty($pdf_file)) {
 
             align-items: center;
 
-            gap: 18px;
+            gap: 20px;
 
         }
 
@@ -332,12 +239,16 @@ if (!empty($pdf_file)) {
 
             padding: 3px;
 
+            box-shadow:
+                0 3px 10px
+                rgba(0,0,0,0.15);
+
             transition: 0.25s;
 
         }
 
 
-        .logo-link:hover .sdu-logo {
+        .sdu-logo:hover {
 
             transform: scale(1.06);
 
@@ -350,7 +261,7 @@ if (!empty($pdf_file)) {
 
             align-items: center;
 
-            gap: 8px;
+            gap: 9px;
 
             color: white;
 
@@ -359,8 +270,6 @@ if (!empty($pdf_file)) {
             font-size: 18px;
 
             font-weight: 600;
-
-            padding: 10px 8px;
 
             transition: 0.25s;
 
@@ -373,36 +282,35 @@ if (!empty($pdf_file)) {
 
             transform: translateY(-2px);
 
-            text-shadow:
-                0 3px 8px
-                rgba(0, 0, 0, 0.2);
-
         }
 
 
         .home-icon {
 
-            font-size: 21px;
-
-        }
-
-
-        .header-right {
-
-            display: flex;
-
-            align-items: center;
+            font-size: 22px;
 
         }
 
 
         .profile-icon {
 
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            width: 45px;
+
+            height: 45px;
+
             color: white;
 
             font-size: 30px;
 
             text-decoration: none;
+
+            border-radius: 50%;
 
             transition: 0.25s;
 
@@ -413,192 +321,245 @@ if (!empty($pdf_file)) {
 
             color: white;
 
-            transform: scale(1.08);
+            background:
+                rgba(255,255,255,0.15);
+
+            transform: scale(1.05);
 
         }
 
 
-        /* =====================================================
-           MAIN CONTAINER
-        ===================================================== */
+        /* =========================================
+           MAIN
+        ========================================= */
 
         .detail-container {
 
             max-width: 1200px;
 
-            margin: 40px auto;
+            margin: 45px auto;
 
             padding: 0 20px;
 
         }
 
 
-        /* =====================================================
-           COVER IMAGE
-        ===================================================== */
+        .project-card {
 
-        .cover-image {
+            background: white;
 
-            width: 100%;
+            border-radius: 18px;
 
-            display: block;
-
-            border: 1px solid #ddd;
-
-            border-radius: 8px;
+            border: 1px solid #e5edf3;
 
             box-shadow:
-                0 3px 10px
-                rgba(0, 0, 0, 0.08);
+                0 8px 30px
+                rgba(48, 105, 139, 0.10);
 
-            margin-bottom: 15px;
+            overflow: hidden;
 
         }
 
 
-        /* =====================================================
-           PROJECT TITLE
-        ===================================================== */
+        .project-card-body {
 
-        .detail-title {
+            padding: 35px;
 
-            color: #2a7cbd;
+        }
 
-            font-size: 32px;
+
+        /* =========================================
+           LEFT SIDE
+        ========================================= */
+
+        .side-panel {
+
+            height: 100%;
+
+            background:
+                linear-gradient(
+                    180deg,
+                    #f7fbfe,
+                    #ffffff
+                );
+
+            border: 1px solid #e4edf3;
+
+            border-radius: 14px;
+
+            padding: 22px;
+
+        }
+
+
+        .side-title {
+
+            font-size: 17px;
 
             font-weight: 700;
 
-            line-height: 1.4;
+            color: #245c7d;
+
+            margin-bottom: 18px;
+
+        }
+
+
+        /* =========================================
+           PDF
+        ========================================= */
+
+        .pdf-button {
+
+            width: 100%;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            gap: 10px;
+
+            padding: 13px 15px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #58b4df,
+                    #358abd
+                );
+
+            color: white;
+
+            border-radius: 10px;
+
+            text-decoration: none;
+
+            font-weight: 700;
+
+            box-shadow:
+                0 5px 15px
+                rgba(53, 138, 189, 0.25);
+
+            transition: 0.25s;
 
             margin-bottom: 20px;
 
         }
 
 
-        /* =====================================================
-           SECTION
-        ===================================================== */
-
-        .section-heading {
-
-            font-size: 23px;
-
-            font-weight: 700;
-
-            margin-top: 30px;
-
-            margin-bottom: 15px;
-
-        }
-
-
-        .description-text {
-
-            line-height: 1.8;
-
-            color: #444;
-
-            white-space: pre-line;
-
-        }
-
-
-        /* =====================================================
-           SIDEBAR INFORMATION
-        ===================================================== */
-
-        .sidebar-meta {
-
-            border-top: 1px solid #eee;
-
-            padding-top: 15px;
-
-            margin-top: 15px;
-
-        }
-
-
-        .sidebar-meta-title {
-
-            font-weight: 700;
-
-            margin-bottom: 5px;
-
-        }
-
-
-        /* =====================================================
-           PDF BUTTON
-        ===================================================== */
-
-        .btn-pdf-large {
-
-            display: block;
-
-            width: 100%;
-
-            background: #5ab1d8;
-
-            color: white;
-
-            text-align: center;
-
-            text-decoration: none;
-
-            font-weight: 700;
-
-            padding: 11px;
-
-            border-radius: 6px;
-
-            transition: 0.25s;
-
-        }
-
-
-        .btn-pdf-large:hover {
-
-            background: #4297CD;
+        .pdf-button:hover {
 
             color: white;
 
             transform: translateY(-2px);
 
-        }
-
-
-        /* =====================================================
-           KEYWORDS
-        ===================================================== */
-
-        .keyword-badge {
-
-            background: #f5f8fb;
-
-            color: #555;
-
-            border: 1px solid #ddd;
-
-            padding: 7px 10px;
+            box-shadow:
+                0 8px 18px
+                rgba(53, 138, 189, 0.32);
 
         }
 
 
-        /* =====================================================
-           GITHUB URL
-        ===================================================== */
+        .pdf-button i {
 
-        .github-url-box {
+            font-size: 20px;
 
-            margin-bottom: 12px;
+        }
 
-            padding: 10px 12px;
 
-            background: #f6f8fa;
+        /* =========================================
+           INFO ITEM
+        ========================================= */
 
-            border: 1px solid #ddd;
+        .info-item {
 
-            border-radius: 6px;
+            padding: 15px 0;
+
+            border-top: 1px solid #e7eef2;
+
+        }
+
+
+        .info-label {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+            color: #527184;
+
+            font-size: 13px;
+
+            font-weight: 600;
+
+            margin-bottom: 6px;
+
+        }
+
+
+        .info-label i {
+
+            color: #4297CD;
+
+            font-size: 16px;
+
+        }
+
+
+        .info-value {
+
+            color: #263238;
+
+            font-size: 14px;
+
+            line-height: 1.6;
+
+        }
+
+
+        /* =========================================
+           GITHUB
+        ========================================= */
+
+        .github-card {
+
+            margin-top: 18px;
+
+            padding: 17px;
+
+            background: #f8fafc;
+
+            border: 1px solid #e1e7ec;
+
+            border-radius: 12px;
+
+        }
+
+
+        .github-title {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+            font-weight: 700;
+
+            color: #24292f;
+
+            margin-bottom: 10px;
+
+        }
+
+
+        .github-title i {
+
+            font-size: 21px;
 
         }
 
@@ -607,15 +568,25 @@ if (!empty($pdf_file)) {
 
             display: block;
 
-            color: #4297CD;
+            padding: 10px;
 
-            font-size: 14px;
+            background: white;
+
+            border: 1px solid #dce4e9;
+
+            border-radius: 8px;
+
+            color: #3287BB;
+
+            font-size: 13px;
 
             line-height: 1.5;
 
             word-break: break-all;
 
             text-decoration: none;
+
+            margin-bottom: 10px;
 
         }
 
@@ -629,11 +600,9 @@ if (!empty($pdf_file)) {
         }
 
 
-        /* =====================================================
-           GITHUB BUTTON
-        ===================================================== */
-
         .github-button {
+
+            width: 100%;
 
             display: flex;
 
@@ -641,19 +610,19 @@ if (!empty($pdf_file)) {
 
             justify-content: center;
 
-            gap: 9px;
+            gap: 8px;
 
-            width: 100%;
-
-            padding: 11px 15px;
+            padding: 10px;
 
             background: #24292f;
 
             color: white;
 
+            border-radius: 8px;
+
             text-decoration: none;
 
-            border-radius: 6px;
+            font-size: 14px;
 
             font-weight: 600;
 
@@ -664,40 +633,233 @@ if (!empty($pdf_file)) {
 
         .github-button:hover {
 
-            background: #000000;
+            background: #111;
 
             color: white;
 
-            transform: translateY(-2px);
+            transform: translateY(-1px);
 
         }
 
 
-        .github-button i {
+        /* =========================================
+           RIGHT CONTENT
+        ========================================= */
 
-            font-size: 21px;
+        .project-content {
+
+            padding-left: 25px;
 
         }
 
 
-        /* =====================================================
+        .project-category {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 7px;
+
+            background: #eaf6fc;
+
+            color: #3287BB;
+
+            border: 1px solid #cce9f7;
+
+            padding: 7px 13px;
+
+            border-radius: 30px;
+
+            font-size: 13px;
+
+            font-weight: 600;
+
+            margin-bottom: 16px;
+
+        }
+
+
+        .project-title {
+
+            font-size: 34px;
+
+            line-height: 1.35;
+
+            font-weight: 750;
+
+            color: #174f70;
+
+            margin: 0 0 15px;
+
+        }
+
+
+        .university-text {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+            color: #7a8d98;
+
+            font-size: 14px;
+
+            margin-bottom: 25px;
+
+        }
+
+
+        .university-text i {
+
+            color: #4297CD;
+
+        }
+
+
+        /* =========================================
+           KEYWORDS
+        ========================================= */
+
+        .keyword-section {
+
+            padding: 18px 0;
+
+            border-top: 1px solid #edf1f3;
+
+            border-bottom: 1px solid #edf1f3;
+
+            margin-bottom: 28px;
+
+        }
+
+
+        .keyword-title {
+
+            font-size: 14px;
+
+            font-weight: 700;
+
+            margin-bottom: 10px;
+
+            color: #526b79;
+
+        }
+
+
+        .keyword-list {
+
+            display: flex;
+
+            flex-wrap: wrap;
+
+            gap: 8px;
+
+        }
+
+
+        .keyword-badge {
+
+            background: #f3f8fb;
+
+            color: #3d6579;
+
+            border: 1px solid #dbe9f0;
+
+            padding: 7px 12px;
+
+            border-radius: 20px;
+
+            font-size: 13px;
+
+        }
+
+
+        /* =========================================
+           DESCRIPTION
+        ========================================= */
+
+        .description-box {
+
+            background: #fbfdfe;
+
+            border: 1px solid #edf2f5;
+
+            border-radius: 12px;
+
+            padding: 22px;
+
+        }
+
+
+        .description-title {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 9px;
+
+            font-size: 20px;
+
+            font-weight: 700;
+
+            color: #245c7d;
+
+            margin-bottom: 13px;
+
+        }
+
+
+        .description-title i {
+
+            color: #4297CD;
+
+        }
+
+
+        .description-text {
+
+            color: #53636c;
+
+            font-size: 15px;
+
+            line-height: 1.9;
+
+            white-space: pre-line;
+
+            margin: 0;
+
+        }
+
+
+        /* =========================================
            MOBILE
-        ===================================================== */
+        ========================================= */
 
         @media (max-width: 768px) {
 
             .custom-header {
 
-                height: auto;
+                height: 75px;
 
             }
 
 
             .header-inner {
 
-                height: auto;
+                height: 75px;
 
-                padding: 15px 20px;
+                padding: 0 15px;
+
+            }
+
+
+            .header-left-area {
+
+                gap: 12px;
 
             }
 
@@ -713,21 +875,60 @@ if (!empty($pdf_file)) {
 
             .home-link {
 
-                font-size: 16px;
+                font-size: 15px;
+
+            }
+
+
+            .home-icon {
+
+                font-size: 19px;
+
+            }
+
+
+            .profile-icon {
+
+                font-size: 27px;
 
             }
 
 
             .detail-container {
 
+                margin: 25px auto;
+
+                padding: 0 12px;
+
+            }
+
+
+            .project-card-body {
+
+                padding: 18px;
+
+            }
+
+
+            .project-content {
+
+                padding-left: 0;
+
                 margin-top: 25px;
 
             }
 
 
-            .detail-title {
+            .project-title {
 
-                font-size: 26px;
+                font-size: 27px;
+
+            }
+
+
+            .side-panel {
+
+                padding: 18px;
 
             }
 
@@ -741,21 +942,17 @@ if (!empty($pdf_file)) {
 <body>
 
 
-<!-- =====================================================
+<!-- =========================================
      HEADER
-===================================================== -->
+========================================= -->
 
 <header class="custom-header">
 
     <div class="header-inner">
 
 
-        <!-- LEFT -->
-
         <div class="header-left-area">
 
-
-            <!-- SDU LOGO -->
 
             <a
                 href="index2.php"
@@ -771,16 +968,12 @@ if (!empty($pdf_file)) {
             </a>
 
 
-            <!-- HOME -->
-
             <a
                 href="index2.php"
                 class="home-link"
             >
 
-                <i
-                    class="bi bi-house-fill home-icon"
-                ></i>
+                <i class="bi bi-house-fill home-icon"></i>
 
                 <span>
                     หน้าแรก
@@ -791,23 +984,15 @@ if (!empty($pdf_file)) {
         </div>
 
 
-        <!-- RIGHT -->
+        <a
+            href="profile.php"
+            class="profile-icon"
+            title="ข้อมูลส่วนตัว"
+        >
 
-        <div class="header-right">
+            <i class="bi bi-person-circle"></i>
 
-            <a
-                href="profile.php"
-                class="profile-icon"
-                title="ข้อมูลส่วนตัว"
-            >
-
-                <i
-                    class="bi bi-person-circle"
-                ></i>
-
-            </a>
-
-        </div>
+        </a>
 
     </div>
 
@@ -815,360 +1000,373 @@ if (!empty($pdf_file)) {
 
 
 
-<!-- =====================================================
-     MAIN CONTENT
-===================================================== -->
+<!-- =========================================
+     MAIN
+========================================= -->
 
 <div class="detail-container">
 
-    <div class="row">
+    <div class="project-card">
 
+        <div class="project-card-body">
 
-        <!-- =================================================
-             LEFT SIDEBAR
-        ================================================== -->
+            <div class="row g-4">
 
-        <div class="col-md-3 mb-4">
 
+                <!-- =================================
+                     LEFT
+                ================================== -->
 
-            <!-- COVER -->
+                <div class="col-md-4">
 
-            <img
-                src="<?php echo htmlspecialchars($cover_image); ?>"
-                alt="รูปปกโปรเจกต์"
-                class="cover-image"
-            >
+                    <div class="side-panel">
 
 
-            <!-- PDF -->
+                        <div class="side-title">
 
-            <?php if (!empty($pdf_path)): ?>
+                            <i class="bi bi-info-circle"></i>
 
-                <a
-                    href="<?php echo htmlspecialchars($pdf_path); ?>"
-                    target="_blank"
-                    class="btn-pdf-large mb-3"
-                >
+                            ข้อมูลโปรเจกต์
 
-                    <i
-                        class="bi bi-file-earmark-pdf"
-                    ></i>
+                        </div>
 
-                    ดูไฟล์ PDF
 
-                </a>
+                        <!-- PDF -->
 
-            <?php else: ?>
+                        <?php if (!empty($pdf_path)): ?>
 
-                <button
-                    class="btn btn-secondary w-100 mb-3"
-                    disabled
-                >
-
-                    ไม่มีไฟล์ PDF
-
-                </button>
-
-            <?php endif; ?>
-
-
-            <!-- DATE -->
-
-            <div class="sidebar-meta">
-
-                <div class="sidebar-meta-title">
-
-                    เผยแพร่เมื่อ:
-
-                </div>
-
-                <div class="text-muted">
-
-                    <?php
-                    echo htmlspecialchars($created_at);
-                    ?>
-
-                </div>
-
-            </div>
-
-
-            <!-- ACADEMIC YEAR -->
-
-            <div class="sidebar-meta">
-
-                <div class="sidebar-meta-title">
-
-                    ปีการศึกษา:
-
-                </div>
-
-                <div class="text-muted">
-
-                    <?php
-                    echo htmlspecialchars(
-                        $academic_year
-                    );
-                    ?>
-
-                </div>
-
-            </div>
-
-
-            <!-- ADVISOR -->
-
-            <div class="sidebar-meta">
-
-                <div class="sidebar-meta-title">
-
-                    อาจารย์ที่ปรึกษา:
-
-                </div>
-
-                <div class="text-muted">
-
-                    <?php
-                    echo htmlspecialchars(
-                        $advisor
-                    );
-                    ?>
-
-                </div>
-
-            </div>
-
-
-            <!-- AUTHORS -->
-
-            <div class="sidebar-meta">
-
-                <div class="sidebar-meta-title">
-
-                    สมาชิกกลุ่ม:
-
-                </div>
-
-                <div
-                    class="text-muted"
-                    style="line-height:1.6;"
-                >
-
-                    <?php
-
-                    echo nl2br(
-                        htmlspecialchars(
-                            $authors
-                        )
-                    );
-
-                    ?>
-
-                </div>
-
-            </div>
-
-
-            <!-- =================================================
-                 GITHUB
-            ================================================== -->
-
-            <div class="sidebar-meta">
-
-                <div class="sidebar-meta-title">
-
-                    <i
-                        class="bi bi-github"
-                    ></i>
-
-                    GitHub Repository
-
-                </div>
-
-
-                <?php if (!empty($github_url)): ?>
-
-
-                    <!-- แสดงลิงก์เต็ม -->
-
-                    <div class="github-url-box">
-
-                        <a
-                            href="<?php echo htmlspecialchars($github_url); ?>"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="github-url"
-                        >
-
-                            <?php
-
-                            echo htmlspecialchars(
-                                $github_url
-                            );
-
-                            ?>
-
-                        </a>
-
-                    </div>
-
-
-                    <!-- ปุ่ม GitHub -->
-
-                    <a
-                        href="<?php echo htmlspecialchars($github_url); ?>"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="github-button"
-                    >
-
-                        <i
-                            class="bi bi-github"
-                        ></i>
-
-                        ดูโปรเจกต์บน GitHub
-
-                    </a>
-
-
-                <?php else: ?>
-
-
-                    <div class="text-muted">
-
-                        ยังไม่ได้เพิ่มลิงก์ GitHub
-
-                    </div>
-
-
-                <?php endif; ?>
-
-            </div>
-
-
-        </div>
-
-
-
-        <!-- =================================================
-             RIGHT CONTENT
-        ================================================== -->
-
-        <div class="col-md-9 px-md-4">
-
-
-            <!-- TITLE -->
-
-            <h1 class="detail-title">
-
-                <?php
-
-                echo htmlspecialchars(
-                    $title
-                );
-
-                ?>
-
-            </h1>
-
-
-            <!-- KEYWORDS -->
-
-            <?php if (!empty($keywords)): ?>
-
-                <div class="mb-4">
-
-                    <strong>
-                        คำสำคัญ:
-                    </strong>
-
-
-                    <div
-                        class="d-flex flex-wrap gap-2 mt-2"
-                    >
-
-                        <?php foreach ($keywords as $kw): ?>
-
-                            <?php
-
-                            $kw = trim($kw);
-
-                            if ($kw === '') {
-                                continue;
-                            }
-
-                            ?>
-
-                            <span
-                                class="badge keyword-badge"
+                            <a
+                                href="<?php echo htmlspecialchars($pdf_path); ?>"
+                                target="_blank"
+                                class="pdf-button"
                             >
+
+                                <i class="bi bi-file-earmark-pdf"></i>
+
+                                ดูไฟล์ PDF
+
+                            </a>
+
+                        <?php else: ?>
+
+                            <button
+                                class="btn btn-secondary w-100 mb-3"
+                                disabled
+                            >
+
+                                ไม่มีไฟล์ PDF
+
+                            </button>
+
+                        <?php endif; ?>
+
+
+                        <!-- DATE -->
+
+                        <div class="info-item">
+
+                            <div class="info-label">
+
+                                <i class="bi bi-calendar3"></i>
+
+                                เผยแพร่เมื่อ
+
+                            </div>
+
+                            <div class="info-value">
+
+                                <?php
+                                echo htmlspecialchars($created_at);
+                                ?>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- YEAR -->
+
+                        <div class="info-item">
+
+                            <div class="info-label">
+
+                                <i class="bi bi-mortarboard"></i>
+
+                                ปีการศึกษา
+
+                            </div>
+
+                            <div class="info-value">
+
+                                <?php
+                                echo htmlspecialchars($academic_year);
+                                ?>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- ADVISOR -->
+
+                        <div class="info-item">
+
+                            <div class="info-label">
+
+                                <i class="bi bi-person-workspace"></i>
+
+                                อาจารย์ที่ปรึกษา
+
+                            </div>
+
+                            <div class="info-value">
+
+                                <?php
+                                echo htmlspecialchars($advisor);
+                                ?>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- AUTHORS -->
+
+                        <div class="info-item">
+
+                            <div class="info-label">
+
+                                <i class="bi bi-people"></i>
+
+                                สมาชิกกลุ่ม
+
+                            </div>
+
+                            <div class="info-value">
 
                                 <?php
 
-                                echo htmlspecialchars(
-                                    $kw
+                                echo nl2br(
+                                    htmlspecialchars($authors)
                                 );
 
                                 ?>
 
-                            </span>
+                            </div>
 
-                        <?php endforeach; ?>
+                        </div>
+
+
+                        <!-- =================================
+                             GITHUB
+                        ================================== -->
+
+                        <div class="github-card">
+
+
+                            <div class="github-title">
+
+                                <i class="bi bi-github"></i>
+
+                                GitHub Repository
+
+                            </div>
+
+
+                            <?php if (!empty($github_url)): ?>
+
+
+                                <a
+                                    href="<?php echo htmlspecialchars($github_url); ?>"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="github-url"
+                                >
+
+                                    <?php
+
+                                    echo htmlspecialchars(
+                                        $github_url
+                                    );
+
+                                    ?>
+
+                                </a>
+
+
+                                <a
+                                    href="<?php echo htmlspecialchars($github_url); ?>"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="github-button"
+                                >
+
+                                    <i class="bi bi-github"></i>
+
+                                    ดูโปรเจกต์บน GitHub
+
+                                </a>
+
+
+                            <?php else: ?>
+
+
+                                <div
+                                    class="text-muted"
+                                    style="font-size:13px;"
+                                >
+
+                                    ยังไม่ได้เพิ่มลิงก์ GitHub
+
+                                </div>
+
+
+                            <?php endif; ?>
+
+
+                        </div>
+
 
                     </div>
 
                 </div>
 
-            <?php endif; ?>
 
 
-            <!-- AUTHORS -->
+                <!-- =================================
+                     RIGHT
+                ================================== -->
 
-            <p class="fs-5 text-muted mb-1">
+                <div class="col-md-8">
 
-                <?php
-
-                echo htmlspecialchars(
-                    $authors
-                );
-
-                ?>
-
-            </p>
+                    <div class="project-content">
 
 
-            <!-- UNIVERSITY -->
+                        <!-- CATEGORY -->
 
-            <p class="text-muted mb-4">
+                        <div class="project-category">
 
-                มหาวิทยาลัยสวนดุสิต
+                            <i class="bi bi-folder2-open"></i>
 
-            </p>
+                            โปรเจกต์นักศึกษา
 
-
-            <!-- DESCRIPTION -->
-
-            <h3 class="section-heading">
-
-                คำอธิบาย / บทคัดย่อ
-
-            </h3>
+                        </div>
 
 
-            <div class="description-text">
+                        <!-- TITLE -->
 
-                <?php
+                        <h1 class="project-title">
 
-                echo nl2br(
-                    htmlspecialchars(
-                        $description
-                    )
-                );
+                            <?php
 
-                ?>
+                            echo htmlspecialchars(
+                                $title
+                            );
+
+                            ?>
+
+                        </h1>
+
+
+                        <!-- UNIVERSITY -->
+
+                        <div class="university-text">
+
+                            <i class="bi bi-building"></i>
+
+                            มหาวิทยาลัยสวนดุสิต
+
+                        </div>
+
+
+                        <!-- KEYWORDS -->
+
+                        <?php if (!empty($keywords)): ?>
+
+                            <div class="keyword-section">
+
+                                <div class="keyword-title">
+
+                                    <i class="bi bi-tags"></i>
+
+                                    คำสำคัญ
+
+                                </div>
+
+
+                                <div class="keyword-list">
+
+                                    <?php foreach ($keywords as $kw): ?>
+
+                                        <?php
+
+                                        $kw = trim($kw);
+
+                                        if ($kw === '') {
+                                            continue;
+                                        }
+
+                                        ?>
+
+                                        <span class="keyword-badge">
+
+                                            <?php
+
+                                            echo htmlspecialchars(
+                                                $kw
+                                            );
+
+                                            ?>
+
+                                        </span>
+
+                                    <?php endforeach; ?>
+
+                                </div>
+
+                            </div>
+
+                        <?php endif; ?>
+
+
+                        <!-- DESCRIPTION -->
+
+                        <div class="description-box">
+
+
+                            <div class="description-title">
+
+                                <i class="bi bi-file-text"></i>
+
+                                คำอธิบาย / บทคัดย่อ
+
+                            </div>
+
+
+                            <p class="description-text">
+
+                                <?php
+
+                                echo nl2br(
+                                    htmlspecialchars(
+                                        $description
+                                    )
+                                );
+
+                                ?>
+
+                            </p>
+
+
+                        </div>
+
+
+                    </div>
+
+                </div>
+
 
             </div>
-
 
         </div>
 

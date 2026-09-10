@@ -2,7 +2,7 @@
 session_start();
 include 'db_connect.php';
 
-// 1. ตรวจสอบสิทธิ์การเข้าใช้งาน (ต้องล็อกอินและเป็น advisor หรือ admin)
+// 1. ตรวจสอบสิทธิ์การเข้าใช้งาน (ต้องล็อกอิน)
 if (!isset($_SESSION['user_id'])) {
     echo "<script>alert('กรุณาเข้าสู่ระบบก่อนใช้งาน'); window.location.href='login.php';</script>";
     exit();
@@ -10,16 +10,52 @@ if (!isset($_SESSION['user_id'])) {
 
 $advisor_id = $_SESSION['user_id'];
 
-// 2. บันทึกข้อเสนอแนะใหม่ (เมื่อมีการกดปุ่มส่งคอมเมนต์)
+// ตรวจสอบโครงสร้างคอลัมน์ในตาราง users อัตโนมัติ
+$has_dept = false;
+$has_rank = false;
+$user_cols_check = @mysqli_query($conn, "SHOW COLUMNS FROM users");
+if ($user_cols_check) {
+    while ($col = mysqli_fetch_assoc($user_cols_check)) {
+        if ($col['Field'] === 'department') $has_dept = true;
+        if ($col['Field'] === 'academic_rank') $has_rank = true;
+    }
+}
+
+// ดึงข้อมูลอาจารย์แบบยืดหยุ่นตามคอลัมน์ที่มีจริง
+$advisor_sql_fields = "id, first_name, last_name, email";
+if ($has_dept) $advisor_sql_fields .= ", department";
+if ($has_rank) $advisor_sql_fields .= ", academic_rank";
+
+$advisor_stmt = mysqli_prepare($conn, "SELECT $advisor_sql_fields FROM users WHERE id = ?");
+$advisor_data = [];
+if ($advisor_stmt) {
+    mysqli_stmt_bind_param($advisor_stmt, "i", $advisor_id);
+    mysqli_stmt_execute($advisor_stmt);
+    $advisor_result = mysqli_stmt_get_result($advisor_stmt);
+    $advisor_data = mysqli_fetch_assoc($advisor_result);
+    mysqli_stmt_close($advisor_stmt);
+}
+
+$first_name = $advisor_data['first_name'] ?? '';
+$last_name = $advisor_data['last_name'] ?? '';
+$academic_rank = $has_rank ? ($advisor_data['academic_rank'] ?? '') : '';
+$department = $has_dept ? ($advisor_data['department'] ?? 'สาขาวิชาเทคโนโลยีสารสนเทศ') : 'สาขาวิชาเทคโนโลยีสารสนเทศ';
+
+$full_advisor_name = trim($academic_rank . ' ' . $first_name . ' ' . $last_name);
+$just_name = trim($first_name . ' ' . $last_name);
+
+// บันทึกข้อเสนอแนะใหม่ (เมื่อมีการกดปุ่มส่งคอมเมนต์)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_comment') {
     $project_id = intval($_POST['project_id']);
     $comment_text = trim($_POST['comment_text']);
 
     if (!empty($comment_text) && $project_id > 0) {
         $stmt_insert = mysqli_prepare($conn, "INSERT INTO project_comments (project_id, user_id, comment_text, created_at) VALUES (?, ?, ?, NOW())");
-        mysqli_stmt_bind_param($stmt_insert, "iis", $project_id, $advisor_id, $comment_text);
-        mysqli_stmt_execute($stmt_insert);
-        mysqli_stmt_close($stmt_insert);
+        if ($stmt_insert) {
+            mysqli_stmt_bind_param($stmt_insert, "iis", $project_id, $advisor_id, $comment_text);
+            mysqli_stmt_execute($stmt_insert);
+            mysqli_stmt_close($stmt_insert);
+        }
 
         // รีเฟรชหน้าเพื่อแสดงคอมเมนต์ใหม่
         header("Location: " . $_SERVER['PHP_SELF']);
@@ -27,18 +63,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// 3. ดึงข้อมูลอาจารย์ที่ปรึกษาที่ล็อกอินอยู่
-$advisor_stmt = mysqli_prepare($conn, "SELECT id, firstname, lastname, email, department, academic_rank FROM users WHERE id = ?");
-mysqli_stmt_bind_param($advisor_stmt, "i", $advisor_id);
-mysqli_stmt_execute($advisor_stmt);
-$advisor_result = mysqli_stmt_get_result($advisor_stmt);
-$advisor_data = mysqli_fetch_assoc($advisor_result);
+// 2. ตรวจสอบคอลัมน์ในตาราง projects เพื่อป้องกัน SQL Error
+$has_advisor_id = false;
+$has_advisor_col = false;
+$proj_cols_check = @mysqli_query($conn, "SHOW COLUMNS FROM projects");
+if ($proj_cols_check) {
+    while ($col = mysqli_fetch_assoc($proj_cols_check)) {
+        if ($col['Field'] === 'advisor_id') $has_advisor_id = true;
+        if ($col['Field'] === 'advisor') $has_advisor_col = true;
+    }
+}
 
-// 4. ดึงรายการโครงงานที่อาจารย์ท่านนี้ดูแลอยู่
-$projects_stmt = mysqli_prepare($conn, "SELECT * FROM projects WHERE advisor_id = ? ORDER BY id DESC");
-mysqli_stmt_bind_param($projects_stmt, "i", $advisor_id);
-mysqli_stmt_execute($projects_stmt);
-$projects_result = mysqli_stmt_get_result($projects_stmt);
+$like_name1 = "%" . $just_name . "%";
+$like_name2 = "%" . $full_advisor_name . "%";
+
+// สร้างคำสั่ง SQL และผูกพารามิเตอร์ตามคอลัมน์ที่มีจริง
+if ($has_advisor_id && $has_advisor_col) {
+    $projects_stmt = mysqli_prepare($conn, "SELECT * FROM projects WHERE advisor_id = ? OR advisor LIKE ? OR advisor LIKE ? ORDER BY id DESC");
+    if ($projects_stmt) {
+        mysqli_stmt_bind_param($projects_stmt, "iss", $advisor_id, $like_name1, $like_name2);
+    }
+} elseif ($has_advisor_id) {
+    $projects_stmt = mysqli_prepare($conn, "SELECT * FROM projects WHERE advisor_id = ? ORDER BY id DESC");
+    if ($projects_stmt) {
+        mysqli_stmt_bind_param($projects_stmt, "i", $advisor_id);
+    }
+} elseif ($has_advisor_col) {
+    $projects_stmt = mysqli_prepare($conn, "SELECT * FROM projects WHERE advisor LIKE ? OR advisor LIKE ? ORDER BY id DESC");
+    if ($projects_stmt) {
+        mysqli_stmt_bind_param($projects_stmt, "ss", $like_name1, $like_name2);
+    }
+} else {
+    $projects_stmt = mysqli_prepare($conn, "SELECT * FROM projects ORDER BY id DESC");
+}
+
+$projects_result = false;
+if ($projects_stmt) {
+    mysqli_stmt_execute($projects_stmt);
+    $projects_result = mysqli_stmt_get_result($projects_stmt);
+    mysqli_stmt_close($projects_stmt);
+} else {
+    $projects_result = mysqli_query($conn, "SELECT * FROM projects ORDER BY id DESC");
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -61,7 +127,6 @@ $projects_result = mysqli_stmt_get_result($projects_stmt);
             color: #2c3e50;
         }
 
-        /* --- Header --- */
         .header {
             background-color: #1e40af;
             color: white;
@@ -138,7 +203,6 @@ $projects_result = mysqli_stmt_get_result($projects_stmt);
             border: 2px solid #fff;
         }
 
-        /* --- Main Container --- */
         .container {
             max-width: 950px;
             margin: 40px auto;
@@ -170,7 +234,6 @@ $projects_result = mysqli_stmt_get_result($projects_stmt);
             font-weight: 700;
         }
 
-        /* ส่วนข้อมูลอาจารย์ */
         .user-info-section {
             padding: 25px 50px;
             display: flex;
@@ -205,7 +268,6 @@ $projects_result = mysqli_stmt_get_result($projects_stmt);
             font-weight: 500;
         }
 
-        /* ส่วนรายการงานวิจัย / โครงงานที่ควบคุมดูแล */
         .project-list-section {
             padding: 30px 50px;
             display: flex;
@@ -315,7 +377,6 @@ $projects_result = mysqli_stmt_get_result($projects_stmt);
             background-color: #1d4ed8;
         }
 
-        /* --- ส่วน Comments (ข้อเสนอแนะจากอาจารย์) --- */
         .comments-container {
             margin-top: 20px;
             padding-top: 16px;
@@ -369,7 +430,6 @@ $projects_result = mysqli_stmt_get_result($projects_stmt);
             line-height: 1.4;
         }
 
-        /* ฟอร์มเพิ่มความเห็น */
         .comment-form {
             display: flex;
             flex-direction: column;
@@ -415,9 +475,8 @@ $projects_result = mysqli_stmt_get_result($projects_stmt);
 </head>
 <body>
 
-    <!-- แถบ Header -->
     <header class="header">
-        <a href="index.php" class="header-left">
+        <a href="index2.php" class="header-left">
             <div class="logo-placeholder">SDU</div>
             <div class="header-title">หน้าแรก</div>
         </a>
@@ -429,7 +488,6 @@ $projects_result = mysqli_stmt_get_result($projects_stmt);
         </div>
     </header>
 
-    <!-- ส่วนเนื้อหาโปรไฟล์อาจารย์ -->
     <div class="container">
         <div class="profile-card">
             
@@ -437,18 +495,17 @@ $projects_result = mysqli_stmt_get_result($projects_stmt);
                 <div class="project-badge">ข้อมูลอาจารย์ที่ปรึกษา</div>
             </div>
 
-            <!-- ข้อมูลส่วนตัวอาจารย์ -->
             <div class="user-info-section">
                 <div class="info-row">
                     <div class="label-title">ชื่อ-สกุล</div>
                     <div class="user-name">
-                        <?php echo htmlspecialchars(($advisor_data['academic_rank'] ?? '') . ' ' . ($advisor_data['firstname'] ?? '') . ' ' . ($advisor_data['lastname'] ?? '')); ?>
+                        <?php echo htmlspecialchars(trim($full_advisor_name)); ?>
                     </div>
                 </div>
                 <div class="info-row">
                     <div class="label-title">สังกัด / สาขา</div>
                     <div class="user-meta">
-                        <?php echo htmlspecialchars($advisor_data['department'] ?? 'สาขาวิชาเทคโนโลยีสารสนเทศ'); ?>
+                        <?php echo htmlspecialchars($department); ?>
                     </div>
                 </div>
                 <div class="info-row">
@@ -457,7 +514,6 @@ $projects_result = mysqli_stmt_get_result($projects_stmt);
                 </div>
             </div>
 
-            <!-- ส่วนรายการงานวิจัย / โครงงานที่ควบคุมดูแล -->
             <div class="project-list-section">
                 <div class="label-title section-label">โครงงานที่ดูแล</div>
                 
@@ -485,44 +541,60 @@ $projects_result = mysqli_stmt_get_result($projects_stmt);
                                     <a href="uploads/<?php echo htmlspecialchars($proj['pdf_file']); ?>" target="_blank" class="btn-pdf">ดาวน์โหลด PDF</a>
                                 <?php endif; ?>
 
-                                <!-- ส่วนแสดงข้อเสนอแนะ/ความคิดเห็น -->
                                 <div class="comments-container">
                                     <div class="comments-title">
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="#3b82f6"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
                                         ข้อเสนอแนะจากอาจารย์ที่ปรึกษา (Comments)
                                     </div>
                                     
-                                    <!-- รายการความเห็นเดิมที่ดึงมาจากฐานข้อมูล -->
                                     <div class="comment-list">
                                         <?php
-                                        $cm_stmt = mysqli_prepare($conn, "SELECT c.*, u.firstname, u.lastname, u.academic_rank FROM project_comments c JOIN users u ON c.user_id = u.id WHERE c.project_id = ? ORDER BY c.created_at ASC");
-                                        mysqli_stmt_bind_param($cm_stmt, "i", $project_id);
-                                        mysqli_stmt_execute($cm_stmt);
-                                        $cm_result = mysqli_stmt_get_result($cm_stmt);
+                                        // ตรวจสอบคอลัมน์ academic_rank ในตาราง users สำหรับระบบคอมเมนต์
+                                        $has_user_rank = false;
+                                        $uc_check = @mysqli_query($conn, "SHOW COLUMNS FROM users LIKE 'academic_rank'");
+                                        if ($uc_check && mysqli_num_rows($uc_check) > 0) {
+                                            $has_user_rank = true;
+                                        }
 
-                                        if ($cm_result && mysqli_num_rows($cm_result) > 0):
-                                            while ($cm = mysqli_fetch_assoc($cm_result)):
+                                        if ($has_user_rank) {
+                                            $cm_stmt = mysqli_prepare($conn, "SELECT c.*, u.first_name, u.last_name, u.academic_rank FROM project_comments c JOIN users u ON c.user_id = u.id WHERE c.project_id = ? ORDER BY c.created_at ASC");
+                                        } else {
+                                            $cm_stmt = mysqli_prepare($conn, "SELECT c.*, u.first_name, u.last_name FROM project_comments c JOIN users u ON c.user_id = u.id WHERE c.project_id = ? ORDER BY c.created_at ASC");
+                                        }
+
+                                        if ($cm_stmt) {
+                                            mysqli_stmt_bind_param($cm_stmt, "i", $project_id);
+                                            mysqli_stmt_execute($cm_stmt);
+                                            $cm_result = mysqli_stmt_get_result($cm_stmt);
+
+                                            if ($cm_result && mysqli_num_rows($cm_result) > 0):
+                                                while ($cm = mysqli_fetch_assoc($cm_result)):
+                                                    $cm_rank = $has_user_rank ? ($cm['academic_rank'] ?? '') : '';
+                                                    $cm_fullname = trim($cm_rank . ' ' . ($cm['first_name'] ?? '') . ' ' . ($cm['last_name'] ?? ''));
                                         ?>
-                                                <div class="comment-item">
-                                                    <div class="comment-header">
-                                                        <span class="comment-author">
-                                                            <?php echo htmlspecialchars(($cm['academic_rank'] ?? '') . ' ' . $cm['firstname'] . ' ' . $cm['lastname']); ?>
-                                                        </span>
-                                                        <span class="comment-date"><?php echo date('d M Y - H:i', strtotime($cm['created_at'])); ?> น.</span>
+                                                    <div class="comment-item">
+                                                        <div class="comment-header">
+                                                            <span class="comment-author">
+                                                                <?php echo htmlspecialchars($cm_fullname); ?>
+                                                            </span>
+                                                            <span class="comment-date"><?php echo date('d M Y - H:i', strtotime($cm['created_at'])); ?> น.</span>
+                                                        </div>
+                                                        <div class="comment-text">
+                                                            <?php echo nl2br(htmlspecialchars($cm['comment_text'])); ?>
+                                                        </div>
                                                     </div>
-                                                    <div class="comment-text">
-                                                        <?php echo nl2br(htmlspecialchars($cm['comment_text'])); ?>
-                                                    </div>
-                                                </div>
                                         <?php 
-                                            endwhile;
-                                        else:
+                                                endwhile;
+                                            else:
                                         ?>
-                                            <p style="font-size: 0.85rem; color: #94a3b8; font-style: italic;">ยังไม่มีข้อเสนอแนะในโครงงานนี้</p>
-                                        <?php endif; ?>
+                                                <p style="font-size: 0.85rem; color: #94a3b8; font-style: italic;">ยังไม่มีข้อเสนอแนะในโครงงานนี้</p>
+                                        <?php 
+                                            endif;
+                                            mysqli_stmt_close($cm_stmt);
+                                        }
+                                        ?>
                                     </div>
 
-                                    <!-- ฟอร์มสำหรับพิมพ์ความเห็นใหม่ (ส่งข้อมูลผ่าน POST) -->
                                     <form class="comment-form" method="POST" action="">
                                         <input type="hidden" name="action" value="add_comment">
                                         <input type="hidden" name="project_id" value="<?php echo $project_id; ?>">

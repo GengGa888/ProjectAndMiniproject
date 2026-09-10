@@ -1,269 +1,379 @@
 <?php
-session_start(); 
-include 'db_connect.php'; 
+session_start();
+require_once "db_connect.php";
 
 $error = "";
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-    $username = trim($_POST['username'] ?? '');
-    $password = trim($_POST['password'] ?? '');
+    $username = trim($_POST["username"] ?? "");
+    $password = $_POST["password"] ?? "";
 
-    if (!empty($username) && !empty($password)) {
-        
-        $stmt = mysqli_prepare($conn, "SELECT id, username, password, role FROM users WHERE username = ?");
-        mysqli_stmt_bind_param($stmt, "s", $username);
-        mysqli_stmt_execute($stmt);
-        $result = mysqli_stmt_get_result($stmt);
+    if ($username === "" || $password === "") {
+        $error = "กรุณากรอก Username และ Password";
+    } else {
 
-        if ($user = mysqli_fetch_assoc($result)) {
-            
-            // เช็กรหัสผ่านทั้งแบบ Hash และ Plaintext
-            $password_check = password_verify($password, $user['password']) || ($password === $user['password']);
+        $stmt = $conn->prepare("
+            SELECT id, username, first_name, last_name, email, role, department, password
+            FROM users
+            WHERE username = ?
+            LIMIT 1
+        ");
 
-            if ($password_check) {
-                $_SESSION['user_id']  = $user['id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['role']     = $user['role'];
+        $stmt->bind_param("s", $username);
+        $stmt->execute();
 
-                // ล็อกอินสำเร็จ -> ไปยังหน้าปลายทางตาม Role
-                if ($user['role'] == 'admin') {
-                    header("Location: admin.php");
-                } elseif ($user['role'] == 'teacher') {
-                    header("Location: arjarn.php");
-                } else {
-                    header("Location: index2.php"); 
-                }
-                exit();
-            } else {
-                $error = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
+        $result = $stmt->get_result();
+        $user = $result->fetch_assoc();
+
+        $login_success = false;
+
+        if ($user) {
+
+            // รองรับรหัสผ่านที่สร้างด้วย password_hash()
+            if (password_verify($password, $user["password"])) {
+                $login_success = true;
             }
-        } else {
-            $error = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
+
+            // รองรับรหัสผ่านเก่าแบบข้อความธรรมดา
+            // เผื่อข้อมูลเดิมในฐานข้อมูลยังไม่ได้ Hash
+            elseif ($password === $user["password"]) {
+                $login_success = true;
+
+                // เปลี่ยนรหัสผ่านเก่าให้เป็น Hash อัตโนมัติ
+                $new_password = password_hash($password, PASSWORD_DEFAULT);
+
+                $update = $conn->prepare("
+                    UPDATE users
+                    SET password = ?
+                    WHERE id = ?
+                ");
+
+                $update->bind_param(
+                    "si",
+                    $new_password,
+                    $user["id"]
+                );
+
+                $update->execute();
+                $update->close();
+            }
         }
 
-        mysqli_stmt_close($stmt);
-    } else {
-        $error = "กรุณากรอกข้อมูลให้ครบถ้วน";
+        if ($login_success) {
+
+            // =====================================
+            // เก็บข้อมูลผู้ใช้ลง Session
+            // =====================================
+
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['role'] = $user['role'];
+
+            // เก็บข้อมูลเพิ่มเติม
+            $_SESSION['first_name'] = $user['first_name'];
+            $_SESSION['last_name'] = $user['last_name'];
+            $_SESSION['email'] = $user['email'];
+            $_SESSION['department'] = $user['department'];
+
+            // =====================================
+            // ถ้าเป็น Admin → ไปหน้า Admin
+            // =====================================
+
+            if ($user['role'] === 'admin') {
+                header("Location: admin.php");
+                exit;
+            }
+
+            // Student / Teacher → หน้าแรก
+            header("Location: index2.php");
+            exit;
+
+        } else {
+            $error = "Username หรือ Password ไม่ถูกต้อง";
+        }
+
+        $stmt->close();
     }
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
     <title>เข้าสู่ระบบ - ระบบสืบค้นโปรเจกต์</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Sarabun', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
+            font-family: "Sarabun", "Segoe UI", sans-serif;
             min-height: 100vh;
+
             display: flex;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(135deg, #b3e5fc 0%, #e1f5fe 100%);
-            padding: 20px;
+
+            background: linear-gradient(
+                135deg,
+                #4da4d9,
+                #2b7bb3
+            );
         }
 
         .login-wrapper {
-            position: relative;
             width: 100%;
             max-width: 400px;
-            margin-top: 40px;
+            padding: 20px;
         }
 
-        .logo-container {
-            position: absolute;
-            top: -50px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 2;
+        .login-box {
+            background: white;
+            border-radius: 20px;
+            padding: 35px 30px;
+
+            box-shadow:
+                0 15px 40px rgba(0, 0, 0, 0.20);
         }
 
-        .logo-container img {
-            width: 100px;
-            height: 100px;
-            object-fit: contain;
-            filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.15));
-        }
-
-        .login-card {
-            background: #ffffff;
-            border-radius: 8px;
-            padding: 60px 30px 30px 30px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        .logo {
             text-align: center;
+            margin-bottom: 20px;
         }
 
-        .login-card h2 {
-            font-size: 1.5rem;
-            color: #2b2b2b;
-            font-weight: 600;
+        .logo img {
+            width: 85px;
+            height: 85px;
+            object-fit: contain;
+        }
+
+        h2 {
+            text-align: center;
+            color: #2879ad;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #777;
             margin-bottom: 25px;
+            font-size: 14px;
         }
 
         .form-group {
-            margin-bottom: 20px;
-            text-align: left;
+            margin-bottom: 18px;
         }
 
-        .form-group label {
+        label {
             display: block;
-            font-size: 0.9rem;
-            color: #333;
-            margin-bottom: 8px;
-            font-weight: 500;
+            margin-bottom: 7px;
+            font-weight: 600;
+            color: #444;
         }
 
-        .input-wrapper {
+        .input-box {
             position: relative;
         }
 
-        .input-wrapper input {
-            width: 100%;
-            padding: 12px 40px 12px 15px;
-            font-size: 0.95rem;
-            border: 1px solid #bce0fd;
-            background-color: #f0f7ff;
-            border-radius: 6px;
-            outline: none;
-            transition: all 0.2s ease;
-            color: #333;
-        }
-
-        .input-wrapper input:focus {
-            border-color: #29b6f6;
-            box-shadow: 0 0 5px rgba(41, 182, 246, 0.4);
-        }
-
-        .input-wrapper i {
+        .input-box i {
             position: absolute;
-            right: 15px;
+            left: 14px;
             top: 50%;
             transform: translateY(-50%);
-            color: #777;
-            font-size: 1rem;
-            pointer-events: none;
+            color: #4297cd;
         }
 
-        .btn-submit {
+        input {
             width: 100%;
-            padding: 12px;
-            background: linear-gradient(to bottom, #34b3c7, #258ca3);
+            padding: 13px 15px 13px 42px;
+
+            border: 1px solid #ddd;
+            border-radius: 10px;
+
+            font-size: 15px;
+            outline: none;
+
+            transition: 0.2s;
+        }
+
+        input:focus {
+            border-color: #4297cd;
+
+            box-shadow:
+                0 0 0 3px rgba(66, 151, 205, 0.12);
+        }
+
+        .btn-login {
+            width: 100%;
             border: none;
-            border-radius: 6px;
-            color: #ffffff;
-            font-size: 1rem;
+
+            padding: 13px;
+
+            border-radius: 10px;
+
+            background: linear-gradient(
+                135deg,
+                #4da4d9,
+                #2b7bb3
+            );
+
+            color: white;
+
+            font-size: 16px;
             font-weight: bold;
+
             cursor: pointer;
-            margin-top: 10px;
-            transition: opacity 0.2s ease;
+
+            transition: 0.2s;
         }
 
-        .btn-submit:hover {
-            opacity: 0.9;
+        .btn-login:hover {
+            transform: translateY(-1px);
+
+            box-shadow:
+                0 6px 15px rgba(43, 123, 179, 0.25);
         }
 
-        .footer-links {
+        .error {
+            background: #ffe6e6;
+            color: #d60000;
+
+            padding: 10px 12px;
+
+            border-radius: 8px;
+
+            margin-bottom: 18px;
+
+            text-align: center;
+
+            font-size: 14px;
+        }
+
+        .back-home {
+            text-align: center;
             margin-top: 20px;
-            font-size: 0.9rem;
         }
 
-        .footer-links a {
-            color: #0088cc;
+        .back-home a {
+            color: #2879ad;
             text-decoration: none;
-            font-weight: 500;
+            font-size: 14px;
         }
 
-        .footer-links a:hover {
+        .back-home a:hover {
             text-decoration: underline;
         }
 
-        .online-count {
-            margin-top: 25px;
-            padding-top: 15px;
-            border-top: 1px solid #eeeeee;
-            font-size: 0.85rem;
-            color: #555;
-        }
-
-        .error-message {
-            background-color: #ffebee;
-            color: #c62828;
-            border: 1px solid #ef9a9a;
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
-        }
     </style>
 </head>
 
 <body>
 
-    <div class="login-wrapper">
+<div class="login-wrapper">
 
-        <div class="logo-container">
-            <img src="https://academic.dusit.ac.th/academic/edu/util/img/login/sdu-newlogo.png" alt="ตราสัญลักษณ์">
+    <div class="login-box">
+
+        <div class="logo">
+            <img
+                src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png"
+                alt="SDU Logo">
         </div>
 
-        <div class="login-card">
+        <h2>เข้าสู่ระบบ</h2>
 
-            <h2>เข้าสู่ระบบ</h2>
+        <div class="subtitle">
+            ระบบสืบค้นโปรเจกต์ SDU
+        </div>
 
-            <?php if (!empty($error)): ?>
-                <div class="error-message">
-                    <i class="fa-solid fa-circle-exclamation"></i>
-                    <?php echo htmlspecialchars($error); ?>
-                </div>
-            <?php endif; ?>
+        <?php if ($error !== ""): ?>
 
-            <form action="login.php" method="POST">
-
-                <div class="form-group">
-                    <label for="username">ชื่อผู้ใช้งาน</label>
-                    <div class="input-wrapper">
-                        <input type="text" id="username" name="username" placeholder="user" required>
-                        <i class="fa-solid fa-user"></i>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="password">รหัสผ่าน</label>
-                    <div class="input-wrapper">
-                        <input type="password" id="password" name="password" placeholder="••••••••" required>
-                        <i class="fa-solid fa-lock"></i>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-submit">
-                    ลงชื่อเข้าใช้
-                </button>
-
-            </form>
-
-            <!-- ลิงก์สำหรับคนที่ยังไม่ได้สมัคร -> กลับไปหน้า sign-up.php -->
-            <div class="footer-links">
-                <a href="sign-up.php">สมัครสมาชิก</a>
+            <div class="error">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <?= htmlspecialchars($error); ?>
             </div>
 
-            <div class="online-count">
-                จำนวนผู้ใช้งานระบบปัจจุบัน <strong>0</strong> คน
+        <?php endif; ?>
+
+        <form method="POST">
+
+            <div class="form-group">
+
+                <label>
+                    Username
+                </label>
+
+                <div class="input-box">
+
+                    <i class="fa-solid fa-user"></i>
+
+                    <input
+                        type="text"
+                        name="username"
+                        placeholder="กรอก Username"
+                        required
+                        autocomplete="username">
+
+                </div>
+
             </div>
+
+            <div class="form-group">
+
+                <label>
+                    Password
+                </label>
+
+                <div class="input-box">
+
+                    <i class="fa-solid fa-lock"></i>
+
+                    <input
+                        type="password"
+                        name="password"
+                        placeholder="กรอก Password"
+                        required
+                        autocomplete="current-password">
+
+                </div>
+
+            </div>
+
+            <button
+                type="submit"
+                class="btn-login">
+
+                <i class="fa-solid fa-right-to-bracket"></i>
+                เข้าสู่ระบบ
+
+            </button>
+
+        </form>
+
+        <div class="back-home">
+
+            <a href="index2.php">
+                <i class="fa-solid fa-house"></i>
+                กลับหน้าแรก
+            </a>
 
         </div>
 
     </div>
+
+</div>
 
 </body>
 </html>
