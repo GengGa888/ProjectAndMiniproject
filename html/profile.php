@@ -1,646 +1,357 @@
 <?php
-
-session_start();
-
 include 'db_connect.php';
-
-
-// ================= CHECK LOGIN =================
-
-if (!isset($_SESSION['user_id'])) {
-
-    echo "<script>
-            alert('กรุณาเข้าสู่ระบบก่อน!');
-            window.location.href='login.php';
-          </script>";
-
-    exit();
-}
-
-
-// ================= USER =================
-
-$user_id = intval($_SESSION['user_id']);
-
-$user_query = mysqli_query(
-    $conn,
-    "SELECT * FROM users WHERE id = $user_id LIMIT 1"
-);
-
-$user_data = null;
-
-if ($user_query) {
-    $user_data = mysqli_fetch_assoc($user_query);
-}
-
-
-// ================= PROJECTS =================
-
-$projects_query = mysqli_query(
-    $conn,
-    "SELECT * FROM projects ORDER BY id DESC"
-);
-
 ?>
-
 <!DOCTYPE html>
-
 <html lang="th">
-
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+    <title>หน้าแรก - คลังโปรเจกต์ SDU</title>
 
-    <title>ข้อมูลส่วนตัว - ระบบสืบค้นโปรเจกต์</title>
-
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-        rel="stylesheet">
-
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
-        rel="stylesheet">
-
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
     <style>
-
-        * {
-            box-sizing: border-box;
-        }
-
         body {
-
             margin: 0;
-
-            font-family: "Sarabun",
-                         "Segoe UI",
-                         Arial,
-                         sans-serif;
-
+            font-family: "Sarabun", Arial, sans-serif;
             background: #f5f8fb;
-
-            color: #333;
         }
-
-
-        /* ================= HEADER ================= */
 
         .header {
-
-            background: linear-gradient(
-                135deg,
-                #4da4d9,
-                #2b7bb3
-            );
-
+            background: linear-gradient(135deg, #4da4d9, #2b7bb3);
             color: white;
-
             padding: 15px 40px;
-
             display: flex;
-
             align-items: center;
-
             justify-content: space-between;
         }
 
-
-        /* สำคัญ: กลับหน้าแรก */
-
         .header-left {
-
             display: flex;
-
             align-items: center;
-
             gap: 15px;
-
             color: white;
-
             text-decoration: none;
         }
 
-
         .logo-placeholder {
-
             width: 50px;
-
             height: 50px;
-
             border-radius: 50%;
-
             background: white;
-
             color: #2b7bb3;
-
             display: flex;
-
             align-items: center;
-
             justify-content: center;
-
             font-weight: bold;
         }
-
 
         .header-title {
-
             font-size: 22px;
-
             font-weight: bold;
         }
 
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
 
-        /* ================= CONTENT ================= */
+        .profile-image {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+        }
 
-        .container-main {
+        .custom-profile-menu {
+            min-width: 200px;
+            border-radius: 12px;
+            padding: 8px;
+        }
 
+        .custom-profile-menu .dropdown-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+        }
+
+        .custom-profile-menu .dropdown-item:hover {
+            background: #eaf5fc;
+        }
+
+        .custom-profile-menu i {
+            margin-right: 8px;
+        }
+
+        .logout-btn {
+            color: #dc3545;
+        }
+
+        .search-section {
             max-width: 1100px;
-
             margin: 40px auto;
-
             padding: 0 20px;
         }
 
-
-        .profile-card {
-
+        .search-box {
             background: white;
-
+            padding: 25px;
             border-radius: 15px;
-
-            padding: 30px;
-
-            box-shadow:
-                0 4px 15px rgba(0,0,0,0.08);
-
-            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
         }
-
-
-        .profile-title {
-
-            color: #2b7bb3;
-
-            font-size: 26px;
-
-            font-weight: bold;
-
-            margin-bottom: 25px;
-        }
-
-
-        .profile-row {
-
-            display: flex;
-
-            border-bottom: 1px solid #eee;
-
-            padding: 12px 0;
-        }
-
-
-        .profile-label {
-
-            width: 180px;
-
-            font-weight: bold;
-
-            color: #555;
-        }
-
-
-        .profile-value {
-
-            flex: 1;
-
-            color: #333;
-        }
-
-
-        /* ================= PROJECT ================= */
-
-        .section-title {
-
-            color: #2b7bb3;
-
-            font-size: 24px;
-
-            font-weight: bold;
-
-            margin-bottom: 20px;
-        }
-
 
         .project-card {
-
             background: white;
-
             border-radius: 15px;
-
             padding: 25px;
-
             margin-bottom: 20px;
-
-            box-shadow:
-                0 4px 15px rgba(0,0,0,0.07);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.07);
         }
-
 
         .project-title {
-
             color: #2b7bb3;
-
             font-size: 20px;
-
             font-weight: bold;
-
-            margin-bottom: 15px;
         }
 
-
-        .project-info {
-
-            margin-bottom: 7px;
-        }
-
-
-        .pdf-btn {
-
-            margin-top: 15px;
-        }
-
-
-        .no-project {
-
+        .add-btn {
             background: white;
-
-            padding: 30px;
-
-            text-align: center;
-
-            border-radius: 15px;
-
-            color: #777;
+            color: #2b7bb3;
+            border: none;
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            font-size: 22px;
         }
 
-
-        @media (max-width: 600px) {
-
-            .header {
-
-                padding: 12px 20px;
-            }
-
-            .container-main {
-
-                margin-top: 25px;
-            }
-
-            .profile-row {
-
-                display: block;
-            }
-
-            .profile-label {
-
-                width: auto;
-
-                margin-bottom: 5px;
-            }
-
+        .add-btn:hover {
+            background: #eaf5fc;
         }
-
     </style>
-
 </head>
-
 
 <body>
 
-
 <!-- ================= HEADER ================= -->
-
 <header class="header">
 
-
-    <!-- แก้จาก profile.php เป็น index2.php -->
-
+    <!-- กลับหน้าแรก -->
     <a href="index2.php" class="header-left">
-
-        <div class="logo-placeholder">
-            SDU
-        </div>
-
-        <div class="header-title">
-            หน้าแรก
-        </div>
-
+        <div class="logo-placeholder">SDU</div>
+        <div class="header-title">หน้าแรก</div>
     </a>
 
+    <div class="header-right">
 
-    <a
-        href="logout.php"
-        class="btn btn-light">
+        <!-- ปุ่มเพิ่มโปรเจกต์ -->
+        <a href="create.php" class="add-btn d-flex align-items-center justify-content-center">
+            <i class="bi bi-plus-lg"></i>
+        </a>
 
-        <i class="bi bi-box-arrow-right"></i>
+        <!-- PROFILE -->
+        <div class="dropdown">
 
-        ออกจากระบบ
+            <a href="#" 
+               role="button" 
+               id="profileDropdown"
+               data-bs-toggle="dropdown"
+               aria-expanded="false">
 
-    </a>
+                <img
+                    src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+                    alt="โปรไฟล์"
+                    class="profile-image"
+                >
 
+            </a>
 
+            <ul class="dropdown-menu dropdown-menu-end custom-profile-menu mt-2"
+                aria-labelledby="profileDropdown">
+
+                <!-- แก้แล้ว -->
+                <li>
+                    <a class="dropdown-item" href="profile.php">
+                        <i class="bi bi-person-fill"></i>
+                        <span>ข้อมูลส่วนตัว</span>
+                    </a>
+                </li>
+
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
+
+                <li>
+                    <a class="dropdown-item logout-btn" href="logout.php">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span>ออกจากระบบ</span>
+                    </a>
+                </li>
+
+            </ul>
+
+        </div>
+
+    </div>
 </header>
 
 
-<!-- ================= MAIN ================= -->
+<!-- ================= SEARCH ================= -->
+<section class="search-section">
 
-<div class="container-main">
+    <div class="search-box">
 
+        <!-- แก้ action ให้กลับมาที่ index2.php -->
+        <form action="index2.php" method="GET" class="row g-3 align-items-end">
 
-    <!-- ================= USER INFORMATION ================= -->
+            <div class="col-md-5">
+                <label class="form-label">ค้นหาโปรเจกต์</label>
 
-    <div class="profile-card">
-
-
-        <div class="profile-title">
-
-            <i class="bi bi-person-circle"></i>
-
-            ข้อมูลส่วนตัว
-
-        </div>
-
-
-        <div class="profile-row">
-
-            <div class="profile-label">
-                ชื่อ
+                <input
+                    type="text"
+                    name="keyword"
+                    class="form-control"
+                    placeholder="ชื่อโปรเจกต์ / ผู้จัดทำ"
+                    value="<?php echo htmlspecialchars($_GET['keyword'] ?? ''); ?>"
+                >
             </div>
 
-            <div class="profile-value">
+            <div class="col-md-3">
 
-                <?php
+                <label class="form-label">ระดับการศึกษา</label>
 
-                echo htmlspecialchars(
-                    $user_data['firstname']
-                    ?? $user_data['username']
-                    ?? 'ไม่มีข้อมูล'
-                );
+                <select name="degree" class="form-select">
 
-                ?>
+                    <option value="">ทั้งหมด</option>
 
-            </div>
+                    <option value="ปริญญาตรี"
+                        <?php echo (($_GET['degree'] ?? '') == 'ปริญญาตรี') ? 'selected' : ''; ?>>
+                        ปริญญาตรี
+                    </option>
 
-        </div>
+                    <option value="ปริญญาโท"
+                        <?php echo (($_GET['degree'] ?? '') == 'ปริญญาโท') ? 'selected' : ''; ?>>
+                        ปริญญาโท
+                    </option>
 
+                    <option value="ปริญญาเอก"
+                        <?php echo (($_GET['degree'] ?? '') == 'ปริญญาเอก') ? 'selected' : ''; ?>>
+                        ปริญญาเอก
+                    </option>
 
-        <div class="profile-row">
-
-            <div class="profile-label">
-                นามสกุล
-            </div>
-
-            <div class="profile-value">
-
-                <?php
-
-                echo htmlspecialchars(
-                    $user_data['lastname']
-                    ?? '-'
-                );
-
-                ?>
+                </select>
 
             </div>
 
-        </div>
+            <div class="col-md-3">
 
+                <label class="form-label">สาขา</label>
 
-        <div class="profile-row">
+                <select name="major" class="form-select">
 
-            <div class="profile-label">
-                Username
-            </div>
+                    <option value="">ทั้งหมด</option>
 
-            <div class="profile-value">
+                    <option value="IT"
+                        <?php echo (($_GET['major'] ?? '') == 'IT') ? 'selected' : ''; ?>>
+                        เทคโนโลยีสารสนเทศ
+                    </option>
 
-                <?php
+                    <option value="วิทยาศาสตร์สิ่งแวดล้อม"
+                        <?php echo (($_GET['major'] ?? '') == 'วิทยาศาสตร์สิ่งแวดล้อม') ? 'selected' : ''; ?>>
+                        วิทยาศาสตร์สิ่งแวดล้อม
+                    </option>
 
-                echo htmlspecialchars(
-                    $user_data['username']
-                    ?? '-'
-                );
-
-                ?>
-
-            </div>
-
-        </div>
-
-
-        <div class="profile-row">
-
-            <div class="profile-label">
-                Email
-            </div>
-
-            <div class="profile-value">
-
-                <?php
-
-                echo htmlspecialchars(
-                    $user_data['email']
-                    ?? '-'
-                );
-
-                ?>
+                </select>
 
             </div>
 
-        </div>
+            <div class="col-md-1">
 
-
-        <div class="profile-row">
-
-            <div class="profile-label">
-                บทบาท
-            </div>
-
-            <div class="profile-value">
-
-                <?php
-
-                echo htmlspecialchars(
-                    $user_data['role']
-                    ?? '-'
-                );
-
-                ?>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i>
+                </button>
 
             </div>
 
-        </div>
-
-
-        <div class="profile-row">
-
-            <div class="profile-label">
-                สาขา / ภาควิชา
-            </div>
-
-            <div class="profile-value">
-
-                <?php
-
-                echo htmlspecialchars(
-                    $user_data['department']
-                    ?? '-'
-                );
-
-                ?>
-
-            </div>
-
-        </div>
-
+        </form>
 
     </div>
 
 
     <!-- ================= PROJECTS ================= -->
 
-    <div class="section-title">
+    <div class="mt-4">
 
-        <i class="bi bi-folder-fill"></i>
+        <div class="project-card">
 
-        โปรเจกต์
-
-    </div>
-
-
-    <?php if ($projects_query && mysqli_num_rows($projects_query) > 0): ?>
-
-
-        <?php while ($row = mysqli_fetch_assoc($projects_query)): ?>
-
-
-            <div class="project-card">
-
-
-                <div class="project-title">
-
-                    <?php
-
-                    echo htmlspecialchars(
-                        $row['title']
-                        ?? 'ไม่มีชื่อโปรเจกต์'
-                    );
-
-                    ?>
-
-                </div>
-
-
-                <div class="project-info">
-
-                    <strong>ระดับการศึกษา:</strong>
-
-                    <?php
-
-                    echo htmlspecialchars(
-                        $row['degree']
-                        ?? '-'
-                    );
-
-                    ?>
-
-                </div>
-
-
-                <div class="project-info">
-
-                    <strong>สาขา:</strong>
-
-                    <?php
-
-                    echo htmlspecialchars(
-                        $row['department']
-                        ?? '-'
-                    );
-
-                    ?>
-
-                </div>
-
-
-                <div class="project-info">
-
-                    <strong>ผู้จัดทำ:</strong>
-
-                    <?php
-
-                    echo htmlspecialchars(
-                        $row['authors']
-                        ?? '-'
-                    );
-
-                    ?>
-
-                </div>
-
-
-                <?php if (!empty($row['pdf_file'])): ?>
-
-                    <a
-                        href="<?php echo htmlspecialchars($row['pdf_file']); ?>"
-                        target="_blank"
-                        class="btn btn-primary pdf-btn">
-
-                        <i class="bi bi-file-earmark-pdf"></i>
-
-                        เปิดไฟล์ PDF
-
-                    </a>
-
-                <?php endif; ?>
-
-
+            <div class="project-title">
+                การเพิ่มประสิทธิภาพในการตรวจจับไฟป่าโดยใช้ Google’s Teachable Machine
             </div>
 
+            <p class="mt-2 mb-1">
+                <strong>ระดับ:</strong> ปริญญาตรี
+            </p>
 
-        <?php endwhile; ?>
+            <p class="mb-1">
+                <strong>สาขา:</strong> IT
+            </p>
 
-
-    <?php else: ?>
-
-
-        <div class="no-project">
-
-            <i class="bi bi-folder-x"
-               style="font-size: 40px;"></i>
-
-            <p class="mt-3 mb-0">
-                ยังไม่มีโปรเจกต์
+            <p class="mb-0">
+                <strong>ผู้จัดทำ:</strong> นักศึกษา
             </p>
 
         </div>
 
 
-    <?php endif; ?>
+        <div class="project-card">
+
+            <div class="project-title">
+                ศึกษาทางเลือกการผลิตพลังงานทดแทนจากผักตบชวา
+            </div>
+
+            <p class="mt-2 mb-1">
+                <strong>ระดับ:</strong> ปริญญาโท
+            </p>
+
+            <p class="mb-1">
+                <strong>สาขา:</strong> วิทยาศาสตร์สิ่งแวดล้อม
+            </p>
+
+            <p class="mb-0">
+                <strong>ผู้จัดทำ:</strong> นักศึกษา
+            </p>
+
+        </div>
 
 
-</div>
+        <div class="project-card">
+
+            <div class="project-title">
+                การรับรู้ผลกระทบด้านสุขภาพของสมาชิกโครงการธนาคารขยะ
+            </div>
+
+            <p class="mt-2 mb-1">
+                <strong>ระดับ:</strong> ปริญญาเอก
+            </p>
+
+            <p class="mb-1">
+                <strong>สาขา:</strong> วิทยาศาสตร์สิ่งแวดล้อม
+            </p>
+
+            <p class="mb-0">
+                <strong>ผู้จัดทำ:</strong> นักศึกษา
+            </p>
+
+        </div>
+
+    </div>
+
+</section>
 
 
-<script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js">
-</script>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
-
 </html>
