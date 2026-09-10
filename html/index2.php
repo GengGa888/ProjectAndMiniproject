@@ -1,37 +1,45 @@
-<?php 
-include 'db_connect.php'; 
+<?php
+include 'db_connect.php';
 
-// ตัวอย่างการดึงข้อมูลจากฐานข้อมูล (ปรับชื่อตารางและ column ตามของคุณ)
+// ตัวอย่างการดึงข้อมูลจากฐานข้อมูล
 // $sql = "SELECT * FROM projects ORDER BY id DESC";
 // $result = mysqli_query($conn, $sql);
 ?>
 
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>หน้าแรก - คลังโปรเจกต์ SDU</title>
 
     <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
 
     <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    >
 
     <style>
         :root {
-            --sdu-pdf-blue: #5ab1d8; 
+            --sdu-pdf-blue: #5ab1d8;
         }
-        
-        body { 
-            background-color: #ffffff; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+
+        body {
+            background-color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+
         /* Navbar */
         .custom-header {
-            background: linear-gradient(to right, #4da4d9, #2b7bb3); 
+            background: linear-gradient(to right, #4da4d9, #2b7bb3);
             padding: 8px 0 15px 0;
             border-bottom: 2px solid #1a5a8a;
         }
@@ -51,7 +59,7 @@ include 'db_connect.php';
             transform: scale(1.05);
         }
 
-        /* ปุ่มบวกเพิ่มโปรเจกต์ */
+        /* ปุ่มเพิ่มโปรเจกต์ */
         .btn-upload-project {
             width: 45px;
             height: 45px;
@@ -94,7 +102,7 @@ include 'db_connect.php';
             text-decoration: underline;
         }
 
-        /* Modern Dark Dropdown Profile */
+        /* Profile Dropdown */
         .custom-profile-menu {
             background-color: #1a1b26;
             border: 1px solid #2f334d;
@@ -138,7 +146,7 @@ include 'db_connect.php';
             margin: 6px 0;
         }
 
-        /* Filter Section Style */
+        /* Filter Section */
         .filter-section {
             background-color: #f8f9fa;
             border: 1px solid #e9ecef;
@@ -193,13 +201,14 @@ include 'db_connect.php';
     <!-- แถบเมนูด้านบน -->
     <header class="custom-header">
         <div class="container">
+
             <div class="d-flex justify-content-between align-items-center flex-wrap mt-2">
-                
+
                 <!-- ฝั่งซ้าย -->
                 <div class="d-flex align-items-center gap-3">
 
                     <a href="index2.php">
-                        <img 
+                        <img
                             src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png"
                             alt="SDU Logo"
                             class="sdu-logo"
@@ -208,45 +217,54 @@ include 'db_connect.php';
 
                     <ul class="nav main-menu">
                         <li class="nav-item">
-                            <a class="nav-link" href="index2.php">หน้าแรก</a>
+                            <a class="nav-link" href="index2.php">
+                                หน้าแรก
+                            </a>
                         </li>
                     </ul>
 
                 </div>
 
-                <!-- ฝั่งขวา: ปุ่มเพิ่มโปรเจกต์ + โปรไฟล์ Dropdown -->
+                <!-- ฝั่งขวา -->
                 <div class="d-flex align-items-center gap-3">
 
                     <!-- ปุ่มเพิ่มโปรเจกต์ -->
-                    <a href="create.php" class="btn-upload-project" title="ส่งโปรเจกต์">
+                    <a
+                        href="create.php"
+                        class="btn-upload-project"
+                        title="ส่งโปรเจกต์"
+                    >
                         <i class="bi bi-plus-lg"></i>
                     </a>
 
                     <!-- โปรไฟล์ Dropdown -->
                     <div class="dropdown">
 
-                        <a 
-                            href="#" 
-                            role="button" 
-                            id="profileDropdown" 
-                            data-bs-toggle="dropdown" 
+                        <a
+                            href="#"
+                            role="button"
+                            id="profileDropdown"
+                            data-bs-toggle="dropdown"
                             aria-expanded="false"
                         >
-                            <img 
+                            <img
                                 src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
                                 alt="โปรไฟล์"
                                 class="profile-image"
                             >
                         </a>
-                        
-                        <ul 
-                            class="dropdown-menu dropdown-menu-end custom-profile-menu mt-2" 
+
+                        <ul
+                            class="dropdown-menu dropdown-menu-end custom-profile-menu mt-2"
                             aria-labelledby="profileDropdown"
                         >
 
                             <!-- ข้อมูลส่วนตัว -->
                             <li>
-                                <a class="dropdown-item" href="profile.php">
+                                <a
+                                    class="dropdown-item"
+                                    href="profile.php"
+                                >
                                     <i class="bi bi-person-fill"></i>
                                     <span>ข้อมูลส่วนตัว</span>
                                 </a>
@@ -259,7 +277,10 @@ include 'db_connect.php';
 
                             <!-- ออกจากระบบ -->
                             <li>
-                                <a class="dropdown-item logout-btn" href="logout.php">
+                                <a
+                                    class="dropdown-item logout-btn"
+                                    href="logout.php"
+                                >
                                     <i class="bi bi-box-arrow-right"></i>
                                     <span>ออกจากระบบ</span>
                                 </a>
@@ -274,46 +295,57 @@ include 'db_connect.php';
         </div>
     </header>
 
+
     <!-- เนื้อหาหลัก -->
     <div class="container mt-4 mb-5">
-        
-        <!-- ส่วนกรองและค้นหาโปรเจกต์ -->
+
+        <!-- ส่วนค้นหาและกรองโปรเจกต์ -->
         <div class="filter-section mb-4">
 
-            <form action="index.php" method="GET" class="row g-3 align-items-end">
-                
-                <!-- ช่องพิมพ์ค้นหา -->
+            <!-- แก้จาก index.php เป็น index2.php -->
+            <form
+                action="index2.php"
+                method="GET"
+                class="row g-3 align-items-end"
+            >
+
+                <!-- ช่องค้นหา -->
                 <div class="col-md-4">
-                    <label 
-                        for="searchKeyword" 
+
+                    <label
+                        for="searchKeyword"
                         class="form-label fw-bold text-secondary mb-1"
                     >
                         ค้นหาคำขวัญ/โปรเจกต์:
                     </label>
 
-                    <input 
-                        type="text" 
-                        name="keyword" 
-                        class="form-control form-control-sm" 
-                        id="searchKeyword" 
+                    <input
+                        type="text"
+                        name="keyword"
+                        class="form-control form-control-sm"
+                        id="searchKeyword"
                         placeholder="พิมพ์ชื่อโปรเจกต์ หรือผู้แต่ง..."
                     >
+
                 </div>
 
-                <!-- เลือกระดับหลักสูตร -->
+
+                <!-- ระดับหลักสูตร -->
                 <div class="col-md-3">
-                    <label 
-                        for="degreeSelect" 
+
+                    <label
+                        for="degreeSelect"
                         class="form-label fw-bold text-secondary mb-1"
                     >
                         ระดับหลักสูตร:
                     </label>
 
-                    <select 
-                        name="degree" 
-                        class="form-select form-select-sm" 
+                    <select
+                        name="degree"
+                        class="form-select form-select-sm"
                         id="degreeSelect"
                     >
+
                         <option value="all" selected>
                             ทุกระดับการศึกษา
                         </option>
@@ -329,23 +361,28 @@ include 'db_connect.php';
                         <option value="doctorate">
                             ปริญญาเอก
                         </option>
+
                     </select>
+
                 </div>
 
-                <!-- เลือกสาขาวิชา -->
+
+                <!-- สาขาวิชา -->
                 <div class="col-md-3">
-                    <label 
-                        for="majorSelect" 
+
+                    <label
+                        for="majorSelect"
                         class="form-label fw-bold text-secondary mb-1"
                     >
                         สาขาวิชา:
                     </label>
 
-                    <select 
-                        name="major" 
-                        class="form-select form-select-sm" 
+                    <select
+                        name="major"
+                        class="form-select form-select-sm"
                         id="majorSelect"
                     >
+
                         <option value="all" selected>
                             ทุกสาขาวิชา
                         </option>
@@ -365,27 +402,34 @@ include 'db_connect.php';
                         <option value="food">
                             เทคโนโลยีการประกอบอาหาร
                         </option>
+
                     </select>
+
                 </div>
+
 
                 <!-- ปุ่มค้นหา -->
                 <div class="col-md-2">
-                    <button 
-                        type="submit" 
+
+                    <button
+                        type="submit"
                         class="btn btn-primary btn-sm w-100"
                     >
                         ค้นหา
                     </button>
+
                 </div>
 
             </form>
+
         </div>
 
-        <!-- รายการโปรเจกต์ 1 -->
+
+        <!-- โปรเจกต์ 1 -->
         <div class="project-item border-bottom pb-4 mb-4">
 
-            <a 
-                href="project-detail.php?id=1" 
+            <a
+                href="project-detail.php?id=1"
                 class="project-title"
             >
                 การเพิ่มประสิทธิภาพในการตรวจจับไฟป่าโดยใช้ Google’s Teachable Machine
@@ -398,7 +442,7 @@ include 'db_connect.php';
             <span class="badge bg-info text-dark ms-1">
                 เทคโนโลยีสารสนเทศ
             </span>
-            
+
             <p class="author-text mt-2">
                 ศุภาพิชญ์ ขวัญอยู่<sup>1</sup>
                 สืบสกุล ครุรัตน์<sup>1,*</sup>
@@ -412,20 +456,22 @@ include 'db_connect.php';
                 1-18
             </p>
 
-            <a 
-                href="uploads/project1.pdf" 
-                target="_blank" 
+            <a
+                href="uploads/project1.pdf"
+                target="_blank"
                 class="btn btn-pdf mt-1"
             >
                 PDF
             </a>
+
         </div>
 
-        <!-- รายการโปรเจกต์ 2 -->
+
+        <!-- โปรเจกต์ 2 -->
         <div class="project-item border-bottom pb-4 mb-4">
 
-            <a 
-                href="project-detail.php?id=2" 
+            <a
+                href="project-detail.php?id=2"
                 class="project-title"
             >
                 ศึกษาทางเลือกการผลิตพลังงานทดแทนจากผักตบชวา กรณีศึกษา บริเวณลุ่มแม่น้ำท่าจีน
@@ -452,20 +498,22 @@ include 'db_connect.php';
                 19-32
             </p>
 
-            <a 
-                href="uploads/project2.pdf" 
-                target="_blank" 
+            <a
+                href="uploads/project2.pdf"
+                target="_blank"
                 class="btn btn-pdf mt-1"
             >
                 PDF
             </a>
+
         </div>
 
-        <!-- รายการโปรเจกต์ 3 -->
+
+        <!-- โปรเจกต์ 3 -->
         <div class="project-item border-bottom pb-4 mb-4">
 
-            <a 
-                href="project-detail.php?id=3" 
+            <a
+                href="project-detail.php?id=3"
                 class="project-title"
             >
                 การรับรู้ผลกระทบด้านสุขภาพของสมาชิกโครงการธนาคารขยะในพื้นที่ชุมชนสวนอ้อยและมหาวิทยาลัยสวนดุสิต ประเทศไทย
@@ -484,7 +532,7 @@ include 'db_connect.php';
                 แทนทัศน เพียกขุนทด<sup>1</sup>
                 ทิพย์วรรณ บุณยาภรณ์<sup>3,*</sup>
                 ชุติวรรณ บุญอาชาทอง<sup>1</sup>
-                และ สายสุดา ปั้นตระกูล<sup>2</sup>
+                และสายสุดา ปั้นตระกูล<sup>2</sup>
             </p>
 
             <p class="author-text">
@@ -495,19 +543,23 @@ include 'db_connect.php';
                 33-43
             </p>
 
-            <a 
-                href="uploads/project3.pdf" 
-                target="_blank" 
+            <a
+                href="uploads/project3.pdf"
+                target="_blank"
                 class="btn btn-pdf mt-1"
             >
                 PDF
             </a>
+
         </div>
 
     </div>
 
+
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+    ></script>
 
 </body>
 </html>
