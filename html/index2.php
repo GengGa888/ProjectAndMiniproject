@@ -5,6 +5,7 @@ include 'db_connect.php';
 // $sql = "SELECT * FROM projects ORDER BY id DESC";
 // $result = mysqli_query($conn, $sql);
 ?>
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -14,6 +15,7 @@ include 'db_connect.php';
 
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
@@ -193,7 +195,9 @@ include 'db_connect.php';
         <div class="container">
             <div class="d-flex justify-content-between align-items-center flex-wrap mt-2">
                 
+                <!-- ฝั่งซ้าย -->
                 <div class="d-flex align-items-center gap-3">
+
                     <a href="index2.php">
                         <img 
                             src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png"
@@ -201,24 +205,33 @@ include 'db_connect.php';
                             class="sdu-logo"
                         >
                     </a>
+
                     <ul class="nav main-menu">
                         <li class="nav-item">
                             <a class="nav-link" href="index2.php">หน้าแรก</a>
                         </li>
                     </ul>
+
                 </div>
 
                 <!-- ฝั่งขวา: ปุ่มเพิ่มโปรเจกต์ + โปรไฟล์ Dropdown -->
                 <div class="d-flex align-items-center gap-3">
 
-                    <!-- ปุ่มเพิ่มโปรเจกต์ (รูปบวก) -->
+                    <!-- ปุ่มเพิ่มโปรเจกต์ -->
                     <a href="create.php" class="btn-upload-project" title="ส่งโปรเจกต์">
                         <i class="bi bi-plus-lg"></i>
                     </a>
 
                     <!-- โปรไฟล์ Dropdown -->
                     <div class="dropdown">
-                        <a href="#" role="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+
+                        <a 
+                            href="#" 
+                            role="button" 
+                            id="profileDropdown" 
+                            data-bs-toggle="dropdown" 
+                            aria-expanded="false"
+                        >
                             <img 
                                 src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
                                 alt="โปรไฟล์"
@@ -226,20 +239,32 @@ include 'db_connect.php';
                             >
                         </a>
                         
-                        <ul class="dropdown-menu dropdown-menu-end custom-profile-menu mt-2" aria-labelledby="profileDropdown">
+                        <ul 
+                            class="dropdown-menu dropdown-menu-end custom-profile-menu mt-2" 
+                            aria-labelledby="profileDropdown"
+                        >
+
+                            <!-- ข้อมูลส่วนตัว -->
                             <li>
-                                <a class="dropdown-item" href="Personal Information.php">
+                                <a class="dropdown-item" href="profile.php">
                                     <i class="bi bi-person-fill"></i>
                                     <span>ข้อมูลส่วนตัว</span>
                                 </a>
                             </li>
-                            <li><hr class="dropdown-divider"></li>
+
+                            <!-- เส้นคั่น -->
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+
+                            <!-- ออกจากระบบ -->
                             <li>
                                 <a class="dropdown-item logout-btn" href="logout.php">
                                     <i class="bi bi-box-arrow-right"></i>
                                     <span>ออกจากระบบ</span>
                                 </a>
                             </li>
+
                         </ul>
                     </div>
 
@@ -254,46 +279,103 @@ include 'db_connect.php';
         
         <!-- ส่วนกรองและค้นหาโปรเจกต์ -->
         <div class="filter-section mb-4">
+
             <form action="index.php" method="GET" class="row g-3 align-items-end">
                 
                 <!-- ช่องพิมพ์ค้นหา -->
                 <div class="col-md-4">
-                    <label for="searchKeyword" class="form-label fw-bold text-secondary mb-1">
+                    <label 
+                        for="searchKeyword" 
+                        class="form-label fw-bold text-secondary mb-1"
+                    >
                         ค้นหาคำขวัญ/โปรเจกต์:
                     </label>
-                    <input type="text" name="keyword" class="form-control form-control-sm" id="searchKeyword" placeholder="พิมพ์ชื่อโปรเจกต์ หรือผู้แต่ง...">
+
+                    <input 
+                        type="text" 
+                        name="keyword" 
+                        class="form-control form-control-sm" 
+                        id="searchKeyword" 
+                        placeholder="พิมพ์ชื่อโปรเจกต์ หรือผู้แต่ง..."
+                    >
                 </div>
 
                 <!-- เลือกระดับหลักสูตร -->
                 <div class="col-md-3">
-                    <label for="degreeSelect" class="form-label fw-bold text-secondary mb-1">
+                    <label 
+                        for="degreeSelect" 
+                        class="form-label fw-bold text-secondary mb-1"
+                    >
                         ระดับหลักสูตร:
                     </label>
-                    <select name="degree" class="form-select form-select-sm" id="degreeSelect">
-                        <option value="all" selected>ทุกระดับการศึกษา</option>
-                        <option value="bachelor">ปริญญาตรี</option>
-                        <option value="master">ปริญญาโท</option>
-                        <option value="doctorate">ปริญญาเอก</option>
+
+                    <select 
+                        name="degree" 
+                        class="form-select form-select-sm" 
+                        id="degreeSelect"
+                    >
+                        <option value="all" selected>
+                            ทุกระดับการศึกษา
+                        </option>
+
+                        <option value="bachelor">
+                            ปริญญาตรี
+                        </option>
+
+                        <option value="master">
+                            ปริญญาโท
+                        </option>
+
+                        <option value="doctorate">
+                            ปริญญาเอก
+                        </option>
                     </select>
                 </div>
 
                 <!-- เลือกสาขาวิชา -->
                 <div class="col-md-3">
-                    <label for="majorSelect" class="form-label fw-bold text-secondary mb-1">
+                    <label 
+                        for="majorSelect" 
+                        class="form-label fw-bold text-secondary mb-1"
+                    >
                         สาขาวิชา:
                     </label>
-                    <select name="major" class="form-select form-select-sm" id="majorSelect">
-                        <option value="all" selected>ทุกสาขาวิชา</option>
-                        <option value="it">เทคโนโลยีสารสนเทศ</option>
-                        <option value="cs">วิทยาการคอมพิวเตอร์</option>
-                        <option value="env">วิทยาศาสตร์สิ่งแวดล้อม</option>
-                        <option value="food">เทคโนโลยีการประกอบอาหาร</option>
+
+                    <select 
+                        name="major" 
+                        class="form-select form-select-sm" 
+                        id="majorSelect"
+                    >
+                        <option value="all" selected>
+                            ทุกสาขาวิชา
+                        </option>
+
+                        <option value="it">
+                            เทคโนโลยีสารสนเทศ
+                        </option>
+
+                        <option value="cs">
+                            วิทยาการคอมพิวเตอร์
+                        </option>
+
+                        <option value="env">
+                            วิทยาศาสตร์สิ่งแวดล้อม
+                        </option>
+
+                        <option value="food">
+                            เทคโนโลยีการประกอบอาหาร
+                        </option>
                     </select>
                 </div>
 
                 <!-- ปุ่มค้นหา -->
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary btn-sm w-100">ค้นหา</button>
+                    <button 
+                        type="submit" 
+                        class="btn btn-primary btn-sm w-100"
+                    >
+                        ค้นหา
+                    </button>
                 </div>
 
             </form>
@@ -301,45 +383,101 @@ include 'db_connect.php';
 
         <!-- รายการโปรเจกต์ 1 -->
         <div class="project-item border-bottom pb-4 mb-4">
-            <a href="project-detail.php?id=1" class="project-title">
+
+            <a 
+                href="project-detail.php?id=1" 
+                class="project-title"
+            >
                 การเพิ่มประสิทธิภาพในการตรวจจับไฟป่าโดยใช้ Google’s Teachable Machine
             </a>
-            <span class="badge bg-light text-dark ms-2 border">ปริญญาตรี</span>
-            <span class="badge bg-info text-dark ms-1">เทคโนโลยีสารสนเทศ</span>
+
+            <span class="badge bg-light text-dark ms-2 border">
+                ปริญญาตรี
+            </span>
+
+            <span class="badge bg-info text-dark ms-1">
+                เทคโนโลยีสารสนเทศ
+            </span>
             
             <p class="author-text mt-2">
                 ศุภาพิชญ์ ขวัญอยู่<sup>1</sup>
                 สืบสกุล ครุรัตน์<sup>1,*</sup>
             </p>
-            <p class="author-text">ศุภาพิชญ์ ขวัญอยู่</p>
-            <p class="page-text">1-18</p>
-            <a href="uploads/project1.pdf" target="_blank" class="btn btn-pdf mt-1">PDF</a>
+
+            <p class="author-text">
+                ศุภาพิชญ์ ขวัญอยู่
+            </p>
+
+            <p class="page-text">
+                1-18
+            </p>
+
+            <a 
+                href="uploads/project1.pdf" 
+                target="_blank" 
+                class="btn btn-pdf mt-1"
+            >
+                PDF
+            </a>
         </div>
 
         <!-- รายการโปรเจกต์ 2 -->
         <div class="project-item border-bottom pb-4 mb-4">
-            <a href="project-detail.php?id=2" class="project-title">
+
+            <a 
+                href="project-detail.php?id=2" 
+                class="project-title"
+            >
                 ศึกษาทางเลือกการผลิตพลังงานทดแทนจากผักตบชวา กรณีศึกษา บริเวณลุ่มแม่น้ำท่าจีน
             </a>
-            <span class="badge bg-light text-dark ms-2 border">ปริญญาโท</span>
-            <span class="badge bg-info text-dark ms-1">วิทยาศาสตร์สิ่งแวดล้อม</span>
+
+            <span class="badge bg-light text-dark ms-2 border">
+                ปริญญาโท
+            </span>
+
+            <span class="badge bg-info text-dark ms-1">
+                วิทยาศาสตร์สิ่งแวดล้อม
+            </span>
 
             <p class="author-text mt-2">
                 นนทนันท์ เกื้อชาติ<sup>1,*</sup>
                 และอรทัย ชวาลภาฤทธิ์<sup>2</sup>
             </p>
-            <p class="author-text">Nontanan Kuerchart</p>
-            <p class="page-text">19-32</p>
-            <a href="uploads/project2.pdf" target="_blank" class="btn btn-pdf mt-1">PDF</a>
+
+            <p class="author-text">
+                Nontanan Kuerchart
+            </p>
+
+            <p class="page-text">
+                19-32
+            </p>
+
+            <a 
+                href="uploads/project2.pdf" 
+                target="_blank" 
+                class="btn btn-pdf mt-1"
+            >
+                PDF
+            </a>
         </div>
 
         <!-- รายการโปรเจกต์ 3 -->
         <div class="project-item border-bottom pb-4 mb-4">
-            <a href="project-detail.php?id=3" class="project-title">
+
+            <a 
+                href="project-detail.php?id=3" 
+                class="project-title"
+            >
                 การรับรู้ผลกระทบด้านสุขภาพของสมาชิกโครงการธนาคารขยะในพื้นที่ชุมชนสวนอ้อยและมหาวิทยาลัยสวนดุสิต ประเทศไทย
             </a>
-            <span class="badge bg-light text-dark ms-2 border">ปริญญาเอก</span>
-            <span class="badge bg-info text-dark ms-1">วิทยาศาสตร์สิ่งแวดล้อม</span>
+
+            <span class="badge bg-light text-dark ms-2 border">
+                ปริญญาเอก
+            </span>
+
+            <span class="badge bg-info text-dark ms-1">
+                วิทยาศาสตร์สิ่งแวดล้อม
+            </span>
 
             <p class="author-text mt-2">
                 ภูริพจน์ แก้วย่อง<sup>1</sup>
@@ -348,9 +486,22 @@ include 'db_connect.php';
                 ชุติวรรณ บุญอาชาทอง<sup>1</sup>
                 และ สายสุดา ปั้นตระกูล<sup>2</sup>
             </p>
-            <p class="author-text">ภูริพจน์ แก้วย่อง</p>
-            <p class="page-text">33-43</p>
-            <a href="uploads/project3.pdf" target="_blank" class="btn btn-pdf mt-1">PDF</a>
+
+            <p class="author-text">
+                ภูริพจน์ แก้วย่อง
+            </p>
+
+            <p class="page-text">
+                33-43
+            </p>
+
+            <a 
+                href="uploads/project3.pdf" 
+                target="_blank" 
+                class="btn btn-pdf mt-1"
+            >
+                PDF
+            </a>
         </div>
 
     </div>
