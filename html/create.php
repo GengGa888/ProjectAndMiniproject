@@ -13,19 +13,21 @@ $error = '';
 
 // 2. จัดการเมื่อมีการกดปุ่มส่งฟอร์ม (POST Request)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $user_id      = $_SESSION['user_id'];
+    $user_id       = $_SESSION['user_id'];
     $project_type  = $_POST['projectType'] ?? 'miniproject';
-    $title        = trim($_POST['projectTitle'] ?? '');
-    $degree       = $_POST['degreeSelect'] ?? '';
-    $major        = $_POST['majorSelect'] ?? '';
-    $authors      = trim($_POST['authorNames'] ?? '');
-    $advisor      = trim($_POST['advisorName'] ?? '');
+    $title         = trim($_POST['projectTitle'] ?? '');
+    $degree        = $_POST['degreeSelect'] ?? '';
+    $major         = $_POST['majorSelect'] ?? '';
+    $authors       = trim($_POST['authorNames'] ?? '');
+    $advisor       = trim($_POST['advisorName'] ?? '');
     $github_url    = trim($_POST['githubUrl'] ?? '');
-    $abstract     = trim($_POST['projectAbstract'] ?? '');
+    $abstract      = trim($_POST['projectAbstract'] ?? '');
 
+    // ตรวจสอบความถูกต้องเบื้องต้น
     if (empty($title) || empty($degree) || empty($major) || empty($authors) || !isset($_FILES['filePdf'])) {
         $error = "กรุณากรอกข้อมูลสำคัญที่มีเครื่องหมาย (*) ให้ครบถ้วน";
     } else {
+        // จัดการอัปโหลดไฟล์ PDF
         $file = $_FILES['filePdf'];
         $fileName = $file['name'];
         $fileTmpName = $file['tmp_name'];
@@ -34,21 +36,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
 
+        // ตรวจสอบชนิดไฟล์และขนาดไฟล์ (ไม่เกิน 25MB)
         if ($fileExt === 'pdf') {
             if ($fileError === 0) {
                 if ($fileSize <= 25 * 1024 * 1024) { // 25MB
                     
+                    // สุ่มชื่อไฟล์ใหม่ป้องกันชื่อซ้ำกัน
                     $newFileName = uniqid('proj_', true) . "." . $fileExt;
                     $uploadDir = 'uploads/';
 
+                    // สร้างโฟลเดอร์ uploads หากยังไม่มี
                     if (!is_dir($uploadDir)) {
                         mkdir($uploadDir, 0777, true);
                     }
 
                     $fileDestination = $uploadDir . $newFileName;
 
+                    // ย้ายไฟล์ไปยังโฟลเดอร์ปลายทาง
                     if (move_uploaded_file($fileTmpName, $fileDestination)) {
                         
+                        // บันทึกข้อมูลลงในฐานข้อมูล
                         $sql = "INSERT INTO projects (user_id, project_type, title, degree, department, authors, advisor_name, github_url, abstract, pdf_file, created_at) 
                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
@@ -56,11 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             mysqli_stmt_bind_param($stmt, "isssssssss", $user_id, $project_type, $title, $degree, $major, $authors, $advisor, $github_url, $abstract, $newFileName);
                             
                             if (mysqli_stmt_execute($stmt)) {
-                                echo "<script>
-                                        alert('อัปโหลดและส่งเอกสารเรียบร้อยแล้ว!');
-                                        window.location.href='index2.php';
-                                     </script>";
-                                exit();
+                                $message = "อัปโหลดและส่งเอกสารเรียบร้อยแล้ว!";
                             } else {
                                 $error = "เกิดข้อผิดพลาดในการบันทึกข้อมูลลงฐานข้อมูล: " . mysqli_error($conn);
                             }
@@ -147,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             text-decoration: underline;
         }
 
-        /* Profile Menu Dropdown */
+        /* Modern Dark Dropdown Profile */
         .custom-profile-menu {
             background-color: #1a1b26;
             border: 1px solid #2f334d;
@@ -229,24 +232,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <body>
 
-    <!-- Header / Navbar -->
+    <!-- แถบเมนูด้านบน -->
     <header class="custom-header">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center flex-wrap mt-2">
                 
-                <div class="d-flex align-items-center gap-2">
-                    <!-- ลิงก์นี้จะพาคุณกลับไปหน้า index2.php เมื่อคลิกที่โลโก้หรือคำว่า "หน้าแรก" -->
-                    <a href="index2.php" class="d-flex align-items-center gap-2 text-decoration-none text-white">
+                <div class="d-flex align-items-center gap-3">
+                    <a href="index.php">
                         <img 
                             src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png"
                             alt="SDU Logo"
                             class="sdu-logo"
                         >
-                        <span class="fs-5 fw-bold">หน้าแรก</span>
-                    </a>    
+                    </a>
+                    <ul class="nav main-menu">
+                        <li class="nav-item">
+                            <a class="nav-link" href="index.php">หน้าแรก</a>
+                        </li>
+                    </ul>
                 </div>
 
-                <!-- Profile Dropdown -->
+                <!-- โปรไฟล์ Dropdown -->
                 <div class="dropdown">
                     <a href="#" role="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <img 
@@ -277,12 +283,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </header>
 
-    <!-- Upload Form -->
+    <!-- เนื้อหาหลัก: ฟอร์มส่งไฟล์งาน -->
     <div class="container mt-4 mb-5" style="max-width: 800px;">
         <div class="upload-card">
             <h4 class="mb-4 text-primary fw-bold">
                 <i class="bi bi-cloud-upload-fill me-2"></i>ส่งไฟล์งาน / โปรเจกต์
             </h4>
+
+            <!-- แสดงข้อความแจ้งเตือนสำเร็จหรือผิดพลาด -->
+            <?php if (!empty($message)): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i><?php echo $message; ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
 
             <?php if (!empty($error)): ?>
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -291,8 +305,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
 
-            <form action="create.php" method="POST" enctype="multipart/form-data">
+            <form action="upload.php" method="POST" enctype="multipart/form-data">
                 
+                <!-- ตัวเลือกประเภทงาน -->
                 <div class="mb-4">
                     <label class="form-label fw-bold text-secondary">ประเภทงานที่ต้องการส่ง <span class="text-danger">*</span></label>
                     <div class="row g-3 type-selector">
@@ -313,11 +328,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
 
+                <!-- ชื่อโปรเจกต์ -->
                 <div class="mb-3">
                     <label for="projectTitle" class="form-label fw-bold text-secondary">ชื่อหัวข้อ / ชื่อโปรเจกต์ <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" name="projectTitle" id="projectTitle" placeholder="ระบุชื่อผลงานภาษาไทย หรือภาษาอังกฤษ" required>
                 </div>
 
+                <!-- ข้อมูลระดับการศึกษาและสาขา -->
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
                         <label for="degreeSelect" class="form-label fw-bold text-secondary">ระดับหลักสูตร <span class="text-danger">*</span></label>
@@ -340,35 +357,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
 
+                <!-- รายชื่อผู้แต่ง / ผู้จัดทำ -->
                 <div class="mb-3">
                     <label for="authorNames" class="form-label fw-bold text-secondary">ชื่อผู้จัดทำ / ผู้แต่ง <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" name="authorNames" id="authorNames" placeholder="เช่น นายสมชาย ใจดี, นางสาวสมหญิง รักดี" required>
                     <div class="form-text">หากมีหลายคน ให้ใช้เครื่องหมายจุลภาค (,) คั่น</div>
                 </div>
 
+                <!-- อาจารย์ที่ปรึกษา -->
                 <div class="mb-3">
                     <label for="advisorName" class="form-label fw-bold text-secondary">อาจารย์ที่ปรึกษา / อาจารย์ประจำวิชา</label>
                     <input type="text" class="form-control" name="advisorName" id="advisorName" placeholder="ระบุชื่อ-นามสกุล อาจารย์ที่ปรึกษา">
                 </div>
 
+                <!-- GitHub Repository -->
                 <div class="mb-3">
                     <label for="githubUrl" class="form-label fw-bold text-secondary">GitHub Repository:</label>
                     <input type="url" class="form-control" name="githubUrl" id="githubUrl" placeholder="https://github.com/username/repository">
                 </div>
 
+                <!-- คำอธิบายย่อ / บทคัดย่อ -->
                 <div class="mb-3">
                     <label for="projectAbstract" class="form-label fw-bold text-secondary">บทคัดย่อ / รายละเอียดสังเขป</label>
                     <textarea class="form-control" name="projectAbstract" id="projectAbstract" rows="4" placeholder="กรอกเนื้อหาบทคัดย่อหรือรายละเอียดภาพรวมของโปรเจกต์..."></textarea>
                 </div>
 
+                <!-- อัปโหลดไฟล์ PDF -->
                 <div class="mb-4">
                     <label for="filePdf" class="form-label fw-bold text-secondary">แนบไฟล์เอกสาร (PDF) <span class="text-danger">*</span></label>
                     <input class="form-control" type="file" name="filePdf" id="filePdf" accept=".pdf" required>
                     <div class="form-text">รองรับเฉพาะไฟล์ .pdf ขนาดไม่เกิน 25 MB</div>
                 </div>
 
+                <!-- ปุ่มดำเนินการ -->
                 <div class="d-flex justify-content-end gap-2 pt-2 border-top">
-                    <a href="index2.php" class="btn btn-light border">ยกเลิก</a>
+                    <button type="reset" class="btn btn-light border">ยกเลิก</button>
                     <button type="submit" class="btn btn-submit">
                         <i class="bi bi-file-earmark-arrow-up me-1"></i> ส่งเอกสาร
                     </button>

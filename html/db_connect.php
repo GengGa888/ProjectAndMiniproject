@@ -1,17 +1,12 @@
 <?php
-$host = 'localhost';
-$db   = 'sdu_project_db';
-$user = 'root';
-$pass = '';
+$host = "localhost";
+$user = "root";
+$pass = ""; // ปกติ XAMPP รหัสผ่านว่างไว้
+$dbname = "project_db";
 
-// เชื่อมต่อฐานข้อมูลด้วย MySQLi
-$conn = mysqli_connect($host, $user, $pass, $db);
+$conn = mysqli_connect($host, $user, $pass, $dbname);
 
-// ตรวจสอบว่าเชื่อมต่อสำเร็จหรือไม่
 if (!$conn) {
-    die("Connection failed: " . mysqli_connect_error());
+    die("เชื่อมต่อฐานข้อมูลล้มเหลว: " . mysqli_connect_error());
 }
-
-// ตั้งค่าให้รองรับภาษาไทย
-mysqli_set_charset($conn, "utf8");
 ?>

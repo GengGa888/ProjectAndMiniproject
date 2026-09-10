@@ -14,9 +14,13 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 // 2. ดึงข้อมูล Admin ที่กำลังใช้งานอยู่
 $admin_id = $_SESSION['user_id'];
 $admin_stmt = mysqli_prepare($conn, "SELECT username, firstname, lastname, email, role FROM users WHERE id = ?");
+
+if (!$admin_stmt) {
+    die("SQL Error: " . mysqli_error($conn));
+}
+
 mysqli_stmt_bind_param($admin_stmt, "i", $admin_id);
 mysqli_stmt_execute($admin_stmt);
-$admin_result = mysqli_stmt_get_result($admin_stmt);
 $admin_data = mysqli_fetch_assoc($admin_result);
 
 // 3. ดึงรายการโครงงานทั้งหมดจากฐานข้อมูล

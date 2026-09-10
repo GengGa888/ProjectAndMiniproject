@@ -13,12 +13,12 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = intval($_SESSION['user_id']);
 
-// 2. ดึงข้อมูลผู้ใช้จากฐานข้อมูล (ใช้ mysqli_query เพื่อความยืดหยุ่น ป้องกัน Error เรื่องคอลัมน์)
+// 2. ดึงข้อมูลผู้ใช้จากฐานข้อมูล
 $user_query = mysqli_query($conn, "SELECT * FROM users WHERE id = $user_id LIMIT 1");
 $user_data = ($user_query) ? mysqli_fetch_assoc($user_query) : null;
 
-// 3. ดึงรายการโปรเจกต์ของผู้ใช้คนนี้
-$projects_query = mysqli_query($conn, "SELECT * FROM projects WHERE user_id = $user_id ORDER BY id DESC");
+// 3. ดึงรายการโปรเจกต์ทั้งหมด
+$projects_query = mysqli_query($conn, "SELECT * FROM projects ORDER BY id DESC");
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -59,7 +59,8 @@ $projects_query = mysqli_query($conn, "SELECT * FROM projects WHERE user_id = $u
 <body>
 
     <header class="header">
-        <a href="index2.php" class="header-left">
+        <!-- เปลี่ยนคำว่า main.php เป็นชื่อไฟล์หน้าแรกที่มีอยู่จริงในโปรเจกต์ของคุณ -->
+        <a href="profile.php" class="header-left">
             <div class="logo-placeholder">SDU</div>
             <div class="header-title">หน้าแรก</div>
         </a>

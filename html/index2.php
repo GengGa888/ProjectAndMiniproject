@@ -1,49 +1,9 @@
 <?php 
-session_start();
 include 'db_connect.php'; 
 
-// 1. รับค่าตัวกรองและการค้นหาผ่าน Query String (GET)
-$search = isset($_GET['searchKeyword']) ? trim($_GET['searchKeyword']) : '';
-$degree = isset($_GET['degreeSelect']) ? $_GET['degreeSelect'] : 'all';
-$major  = isset($_GET['majorSelect']) ? $_GET['majorSelect'] : 'all';
-
-// 2. สร้าง SQL Dynamic Query
-$sql = "SELECT * FROM projects WHERE 1=1";
-$params = [];
-$types = "";
-
-if (!empty($search)) {
-    $sql .= " AND (title LIKE ? OR authors LIKE ? OR abstract LIKE ?)";
-    $searchTerm = "%{$search}%";
-    $params[] = $searchTerm;
-    $params[] = $searchTerm;
-    $params[] = $searchTerm;
-    $types .= "sss";
-}
-
-if ($degree !== 'all' && !empty($degree)) {
-    $sql .= " AND degree = ?";
-    $params[] = $degree;
-    $types .= "s";
-}
-
-if ($major !== 'all' && !empty($major)) {
-    $sql .= " AND department = ?";
-    $params[] = $major;
-    $types .= "s";
-}
-
-$sql .= " ORDER BY created_at DESC";
-
-// 3. ประมวลผลคำสั่ง SQL ร่วมกับ Prepared Statement
-$stmt = mysqli_prepare($conn, $sql);
-
-if (!empty($params)) {
-    mysqli_stmt_bind_param($stmt, $types, ...$params);
-}
-
-mysqli_stmt_execute($stmt);
-$result = mysqli_stmt_get_result($stmt);
+// ตัวอย่างการดึงข้อมูลจากฐานข้อมูล (ปรับชื่อตารางและ column ตามของคุณ)
+// $sql = "SELECT * FROM projects ORDER BY id DESC";
+// $result = mysqli_query($conn, $sql);
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -51,6 +11,7 @@ $result = mysqli_stmt_get_result($stmt);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>หน้าแรก - คลังโปรเจกต์ SDU</title>
+
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -59,7 +20,6 @@ $result = mysqli_stmt_get_result($stmt);
     <style>
         :root {
             --sdu-pdf-blue: #5ab1d8; 
-            --sdu-primary: #2b7bb3;
         }
         
         body { 
@@ -67,6 +27,7 @@ $result = mysqli_stmt_get_result($stmt);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
         }
         
+        /* Navbar */
         .custom-header {
             background: linear-gradient(to right, #4da4d9, #2b7bb3); 
             padding: 8px 0 15px 0;
@@ -88,6 +49,7 @@ $result = mysqli_stmt_get_result($stmt);
             transform: scale(1.05);
         }
 
+        /* ปุ่มบวกเพิ่มโปรเจกต์ */
         .btn-upload-project {
             width: 45px;
             height: 45px;
@@ -111,36 +73,26 @@ $result = mysqli_stmt_get_result($stmt);
 
         .sdu-logo {
             width: 45px;
-            height: 45px;
+            height: auto;
             background-color: white;
             border-radius: 50%;
             padding: 2px;
-            object-fit: contain;
-            border: 2px solid white;
         }
 
-        .btn-home {
-            background-color: white;
-            color: #2b7bb3;
-            height: 45px;
-            padding: 0 16px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 0.95rem;
-            text-decoration: none;
-            border: 2px solid #fff;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        .main-menu .nav-link {
+            color: white !important;
+            font-size: 1.05rem;
+            padding-left: 0;
+            margin-right: 20px;
+            font-weight: 500;
         }
 
-        .btn-home:hover {
-            background-color: #f0f0f0;
-            color: #1a5a8a;
+        .main-menu .nav-link:hover {
+            color: #e2f0fb !important;
+            text-decoration: underline;
         }
 
+        /* Modern Dark Dropdown Profile */
         .custom-profile-menu {
             background-color: #1a1b26;
             border: 1px solid #2f334d;
@@ -161,6 +113,10 @@ $result = mysqli_stmt_get_result($stmt);
             transition: all 0.2s ease;
         }
 
+        .custom-profile-menu .dropdown-item i {
+            font-size: 1.1rem;
+        }
+
         .custom-profile-menu .dropdown-item:hover {
             background-color: #24283b;
             color: #ffffff;
@@ -170,6 +126,17 @@ $result = mysqli_stmt_get_result($stmt);
             color: #f7768e;
         }
 
+        .custom-profile-menu .dropdown-item.logout-btn:hover {
+            background-color: rgba(247, 118, 142, 0.15);
+            color: #ff6c6b;
+        }
+
+        .custom-profile-menu .dropdown-divider {
+            border-color: #2f334d;
+            margin: 6px 0;
+        }
+
+        /* Filter Section Style */
         .filter-section {
             background-color: #f8f9fa;
             border: 1px solid #e9ecef;
@@ -177,6 +144,7 @@ $result = mysqli_stmt_get_result($stmt);
             padding: 15px 20px;
         }
 
+        /* Project Items */
         .project-title {
             font-size: 1.1rem;
             color: #2a7cbd;
@@ -193,6 +161,11 @@ $result = mysqli_stmt_get_result($stmt);
             font-size: 0.9rem;
             color: #737373;
             margin-bottom: 0.15rem;
+        }
+
+        .page-text {
+            font-size: 0.85rem;
+            color: #737373;
         }
 
         .btn-pdf {
@@ -212,6 +185,7 @@ $result = mysqli_stmt_get_result($stmt);
         }
     </style>
 </head>
+
 <body>
 
     <!-- แถบเมนูด้านบน -->
@@ -219,34 +193,47 @@ $result = mysqli_stmt_get_result($stmt);
         <div class="container">
             <div class="d-flex justify-content-between align-items-center flex-wrap mt-2">
                 
-                <!-- ฝั่งซ้าย: โลโก้ และ ปุ่มหน้าแรก -->
                 <div class="d-flex align-items-center gap-3">
                     <a href="index2.php">
-                        <img src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png" alt="SDU Logo" class="sdu-logo">
+                        <img 
+                            src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png"
+                            alt="SDU Logo"
+                            class="sdu-logo"
+                        >
                     </a>
-                    <a href="index2.php" class="btn-home">หน้าแรก</a>
+                    <ul class="nav main-menu">
+                        <li class="nav-item">
+                            <a class="nav-link" href="index2.php">หน้าแรก</a>
+                        </li>
+                    </ul>
                 </div>
 
                 <!-- ฝั่งขวา: ปุ่มเพิ่มโปรเจกต์ + โปรไฟล์ Dropdown -->
                 <div class="d-flex align-items-center gap-3">
+
+                    <!-- ปุ่มเพิ่มโปรเจกต์ (รูปบวก) -->
                     <a href="create.php" class="btn-upload-project" title="ส่งโปรเจกต์">
                         <i class="bi bi-plus-lg"></i>
                     </a>
 
-                    <?php if (isset($_SESSION['user_id'])): ?>
+                    <!-- โปรไฟล์ Dropdown -->
                     <div class="dropdown">
                         <a href="#" role="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="โปรไฟล์" class="profile-image">
+                            <img 
+                                src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+                                alt="โปรไฟล์"
+                                class="profile-image"
+                            >
                         </a>
+                        
                         <ul class="dropdown-menu dropdown-menu-end custom-profile-menu mt-2" aria-labelledby="profileDropdown">
                             <li>
-                                <!-- เชื่อมโยงไปหน้า Personal Information.php ตามที่ต้องการ -->
-                                <a class="dropdown-item" href="PersonalInformation_2.php">
+                                <a class="dropdown-item" href="Personal Information.php">
                                     <i class="bi bi-person-fill"></i>
                                     <span>ข้อมูลส่วนตัว</span>
                                 </a>
                             </li>
-                            <li><hr class="dropdown-divider border-secondary"></li>
+                            <li><hr class="dropdown-divider"></li>
                             <li>
                                 <a class="dropdown-item logout-btn" href="logout.php">
                                     <i class="bi bi-box-arrow-right"></i>
@@ -255,9 +242,7 @@ $result = mysqli_stmt_get_result($stmt);
                             </li>
                         </ul>
                     </div>
-                    <?php else: ?>
-                        <a href="login.php" class="text-white text-decoration-none fw-semibold">ล็อกอิน</a>
-                    <?php endif; ?>
+
                 </div>
 
             </div>
@@ -269,14 +254,14 @@ $result = mysqli_stmt_get_result($stmt);
         
         <!-- ส่วนกรองและค้นหาโปรเจกต์ -->
         <div class="filter-section mb-4">
-            <form action="index2.php" method="GET" class="row g-3 align-items-end">
+            <form action="index.php" method="GET" class="row g-3 align-items-end">
                 
                 <!-- ช่องพิมพ์ค้นหา -->
                 <div class="col-md-4">
                     <label for="searchKeyword" class="form-label fw-bold text-secondary mb-1">
-                        ค้นหาชื่อโปรเจกต์ / ผู้จัดทำ:
+                        ค้นหาคำขวัญ/โปรเจกต์:
                     </label>
-                    <input type="text" name="searchKeyword" class="form-control form-control-sm" id="searchKeyword" placeholder="พิมพ์คำค้นหา..." value="<?php echo htmlspecialchars($search); ?>">
+                    <input type="text" name="keyword" class="form-control form-control-sm" id="searchKeyword" placeholder="พิมพ์ชื่อโปรเจกต์ หรือผู้แต่ง...">
                 </div>
 
                 <!-- เลือกระดับหลักสูตร -->
@@ -284,11 +269,11 @@ $result = mysqli_stmt_get_result($stmt);
                     <label for="degreeSelect" class="form-label fw-bold text-secondary mb-1">
                         ระดับหลักสูตร:
                     </label>
-                    <select name="degreeSelect" class="form-select form-select-sm" id="degreeSelect">
-                        <option value="all" <?php echo ($degree === 'all') ? 'selected' : ''; ?>>ทุกระดับการศึกษา</option>
-                        <option value="ปริญญาตรี" <?php echo ($degree === 'ปริญญาตรี') ? 'selected' : ''; ?>>ปริญญาตรี</option>
-                        <option value="ปริญญาโท" <?php echo ($degree === 'ปริญญาโท') ? 'selected' : ''; ?>>ปริญญาโท</option>
-                        <option value="ปริญญาเอก" <?php echo ($degree === 'ปริญญาเอก') ? 'selected' : ''; ?>>ปริญญาเอก</option>
+                    <select name="degree" class="form-select form-select-sm" id="degreeSelect">
+                        <option value="all" selected>ทุกระดับการศึกษา</option>
+                        <option value="bachelor">ปริญญาตรี</option>
+                        <option value="master">ปริญญาโท</option>
+                        <option value="doctorate">ปริญญาเอก</option>
                     </select>
                 </div>
 
@@ -297,12 +282,12 @@ $result = mysqli_stmt_get_result($stmt);
                     <label for="majorSelect" class="form-label fw-bold text-secondary mb-1">
                         สาขาวิชา:
                     </label>
-                    <select name="majorSelect" class="form-select form-select-sm" id="majorSelect">
-                        <option value="all" <?php echo ($major === 'all') ? 'selected' : ''; ?>>ทุกสาขาวิชา</option>
-                        <option value="เทคโนโลยีสารสนเทศ" <?php echo ($major === 'เทคโนโลยีสารสนเทศ') ? 'selected' : ''; ?>>เทคโนโลยีสารสนเทศ</option>
-                        <option value="วิทยาการคอมพิวเตอร์" <?php echo ($major === 'วิทยาการคอมพิวเตอร์') ? 'selected' : ''; ?>>วิทยาการคอมพิวเตอร์</option>
-                        <option value="วิทยาศาสตร์สิ่งแวดล้อม" <?php echo ($major === 'วิทยาศาสตร์สิ่งแวดล้อม') ? 'selected' : ''; ?>>วิทยาศาสตร์สิ่งแวดล้อม</option>
-                        <option value="เทคโนโลยีการประกอบอาหาร" <?php echo ($major === 'เทคโนโลยีการประกอบอาหาร') ? 'selected' : ''; ?>>เทคโนโลยีการประกอบอาหาร</option>
+                    <select name="major" class="form-select form-select-sm" id="majorSelect">
+                        <option value="all" selected>ทุกสาขาวิชา</option>
+                        <option value="it">เทคโนโลยีสารสนเทศ</option>
+                        <option value="cs">วิทยาการคอมพิวเตอร์</option>
+                        <option value="env">วิทยาศาสตร์สิ่งแวดล้อม</option>
+                        <option value="food">เทคโนโลยีการประกอบอาหาร</option>
                     </select>
                 </div>
 
@@ -314,63 +299,64 @@ $result = mysqli_stmt_get_result($stmt);
             </form>
         </div>
 
-        <!-- รายการโปรเจกต์จากฐานข้อมูล -->
-        <div class="project-list">
-            <?php if (mysqli_num_rows($result) > 0): ?>
-                <?php while ($row = mysqli_fetch_assoc($result)): ?>
-                    <div class="project-item border-bottom pb-4 mb-4">
-                        <a href="project-detail.php?id=<?php echo $row['id']; ?>" class="project-title">
-                            <?php echo htmlspecialchars($row['title']); ?>
-                        </a>
-                        
-                        <?php if (!empty($row['degree'])): ?>
-                            <span class="badge bg-light text-dark ms-2 border"><?php echo htmlspecialchars($row['degree']); ?></span>
-                        <?php endif; ?>
-                        
-                        <?php if (!empty($row['department'])): ?>
-                            <span class="badge bg-info text-dark ms-1"><?php echo htmlspecialchars($row['department']); ?></span>
-                        <?php endif; ?>
+        <!-- รายการโปรเจกต์ 1 -->
+        <div class="project-item border-bottom pb-4 mb-4">
+            <a href="project-detail.php?id=1" class="project-title">
+                การเพิ่มประสิทธิภาพในการตรวจจับไฟป่าโดยใช้ Google’s Teachable Machine
+            </a>
+            <span class="badge bg-light text-dark ms-2 border">ปริญญาตรี</span>
+            <span class="badge bg-info text-dark ms-1">เทคโนโลยีสารสนเทศ</span>
+            
+            <p class="author-text mt-2">
+                ศุภาพิชญ์ ขวัญอยู่<sup>1</sup>
+                สืบสกุล ครุรัตน์<sup>1,*</sup>
+            </p>
+            <p class="author-text">ศุภาพิชญ์ ขวัญอยู่</p>
+            <p class="page-text">1-18</p>
+            <a href="uploads/project1.pdf" target="_blank" class="btn btn-pdf mt-1">PDF</a>
+        </div>
 
-                        <p class="author-text mt-2 mb-1">
-                            <strong>ผู้จัดทำ:</strong> <?php echo htmlspecialchars($row['authors']); ?>
-                        </p>
-                        
-                        <?php if (!empty($row['advisor_name'])): ?>
-                            <p class="author-text mb-1">
-                                <strong>อาจารย์ที่ปรึกษา:</strong> <?php echo htmlspecialchars($row['advisor_name']); ?>
-                            </p>
-                        <?php endif; ?>
+        <!-- รายการโปรเจกต์ 2 -->
+        <div class="project-item border-bottom pb-4 mb-4">
+            <a href="project-detail.php?id=2" class="project-title">
+                ศึกษาทางเลือกการผลิตพลังงานทดแทนจากผักตบชวา กรณีศึกษา บริเวณลุ่มแม่น้ำท่าจีน
+            </a>
+            <span class="badge bg-light text-dark ms-2 border">ปริญญาโท</span>
+            <span class="badge bg-info text-dark ms-1">วิทยาศาสตร์สิ่งแวดล้อม</span>
 
-                        <?php if (!empty($row['abstract'])): ?>
-                            <p class="text-muted small mb-2 text-truncate" style="max-width: 900px;">
-                                <?php echo htmlspecialchars($row['abstract']); ?>
-                            </p>
-                        <?php endif; ?>
+            <p class="author-text mt-2">
+                นนทนันท์ เกื้อชาติ<sup>1,*</sup>
+                และอรทัย ชวาลภาฤทธิ์<sup>2</sup>
+            </p>
+            <p class="author-text">Nontanan Kuerchart</p>
+            <p class="page-text">19-32</p>
+            <a href="uploads/project2.pdf" target="_blank" class="btn btn-pdf mt-1">PDF</a>
+        </div>
 
-                        <?php if (!empty($row['pdf_file'])): ?>
-                            <a href="uploads/<?php echo htmlspecialchars($row['pdf_file']); ?>" target="_blank" class="btn btn-pdf mt-2">
-                                <i class="bi bi-file-earmark-pdf-fill me-1"></i> PDF
-                            </a>
-                        <?php endif; ?>
-                        
-                        <?php if (!empty($row['github_url'])): ?>
-                            <a href="<?php echo htmlspecialchars($row['github_url']); ?>" target="_blank" class="btn btn-outline-dark btn-sm mt-2 ms-2">
-                                <i class="bi bi-github me-1"></i> GitHub
-                            </a>
-                        <?php endif; ?>
-                    </div>
-                <?php endwhile; ?>
-            <?php else: ?>
-                <div class="text-center py-5">
-                    <i class="bi bi-folder-x text-muted display-4"></i>
-                    <p class="text-muted mt-3 fs-5">ไม่พบข้อมูลโปรเจกต์ที่ตรงตามเงื่อนไขการค้นหา</p>
-                </div>
-            <?php endif; ?>
+        <!-- รายการโปรเจกต์ 3 -->
+        <div class="project-item border-bottom pb-4 mb-4">
+            <a href="project-detail.php?id=3" class="project-title">
+                การรับรู้ผลกระทบด้านสุขภาพของสมาชิกโครงการธนาคารขยะในพื้นที่ชุมชนสวนอ้อยและมหาวิทยาลัยสวนดุสิต ประเทศไทย
+            </a>
+            <span class="badge bg-light text-dark ms-2 border">ปริญญาเอก</span>
+            <span class="badge bg-info text-dark ms-1">วิทยาศาสตร์สิ่งแวดล้อม</span>
+
+            <p class="author-text mt-2">
+                ภูริพจน์ แก้วย่อง<sup>1</sup>
+                แทนทัศน เพียกขุนทด<sup>1</sup>
+                ทิพย์วรรณ บุณยาภรณ์<sup>3,*</sup>
+                ชุติวรรณ บุญอาชาทอง<sup>1</sup>
+                และ สายสุดา ปั้นตระกูล<sup>2</sup>
+            </p>
+            <p class="author-text">ภูริพจน์ แก้วย่อง</p>
+            <p class="page-text">33-43</p>
+            <a href="uploads/project3.pdf" target="_blank" class="btn btn-pdf mt-1">PDF</a>
         </div>
 
     </div>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>
