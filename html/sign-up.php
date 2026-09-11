@@ -3,6 +3,7 @@
 session_start();
 require_once "db_connect.php";
 
+$error = "";
 
 /* =====================================================
    สมัครสมาชิก
@@ -54,13 +55,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
        ตรวจสอบ Role
     ================================================= */
 
-    if (
-        !in_array(
-            $role,
-            ['student', 'teacher'],
-            true
-        )
-    ) {
+    if (!in_array($role, ['student', 'teacher'], true)) {
 
         echo "<script>
             alert('ประเภทผู้ใช้งานไม่ถูกต้อง');
@@ -87,7 +82,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
     /* =================================================
-       ตรวจสอบ Gmail มหาวิทยาลัย
+       ตรวจสอบ Email มหาวิทยาลัย
     ================================================= */
 
     $email_domain = strtolower(
@@ -138,7 +133,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
     /* =================================================
-       ตรวจสอบ Username / Email / User Code ซ้ำ
+       ตรวจสอบข้อมูลซ้ำ
     ================================================= */
 
     $stmt_check = mysqli_prepare(
@@ -153,7 +148,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         "
     );
 
-
     if (!$stmt_check) {
 
         die(
@@ -164,7 +158,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         );
     }
 
-
     mysqli_stmt_bind_param(
         $stmt_check,
         "sss",
@@ -173,26 +166,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $user_code
     );
 
+    mysqli_stmt_execute($stmt_check);
 
-    mysqli_stmt_execute(
-        $stmt_check
-    );
+    mysqli_stmt_store_result($stmt_check);
 
+    if (mysqli_stmt_num_rows($stmt_check) > 0) {
 
-    mysqli_stmt_store_result(
-        $stmt_check
-    );
-
-
-    if (
-        mysqli_stmt_num_rows(
-            $stmt_check
-        ) > 0
-    ) {
-
-        mysqli_stmt_close(
-            $stmt_check
-        );
+        mysqli_stmt_close($stmt_check);
 
         echo "<script>
             alert('Username, Email หรือรหัสประจำตัวนี้ถูกใช้งานแล้ว');
@@ -202,10 +182,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         exit;
     }
 
-
-    mysqli_stmt_close(
-        $stmt_check
-    );
+    mysqli_stmt_close($stmt_check);
 
 
     /* =================================================
@@ -237,12 +214,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ";
 
-
     $stmt_insert = mysqli_prepare(
         $conn,
         $sql
     );
-
 
     if (!$stmt_insert) {
 
@@ -253,7 +228,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             )
         );
     }
-
 
     mysqli_stmt_bind_param(
         $stmt_insert,
@@ -269,20 +243,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     );
 
 
-    if (
-        mysqli_stmt_execute(
-            $stmt_insert
-        )
-    ) {
+    /* =================================================
+       บันทึก
+    ================================================= */
 
-        mysqli_stmt_close(
-            $stmt_insert
-        );
+    if (mysqli_stmt_execute($stmt_insert)) {
 
-        mysqli_close(
-            $conn
-        );
-
+        mysqli_stmt_close($stmt_insert);
+        mysqli_close($conn);
 
         echo "<script>
             alert('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ');
@@ -293,19 +261,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     } else {
 
-        $error =
-            mysqli_stmt_error(
-                $stmt_insert
-            );
+        $error = mysqli_stmt_error($stmt_insert);
 
-        mysqli_stmt_close(
-            $stmt_insert
-        );
-
-        mysqli_close(
-            $conn
-        );
-
+        mysqli_stmt_close($stmt_insert);
+        mysqli_close($conn);
 
         echo "<script>
             alert('เกิดข้อผิดพลาด: " .
@@ -320,7 +279,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         exit;
     }
-
 }
 
 ?>
@@ -350,6 +308,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+
             font-family:
                 'Sarabun',
                 'Segoe UI',
@@ -491,7 +450,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             font-size: 0.9rem;
 
-            border: 1px solid #bce0fd;
+            border:
+                1px solid #bce0fd;
 
             background-color: #f0f7ff;
 
@@ -621,6 +581,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 <div class="register-wrapper">
 
+    <!-- LOGO -->
+
     <div class="logo-container">
 
         <img
@@ -633,7 +595,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     <div class="register-card">
 
-        <h2>ลงทะเบียนใช้งานระบบ</h2>
+        <h2>
+            ลงทะเบียนใช้งานระบบ
+        </h2>
 
 
         <form
@@ -699,6 +663,32 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     >
 
                     <i class="fa-solid fa-user"></i>
+
+                </div>
+
+            </div>
+
+
+            <!-- รหัสนักศึกษา -->
+
+            <div class="form-group">
+
+                <label for="user_code">
+                    รหัสนักศึกษา / รหัสประจำตัว
+                </label>
+
+                <div class="input-wrapper">
+
+                    <input
+                        type="text"
+                        id="user_code"
+                        name="user_code"
+                        placeholder="กรอกรหัสประจำตัว"
+                        maxlength="50"
+                        required
+                    >
+
+                    <i class="fa-solid fa-id-badge"></i>
 
                 </div>
 
@@ -893,6 +883,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         </form>
 
+
+        <!-- กลับหน้า Login -->
 
         <div class="footer-links">
 
