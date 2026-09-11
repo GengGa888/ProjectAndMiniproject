@@ -4,11 +4,9 @@ require_once "db_connect.php";
 
 $error = "";
 
-
 /* =========================================================
    ถ้า Login อยู่แล้ว
 ========================================================= */
-
 if (isset($_SESSION['user_id'])) {
 
     if (($_SESSION['role'] ?? '') === 'admin') {
@@ -20,20 +18,13 @@ if (isset($_SESSION['user_id'])) {
     exit();
 }
 
-
 /* =========================================================
    LOGIN
 ========================================================= */
-
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     $username = trim($_POST["username"] ?? "");
     $password = $_POST["password"] ?? "";
-
-
-    /* =====================================================
-       VALIDATE
-    ===================================================== */
 
     if ($username === "" || $password === "") {
 
@@ -56,7 +47,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             LIMIT 1
         ");
 
-
         if (!$stmt) {
 
             $error = "เกิดข้อผิดพลาดของระบบ กรุณาลองใหม่อีกครั้ง";
@@ -71,16 +61,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             $login_success = false;
 
-
             /* =================================================
                CHECK PASSWORD
             ================================================= */
-
             if ($user) {
 
-                /*
-                 * รองรับ Password ที่ Hash ด้วย password_hash()
-                 */
+                // Password แบบ Hash
                 if (
                     !empty($user["password"]) &&
                     password_verify(
@@ -93,11 +79,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 }
 
-                /*
-                 * รองรับ Password เก่าแบบ Plain Text
-                 *
-                 * ถ้าเจอ จะ Hash ใหม่ให้อัตโนมัติ
-                 */
+                // Password แบบเก่า Plain Text
                 elseif (
                     !empty($user["password"]) &&
                     hash_equals(
@@ -108,17 +90,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                     $login_success = true;
 
-
-                    /* =========================================
-                       HASH PASSWORD ใหม่
-                    ========================================= */
-
-                    $new_password =
-                        password_hash(
-                            $password,
-                            PASSWORD_DEFAULT
-                        );
-
+                    // Hash Password ใหม่
+                    $new_password = password_hash(
+                        $password,
+                        PASSWORD_DEFAULT
+                    );
 
                     $update = $conn->prepare("
                         UPDATE users
@@ -126,7 +102,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         WHERE id = ?
                         LIMIT 1
                     ");
-
 
                     if ($update) {
 
@@ -142,69 +117,36 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 }
             }
 
-
             /* =================================================
                LOGIN SUCCESS
             ================================================= */
-
             if ($login_success) {
 
-                /*
-                 * ป้องกัน Session Fixation
-                 */
                 session_regenerate_id(true);
 
+                $_SESSION['user_id'] = (int)$user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['role'] = $user['role'];
+                $_SESSION['first_name'] = $user['first_name'];
+                $_SESSION['last_name'] = $user['last_name'];
+                $_SESSION['email'] = $user['email'];
+                $_SESSION['department'] = $user['department'];
 
-                /* =============================================
-                   SESSION
-                ============================================= */
-
-                $_SESSION['user_id'] =
-                    (int)$user['id'];
-
-                $_SESSION['username'] =
-                    $user['username'];
-
-                $_SESSION['role'] =
-                    $user['role'];
-
-                $_SESSION['first_name'] =
-                    $user['first_name'];
-
-                $_SESSION['last_name'] =
-                    $user['last_name'];
-
-                $_SESSION['email'] =
-                    $user['email'];
-
-                $_SESSION['department'] =
-                    $user['department'];
-
-
-                /* =============================================
-                   REDIRECT
-                ============================================= */
-
+                // Admin
                 if ($user['role'] === 'admin') {
 
                     header("Location: admin.php");
                     exit();
-
                 }
 
-
-                /*
-                 * Student / Teacher
-                 */
+                // Student / Teacher
                 header("Location: index2.php");
                 exit();
 
             } else {
 
-                $error =
-                    "Username หรือ Password ไม่ถูกต้อง";
+                $error = "Username หรือ Password ไม่ถูกต้อง";
             }
-
 
             $stmt->close();
         }
@@ -224,18 +166,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>
-        เข้าสู่ระบบ - ระบบสืบค้นโปรเจกต์
-    </title>
-
+    <title>เข้าสู่ระบบ - ระบบสืบค้นโปรเจกต์</title>
 
     <!-- Font Awesome -->
-
     <link
         rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     >
-
 
     <style>
 
@@ -244,7 +181,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             margin: 0;
             padding: 0;
         }
-
 
         body {
 
@@ -258,9 +194,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             min-height: 100vh;
 
             display: flex;
-
             justify-content: center;
-
             align-items: center;
 
             background:
@@ -273,7 +207,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             padding: 20px;
         }
 
-
         /* =====================================================
            WRAPPER
         ===================================================== */
@@ -281,10 +214,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         .login-wrapper {
 
             width: 100%;
-
             max-width: 400px;
         }
-
 
         /* =====================================================
            LOGIN BOX
@@ -303,7 +234,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 rgba(0, 0, 0, 0.20);
         }
 
-
         /* =====================================================
            LOGO
         ===================================================== */
@@ -315,16 +245,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             margin-bottom: 20px;
         }
 
-
         .logo img {
 
             width: 85px;
-
             height: 85px;
 
             object-fit: contain;
         }
-
 
         /* =====================================================
            TITLE
@@ -341,7 +268,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             font-size: 28px;
         }
 
-
         .subtitle {
 
             text-align: center;
@@ -353,7 +279,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             font-size: 14px;
         }
 
-
         /* =====================================================
            ERROR
         ===================================================== */
@@ -363,7 +288,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             display: flex;
 
             align-items: center;
-
             justify-content: center;
 
             gap: 8px;
@@ -385,7 +309,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             line-height: 1.5;
         }
 
-
         /* =====================================================
            FORM
         ===================================================== */
@@ -394,7 +317,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             margin-bottom: 18px;
         }
-
 
         label {
 
@@ -407,29 +329,24 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             color: #444;
         }
 
-
         .input-box {
 
             position: relative;
         }
-
 
         .input-box i {
 
             position: absolute;
 
             left: 14px;
-
             top: 50%;
 
-            transform:
-                translateY(-50%);
+            transform: translateY(-50%);
 
             color: #4297cd;
 
             pointer-events: none;
         }
-
 
         input {
 
@@ -453,7 +370,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             transition: 0.2s;
         }
 
-
         input:focus {
 
             border-color: #4297cd;
@@ -462,7 +378,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 0 0 0 3px
                 rgba(66, 151, 205, 0.12);
         }
-
 
         /* =====================================================
            LOGIN BUTTON
@@ -496,24 +411,52 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             transition: 0.2s;
         }
 
-
         .btn-login:hover {
 
-            transform:
-                translateY(-1px);
+            transform: translateY(-1px);
 
             box-shadow:
                 0 6px 15px
                 rgba(43, 123, 179, 0.25);
         }
 
-
         .btn-login:active {
 
-            transform:
-                translateY(0);
+            transform: translateY(0);
         }
 
+        /* =====================================================
+           REGISTER
+        ===================================================== */
+
+        .register-link {
+
+            text-align: center;
+
+            margin-top: 18px;
+
+            color: #777;
+
+            font-size: 14px;
+        }
+
+        .register-link a {
+
+            color: #287cab;
+
+            text-decoration: none;
+
+            font-weight: bold;
+
+            transition: 0.2s;
+        }
+
+        .register-link a:hover {
+
+            color: #17628f;
+
+            text-decoration: underline;
+        }
 
         /* =====================================================
            BACK HOME
@@ -523,9 +466,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             text-align: center;
 
-            margin-top: 20px;
+            margin-top: 15px;
         }
-
 
         .back-home a {
 
@@ -538,14 +480,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             transition: 0.2s;
         }
 
-
         .back-home a:hover {
 
             text-decoration: underline;
 
             color: #17628f;
         }
-
 
         /* =====================================================
            MOBILE
@@ -557,7 +497,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 padding: 15px;
             }
 
-
             .login-box {
 
                 padding:
@@ -567,38 +506,29 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 border-radius: 16px;
             }
 
-
             .logo img {
 
                 width: 75px;
-
                 height: 75px;
             }
-
 
             h2 {
 
                 font-size: 25px;
             }
-
         }
 
     </style>
 
 </head>
 
-
 <body>
-
 
 <div class="login-wrapper">
 
     <div class="login-box">
 
-
-        <!-- =================================================
-             LOGO
-        ================================================== -->
+        <!-- LOGO -->
 
         <div class="logo">
 
@@ -609,56 +539,45 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         </div>
 
-
-        <!-- =================================================
-             TITLE
-        ================================================== -->
+        <!-- TITLE -->
 
         <h2>
             เข้าสู่ระบบ
         </h2>
 
-
         <div class="subtitle">
             ระบบสืบค้นโปรเจกต์ SDU
         </div>
 
-
-        <!-- =================================================
-             ERROR
-        ================================================== -->
+        <!-- ERROR -->
 
         <?php if ($error !== ""): ?>
 
             <div class="error">
 
-                <i
-                    class="fa-solid fa-circle-exclamation"
-                ></i>
+                <i class="fa-solid fa-circle-exclamation"></i>
 
                 <span>
-                    <?php echo htmlspecialchars(
+                    <?php
+                    echo htmlspecialchars(
                         $error,
                         ENT_QUOTES,
                         'UTF-8'
-                    ); ?>
+                    );
+                    ?>
                 </span>
 
             </div>
 
         <?php endif; ?>
 
-
-        <!-- =================================================
-             LOGIN FORM
-        ================================================== -->
+        <!-- LOGIN FORM -->
 
         <form
             method="POST"
             action=""
             autocomplete="on"
         >
-
 
             <!-- USERNAME -->
 
@@ -668,22 +587,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     Username
                 </label>
 
-
                 <div class="input-box">
 
                     <i class="fa-solid fa-user"></i>
-
 
                     <input
                         type="text"
                         id="username"
                         name="username"
                         placeholder="กรอก Username"
-                        value="<?php echo htmlspecialchars(
-                            $username ?? '',
-                            ENT_QUOTES,
-                            'UTF-8'
-                        ); ?>"
+                        value="<?php
+                            echo htmlspecialchars(
+                                $username ?? '',
+                                ENT_QUOTES,
+                                'UTF-8'
+                            );
+                        ?>"
                         required
                         autocomplete="username"
                         maxlength="50"
@@ -693,7 +612,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             </div>
 
-
             <!-- PASSWORD -->
 
             <div class="form-group">
@@ -702,11 +620,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     Password
                 </label>
 
-
                 <div class="input-box">
 
                     <i class="fa-solid fa-lock"></i>
-
 
                     <input
                         type="password"
@@ -721,8 +637,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             </div>
 
-
-            <!-- LOGIN -->
+            <!-- LOGIN BUTTON -->
 
             <button
                 type="submit"
@@ -735,13 +650,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             </button>
 
-
         </form>
 
+        <!-- REGISTER -->
 
-        <!-- =================================================
-             BACK HOME
-        ================================================== -->
+        <div class="register-link">
+
+            ยังไม่มีบัญชี?
+
+            <a href="sign-up.php">
+                สมัครสมาชิก
+            </a>
+
+        </div>
+
+        <!-- BACK HOME -->
 
         <div class="back-home">
 
@@ -754,7 +677,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </a>
 
         </div>
-
 
     </div>
 
