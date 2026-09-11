@@ -1,6 +1,7 @@
 <?php
+
 session_start();
-include 'db_connect.php';
+require_once "db_connect.php";
 
 
 // =====================================================
@@ -9,6 +10,7 @@ include 'db_connect.php';
 
 $logged_in = isset($_SESSION['user_id']);
 
+$user_id   = $_SESSION['user_id'] ?? null;
 $user_role = $_SESSION['role'] ?? '';
 
 
@@ -22,17 +24,61 @@ $major   = $_GET['major'] ?? 'all';
 
 
 // =====================================================
-// สร้าง SQL
+// SQL เริ่มต้น
 // =====================================================
 
-$sql = "SELECT * FROM projects WHERE 1=1";
+$sql = "
+    SELECT
+        id,
+        project_name,
+        project_type,
+        student_name,
+        advisor,
+        description,
+        created_at,
+        title,
+        degree,
+        department,
+        authors,
+        pages,
+        pdf_file,
+        status,
+        student_id,
+        github_url
+    FROM projects
+    WHERE 1=1
+";
 
 $params = [];
-$types = "";
+$types  = "";
 
 
 // =====================================================
-// ค้นหา
+// สิทธิ์การมองเห็นโปรเจกต์
+// =====================================================
+//
+// Guest   = เห็นทั้งหมด
+// Teacher = เห็นทั้งหมด
+// Admin   = เห็นทั้งหมด
+// Student = เห็นเฉพาะของตัวเอง
+// =====================================================
+
+if (
+    $logged_in &&
+    $user_role === 'student'
+) {
+
+    $sql .= "
+        AND student_id = ?
+    ";
+
+    $params[] = (int)$user_id;
+    $types .= "i";
+}
+
+
+// =====================================================
+// ค้นหาโปรเจกต์
 // =====================================================
 
 if ($keyword !== '') {
@@ -41,29 +87,27 @@ if ($keyword !== '') {
 
     $sql .= "
         AND (
-            title LIKE ?
-            OR project_name LIKE ?
-            OR authors LIKE ?
-            OR description LIKE ?
-            OR department LIKE ?
-            OR degree LIKE ?
-            OR advisor LIKE ?
-            OR student_name LIKE ?
+            LOWER(project_name) LIKE LOWER(?)
+            OR LOWER(title) LIKE LOWER(?)
+            OR LOWER(authors) LIKE LOWER(?)
+            OR LOWER(description) LIKE LOWER(?)
+            OR LOWER(department) LIKE LOWER(?)
+            OR LOWER(degree) LIKE LOWER(?)
+            OR LOWER(advisor) LIKE LOWER(?)
+            OR LOWER(student_name) LIKE LOWER(?)
         )
     ";
 
-    $params = [
-        $search,
-        $search,
-        $search,
-        $search,
-        $search,
-        $search,
-        $search,
-        $search
-    ];
+    $params[] = $search;
+    $params[] = $search;
+    $params[] = $search;
+    $params[] = $search;
+    $params[] = $search;
+    $params[] = $search;
+    $params[] = $search;
+    $params[] = $search;
 
-    $types = "ssssssss";
+    $types .= "ssssssss";
 }
 
 
@@ -76,8 +120,7 @@ if ($degree === 'bachelor') {
     $sql .= "
         AND (
             degree = 'ปริญญาตรี'
-            OR degree = 'bachelor'
-            OR degree = 'Bachelor'
+            OR LOWER(degree) = 'bachelor'
         )
     ";
 
@@ -86,8 +129,7 @@ if ($degree === 'bachelor') {
     $sql .= "
         AND (
             degree = 'ปริญญาโท'
-            OR degree = 'master'
-            OR degree = 'Master'
+            OR LOWER(degree) = 'master'
         )
     ";
 
@@ -96,8 +138,7 @@ if ($degree === 'bachelor') {
     $sql .= "
         AND (
             degree = 'ปริญญาเอก'
-            OR degree = 'doctorate'
-            OR degree = 'Doctorate'
+            OR LOWER(degree) = 'doctorate'
         )
     ";
 }
@@ -112,7 +153,7 @@ if ($major === 'it') {
     $sql .= "
         AND (
             department LIKE '%เทคโนโลยีสารสนเทศ%'
-            OR department LIKE '%Information Technology%'
+            OR LOWER(department) LIKE '%information technology%'
             OR department = 'IT'
         )
     ";
@@ -122,7 +163,7 @@ if ($major === 'it') {
     $sql .= "
         AND (
             department LIKE '%วิทยาการคอมพิวเตอร์%'
-            OR department LIKE '%Computer Science%'
+            OR LOWER(department) LIKE '%computer science%'
             OR department = 'CS'
         )
     ";
@@ -132,7 +173,7 @@ if ($major === 'it') {
     $sql .= "
         AND (
             department LIKE '%วิทยาศาสตร์สิ่งแวดล้อม%'
-            OR department LIKE '%Environmental Science%'
+            OR LOWER(department) LIKE '%environmental science%'
         )
     ";
 
@@ -141,21 +182,23 @@ if ($major === 'it') {
     $sql .= "
         AND (
             department LIKE '%เทคโนโลยีการประกอบอาหาร%'
-            OR department LIKE '%Food Technology%'
+            OR LOWER(department) LIKE '%food technology%'
         )
     ";
 }
 
 
 // =====================================================
-// เรียงจากล่าสุด
+// เรียงจากโปรเจกต์ล่าสุด
 // =====================================================
 
-$sql .= " ORDER BY id DESC";
+$sql .= "
+    ORDER BY id DESC
+";
 
 
 // =====================================================
-// เตรียม SQL
+// Prepare SQL
 // =====================================================
 
 $stmt = mysqli_prepare($conn, $sql);
@@ -164,13 +207,17 @@ if (!$stmt) {
 
     die(
         "SQL Error: " .
-        htmlspecialchars(mysqli_error($conn))
+        htmlspecialchars(
+            mysqli_error($conn),
+            ENT_QUOTES,
+            'UTF-8'
+        )
     );
 }
 
 
 // =====================================================
-// Bind ค่าค้นหา
+// Bind Parameters
 // =====================================================
 
 if (!empty($params)) {
@@ -192,11 +239,17 @@ if (!mysqli_stmt_execute($stmt)) {
     die(
         "Execute Error: " .
         htmlspecialchars(
-            mysqli_stmt_error($stmt)
+            mysqli_stmt_error($stmt),
+            ENT_QUOTES,
+            'UTF-8'
         )
     );
 }
 
+
+// =====================================================
+// Get Result
+// =====================================================
 
 $result = mysqli_stmt_get_result($stmt);
 

@@ -36,8 +36,6 @@ $user_id = isset($_GET['id'])
     : 0;
 
 
-/* ถ้าไม่มี ID */
-
 if ($user_id <= 0) {
 
     echo "<script>
@@ -71,11 +69,28 @@ if ($user_id === $current_user_id) {
 ========================================================= */
 
 $stmt = $conn->prepare("
-    SELECT id, username, first_name, last_name, role
+    SELECT
+        id,
+        username,
+        first_name,
+        last_name,
+        role
     FROM users
     WHERE id = ?
     LIMIT 1
 ");
+
+
+if (!$stmt) {
+
+    echo "<script>
+        alert('เกิดข้อผิดพลาดในการตรวจสอบผู้ใช้');
+        window.location.href='admin.php';
+    </script>";
+
+    exit;
+}
+
 
 $stmt->bind_param("i", $user_id);
 
@@ -87,6 +102,10 @@ $user = $result->fetch_assoc();
 
 $stmt->close();
 
+
+/* =========================================================
+   ไม่พบ User
+========================================================= */
 
 if (!$user) {
 
@@ -106,7 +125,20 @@ if (!$user) {
 $stmt = $conn->prepare("
     DELETE FROM users
     WHERE id = ?
+    LIMIT 1
 ");
+
+
+if (!$stmt) {
+
+    echo "<script>
+        alert('เกิดข้อผิดพลาดในการเตรียมคำสั่งลบ');
+        window.location.href='admin.php';
+    </script>";
+
+    exit;
+}
+
 
 $stmt->bind_param("i", $user_id);
 
@@ -115,38 +147,22 @@ if ($stmt->execute()) {
 
     $stmt->close();
 
+    $username = addslashes($user['username']);
+
     echo "<script>
-
-        alert(
-            'ลบผู้ใช้ \""
-            . addslashes(
-                $user['username']
-            )
-            . "\" สำเร็จ'
-        );
-
+        alert('ลบผู้ใช้ \"{$username}\" สำเร็จ');
         window.location.href='admin.php';
-
     </script>";
 
     exit;
 
 } else {
 
-    $error = $stmt->error;
-
     $stmt->close();
 
     echo "<script>
-
-        alert(
-            'ไม่สามารถลบผู้ใช้ได้\\n\\n"
-            . addslashes($error)
-            . "'
-        );
-
+        alert('ไม่สามารถลบผู้ใช้ได้');
         window.location.href='admin.php';
-
     </script>";
 
     exit;

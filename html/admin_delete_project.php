@@ -2,11 +2,13 @@
 session_start();
 require_once "db_connect.php";
 
+
 /* =========================================================
    ตรวจสอบ Login
 ========================================================= */
 
 if (!isset($_SESSION['user_id'])) {
+
     header("Location: login.php");
     exit;
 }
@@ -32,7 +34,7 @@ if (($_SESSION['role'] ?? '') !== 'admin') {
 ========================================================= */
 
 $project_id = isset($_GET['id'])
-    ? (int)$_GET['id']
+    ? (int) $_GET['id']
     : 0;
 
 
@@ -62,6 +64,18 @@ $stmt = $conn->prepare("
     LIMIT 1
 ");
 
+
+if (!$stmt) {
+
+    echo "<script>
+        alert('เกิดข้อผิดพลาดในการตรวจสอบโปรเจกต์');
+        window.location.href='admin.php';
+    </script>";
+
+    exit;
+}
+
+
 $stmt->bind_param("i", $project_id);
 
 $stmt->execute();
@@ -74,7 +88,7 @@ $stmt->close();
 
 
 /* =========================================================
-   ตรวจสอบโปรเจกต์
+   ตรวจสอบว่าโปรเจกต์มีอยู่จริงหรือไม่
 ========================================================= */
 
 if (!$project) {
@@ -89,43 +103,44 @@ if (!$project) {
 
 
 /* =========================================================
-   ลบไฟล์ PDF
+   เก็บชื่อไฟล์ PDF
 ========================================================= */
+
+$pdf_file = '';
 
 if (!empty($project['pdf_file'])) {
 
-    $file_name =
-        basename($project['pdf_file']);
-
-    $file_path =
-        __DIR__ . DIRECTORY_SEPARATOR .
-        "uploads" . DIRECTORY_SEPARATOR .
-        $file_name;
-
-
-    if (file_exists($file_path)) {
-
-        if (!unlink($file_path)) {
-
-            echo "<script>
-                alert('ไม่สามารถลบไฟล์ PDF ได้');
-                window.location.href='admin.php';
-            </script>";
-
-            exit;
-        }
-    }
+    $pdf_file = basename(
+        $project['pdf_file']
+    );
 }
 
 
 /* =========================================================
-   ลบข้อมูลจาก Database
+   ลบข้อมูลจาก Database ก่อน
 ========================================================= */
+
+/*
+   ลบข้อมูลโปรเจกต์ออกจาก Database
+*/
 
 $stmt = $conn->prepare("
     DELETE FROM projects
     WHERE id = ?
+    LIMIT 1
 ");
+
+
+if (!$stmt) {
+
+    echo "<script>
+        alert('ไม่สามารถเตรียมคำสั่งลบโปรเจกต์ได้');
+        window.location.href='admin.php';
+    </script>";
+
+    exit;
+}
+
 
 $stmt->bind_param(
     "i",
@@ -133,40 +148,67 @@ $stmt->bind_param(
 );
 
 
-if ($stmt->execute()) {
+if (!$stmt->execute()) {
+
+    $error = $stmt->error;
 
     $stmt->close();
 
     echo "<script>
-
-        alert('ลบโปรเจกต์สำเร็จ');
-
+        alert('ไม่สามารถลบโปรเจกต์ได้');
         window.location.href='admin.php';
-
-    </script>";
-
-    exit;
-
-} else {
-
-    $error =
-        $stmt->error;
-
-    $stmt->close();
-
-    echo "<script>
-
-        alert(
-            'ไม่สามารถลบโปรเจกต์ได้\\n\\n"
-            . addslashes($error)
-            . "'
-        );
-
-        window.location.href='admin.php';
-
     </script>";
 
     exit;
 }
+
+
+$stmt->close();
+
+
+/* =========================================================
+   ลบไฟล์ PDF
+========================================================= */
+
+if ($pdf_file !== '') {
+
+    $pdf_path =
+        __DIR__ .
+        DIRECTORY_SEPARATOR .
+        "uploads" .
+        DIRECTORY_SEPARATOR .
+        $pdf_file;
+
+
+    /*
+       ตรวจสอบว่าเป็นไฟล์จริง
+    */
+
+    if (is_file($pdf_path)) {
+
+        /*
+           ถ้าลบไฟล์ไม่ได้
+           ข้อมูลใน Database ถูกลบไปแล้ว
+           แต่ไม่ควรทำให้ระบบหยุด
+        */
+
+        @unlink($pdf_path);
+    }
+}
+
+
+/* =========================================================
+   สำเร็จ
+========================================================= */
+
+echo "<script>
+
+    alert('ลบโปรเจกต์สำเร็จ');
+
+    window.location.href='admin.php';
+
+</script>";
+
+exit;
 
 ?>
