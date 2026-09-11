@@ -232,7 +232,7 @@ body {
         "Sarabun",
         sans-serif;
 
-    background: #f4f7fa;
+    background: #f4f8fb;
 
     color: #333;
 }
@@ -249,7 +249,7 @@ body {
             90deg,
             #4aa4d6,
             #4297cd,
-            #3287bb
+            #3287BB
         );
 
     color: white;
@@ -394,7 +394,7 @@ body {
 
     margin: 0;
 
-    color: #2879ad;
+    color: #287cab;
 
     font-size: 30px;
 }
@@ -451,7 +451,7 @@ body {
 
 .btn-primary {
 
-    background: #3287bb;
+    background: #3287BB;
 
     color: white;
 }
@@ -552,7 +552,7 @@ body {
 
     background: #e8f4fb;
 
-    color: #3287bb;
+    color: #3287BB;
 }
 
 
@@ -616,7 +616,7 @@ body {
 
     margin: 0;
 
-    color: #2879ad;
+    color: #287cab;
 
     font-size: 22px;
 }
@@ -645,9 +645,9 @@ table {
 
 th {
 
-    background: #eef6fb;
+    background: #eef8fd;
 
-    color: #2879ad;
+    color: #287cab;
 
     padding:
         13px 10px;
@@ -781,7 +781,7 @@ tr:hover td {
 
     font-weight: bold;
 
-    color: #2879ad;
+    color: #287cab;
 
     max-width: 280px;
 }

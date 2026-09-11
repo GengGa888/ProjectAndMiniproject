@@ -231,7 +231,7 @@ $result = mysqli_stmt_get_result($stmt);
     <style>
 
         :root {
-            --sdu-pdf-blue: #5ab1d8;
+            --sdu-pdf-blue: #4aa4d6;
         }
 
         body {
@@ -248,11 +248,11 @@ $result = mysqli_stmt_get_result($stmt);
             background:
                 linear-gradient(
                     to right,
-                    #4da4d9,
-                    #2b7bb3
+                    #4aa4d6,
+                    #3287BB
                 );
             padding: 8px 0 15px 0;
-            border-bottom: 2px solid #1a5a8a;
+            border-bottom: 2px solid #287cab;
         }
 
         .profile-image {
@@ -287,7 +287,7 @@ $result = mysqli_stmt_get_result($stmt);
 
         .btn-upload-project:hover {
             background-color: white;
-            color: #2b7bb3;
+            color: #3287BB;
             transform: scale(1.05);
         }
 
@@ -308,13 +308,13 @@ $result = mysqli_stmt_get_result($stmt);
         }
 
         .main-menu .nav-link:hover {
-            color: #e2f0fb !important;
+            color: #e8f4fc !important;
             text-decoration: underline;
         }
 
         .custom-profile-menu {
-            background-color: #1a1b26;
-            border: 1px solid #2f334d;
+            background-color: #173f5f;
+            border: 1px solid #285776;
             border-radius: 12px;
             box-shadow:
                 0 10px 25px
@@ -324,7 +324,7 @@ $result = mysqli_stmt_get_result($stmt);
         }
 
         .custom-profile-menu .dropdown-item {
-            color: #a9b1d6;
+            color: #b9dced;
             font-size: 0.95rem;
             padding: 10px 14px;
             border-radius: 8px;
@@ -335,7 +335,7 @@ $result = mysqli_stmt_get_result($stmt);
         }
 
         .custom-profile-menu .dropdown-item:hover {
-            background-color: #24283b;
+            background-color: #204b6d;
             color: #ffffff;
         }
 
@@ -353,12 +353,12 @@ $result = mysqli_stmt_get_result($stmt);
 
         .custom-profile-menu
         .dropdown-divider {
-            border-color: #2f334d;
+            border-color: #285776;
             margin: 6px 0;
         }
 
         .filter-section {
-            background-color: #f8f9fa;
+            background-color: #f4f8fb;
             border: 1px solid #e9ecef;
             border-radius: 6px;
             padding: 15px 20px;
@@ -372,7 +372,7 @@ $result = mysqli_stmt_get_result($stmt);
 
         .project-title {
             font-size: 1.1rem;
-            color: #2a7cbd;
+            color: #3287BB;
             text-decoration: none;
             font-weight: 500;
             line-height: 1.6;
@@ -380,7 +380,7 @@ $result = mysqli_stmt_get_result($stmt);
 
         .project-title:hover {
             text-decoration: underline;
-            color: #1c5b8e;
+            color: #287cab;
         }
 
         .author-text {
@@ -420,7 +420,7 @@ $result = mysqli_stmt_get_result($stmt);
         }
 
         .btn-pdf:hover {
-            background-color: #459cbf;
+            background-color: #4297CD;
             color: white;
         }
 
@@ -449,7 +449,7 @@ $result = mysqli_stmt_get_result($stmt);
 
         .no-project i {
             font-size: 50px;
-            color: #b5c5cf;
+            color: #b9dced;
             margin-bottom: 10px;
         }
 

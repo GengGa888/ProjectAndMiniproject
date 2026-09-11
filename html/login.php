@@ -129,8 +129,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             background: linear-gradient(
                 135deg,
-                #4da4d9,
-                #2b7bb3
+                #4aa4d6,
+                #3287BB
             );
         }
 
@@ -162,7 +162,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         h2 {
             text-align: center;
-            color: #2879ad;
+            color: #287cab;
             margin-bottom: 8px;
         }
 
@@ -226,8 +226,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             background: linear-gradient(
                 135deg,
-                #4da4d9,
-                #2b7bb3
+                #4aa4d6,
+                #3287BB
             );
 
             color: white;
@@ -268,7 +268,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         .back-home a {
-            color: #2879ad;
+            color: #287cab;
             text-decoration: none;
             font-size: 14px;
         }

@@ -748,7 +748,7 @@ $projects_query = $projects_stmt->get_result();
 
         .info-box {
 
-            background: #f8fbfd;
+            background: #f8fcff;
 
             border: 1px solid #e3edf3;
 

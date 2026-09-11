@@ -321,7 +321,7 @@ body {
         "Sarabun",
         sans-serif;
 
-    background: #f4f7fa;
+    background: #f4f8fb;
 
     color: #333;
 }
@@ -338,7 +338,7 @@ body {
             90deg,
             #4aa4d6,
             #4297cd,
-            #3287bb
+            #3287BB
         );
 
     color: white;
@@ -428,7 +428,7 @@ body {
 
     margin-top: 0;
 
-    color: #2879ad;
+    color: #287cab;
 
     font-size: 25px;
 
@@ -442,9 +442,9 @@ body {
 
 .project-id {
 
-    background: #eef6fb;
+    background: #eef8fd;
 
-    color: #2879ad;
+    color: #287cab;
 
     padding:
         12px 15px;
@@ -634,7 +634,7 @@ select:focus {
 
     margin-top: 8px;
 
-    background: #f8f9fa;
+    background: #f4f8fb;
 
     padding:
         10px 12px;
@@ -647,7 +647,7 @@ select:focus {
 
 .current-pdf a {
 
-    color: #2879ad;
+    color: #287cab;
 
     text-decoration: none;
 

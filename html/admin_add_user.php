@@ -213,7 +213,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 "Sarabun",
                 sans-serif;
 
-            background: #f5f7fa;
+            background: #f4f8fb;
         }
 
 
@@ -225,7 +225,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 linear-gradient(
                     90deg,
                     #4aa4d6,
-                    #3287bb
+                    #3287BB
                 );
 
             color: white;
@@ -292,7 +292,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             margin-top: 0;
 
-            color: #2879ad;
+            color: #287cab;
 
             margin-bottom: 25px;
         }

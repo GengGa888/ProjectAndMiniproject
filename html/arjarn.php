@@ -123,12 +123,12 @@ if ($projects_stmt) {
         }
 
         body {
-            background-color: #f4f7f9;
-            color: #2c3e50;
+            background-color: #f4f8fb;
+            color: #287cab;
         }
 
         .header {
-            background-color: #1e40af;
+            background-color: #1f6f9f;
             color: white;
             padding: 14px 60px;
             display: flex;
@@ -159,7 +159,7 @@ if ($projects_stmt) {
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #1e40af;
+            color: #1f6f9f;
             font-weight: bold;
             font-size: 13px;
             border: 2px solid #fff;
@@ -195,7 +195,7 @@ if ($projects_stmt) {
         .user-icon {
             width: 40px;
             height: 40px;
-            background-color: #3b82f6;
+            background-color: #4297CD;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -213,7 +213,7 @@ if ($projects_stmt) {
             background: white;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            border: 1px solid #e2e8f0;
+            border: 1px solid #e5eff5;
             overflow: hidden;
         }
 
@@ -225,9 +225,9 @@ if ($projects_stmt) {
         }
 
         .project-badge {
-            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-            border: 2px solid #93c5fd;
-            color: #1e40af;
+            background: linear-gradient(135deg, #eef8fd 0%, #e8f4fc 100%);
+            border: 2px solid #b9dced;
+            color: #1f6f9f;
             padding: 8px 50px;
             border-radius: 30px;
             font-size: 1.6rem;
@@ -239,7 +239,7 @@ if ($projects_stmt) {
             display: flex;
             flex-direction: column;
             gap: 12px;
-            border-bottom: 2px solid #f1f5f9;
+            border-bottom: 2px solid #f4f8fb;
         }
 
         .info-row {
@@ -252,7 +252,7 @@ if ($projects_stmt) {
         .label-title {
             font-size: 1.25rem;
             font-weight: 700;
-            color: #475569;
+            color: #557286;
             min-width: 140px;
         }
 
@@ -264,7 +264,7 @@ if ($projects_stmt) {
 
         .user-meta {
             font-size: 1.1rem;
-            color: #334155;
+            color: #355f7a;
             font-weight: 500;
         }
 
@@ -287,7 +287,7 @@ if ($projects_stmt) {
 
         .project-item {
             background-color: #ffffff;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #e5eff5;
             padding: 24px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
@@ -295,7 +295,7 @@ if ($projects_stmt) {
         }
 
         .project-item:hover {
-            border-color: #93c5fd;
+            border-color: #b9dced;
         }
 
         .project-header {
@@ -303,7 +303,7 @@ if ($projects_stmt) {
         }
 
         .project-title {
-            color: #1d4ed8;
+            color: #287cab;
             font-size: 1.15rem;
             font-weight: 700;
             text-decoration: none;
@@ -336,31 +336,31 @@ if ($projects_stmt) {
         }
 
         .badge-degree {
-            background-color: #eff6ff;
-            color: #819ce4;
-            border: 1px solid #bfdbfe;
+            background-color: #eef8fd;
+            color: #8bbbd5;
+            border: 1px solid #c8e3f2;
         }
 
         .badge-subject {
-            background-color: #06b6d4;
+            background-color: #4aa4d6;
             color: white;
         }
 
         .author-text {
             font-size: 0.95rem;
-            color: #475569;
+            color: #557286;
             margin-top: 6px;
         }
 
         .page-text {
             font-size: 0.9rem;
-            color: #64748b;
+            color: #6f8798;
             margin-top: 2px;
             margin-bottom: 12px;
         }
 
         .btn-pdf {
-            background-color: #2563eb;
+            background-color: #3287BB;
             color: white;
             border: none;
             padding: 6px 16px;
@@ -374,19 +374,19 @@ if ($projects_stmt) {
         }
 
         .btn-pdf:hover {
-            background-color: #1d4ed8;
+            background-color: #287cab;
         }
 
         .comments-container {
             margin-top: 20px;
             padding-top: 16px;
-            border-top: 1px dashed #cbd5e1;
+            border-top: 1px dashed #d7e6ef;
         }
 
         .comments-title {
             font-size: 1rem;
             font-weight: 700;
-            color: #334155;
+            color: #355f7a;
             margin-bottom: 12px;
             display: flex;
             align-items: center;
@@ -401,8 +401,8 @@ if ($projects_stmt) {
         }
 
         .comment-item {
-            background-color: #f8fafc;
-            border-left: 3px solid #3b82f6;
+            background-color: #ffffff;
+            border-left: 3px solid #4297CD;
             padding: 10px 14px;
             border-radius: 0 6px 6px 0;
             font-size: 0.9rem;
@@ -422,11 +422,11 @@ if ($projects_stmt) {
 
         .comment-date {
             font-size: 0.78rem;
-            color: #94a3b8;
+            color: #9db1bf;
         }
 
         .comment-text {
-            color: #475569;
+            color: #557286;
             line-height: 1.4;
         }
 
@@ -434,7 +434,7 @@ if ($projects_stmt) {
             display: flex;
             flex-direction: column;
             gap: 8px;
-            background: #f1f5f9;
+            background: #f4f8fb;
             padding: 12px;
             border-radius: 6px;
         }
@@ -443,7 +443,7 @@ if ($projects_stmt) {
             width: 100%;
             min-height: 60px;
             padding: 8px 12px;
-            border: 1px solid #cbd5e1;
+            border: 1px solid #d7e6ef;
             border-radius: 4px;
             font-size: 0.9rem;
             resize: vertical;
@@ -451,13 +451,13 @@ if ($projects_stmt) {
         }
 
         .comment-input:focus {
-            border-color: #3b82f6;
+            border-color: #4297CD;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
         }
 
         .btn-comment-submit {
             align-self: flex-end;
-            background-color: #059669;
+            background-color: #3287BB;
             color: white;
             border: none;
             padding: 6px 14px;
@@ -469,7 +469,7 @@ if ($projects_stmt) {
         }
 
         .btn-comment-submit:hover {
-            background-color: #047857;
+            background-color: #287cab;
         }
     </style>
 </head>
@@ -543,7 +543,7 @@ if ($projects_stmt) {
 
                                 <div class="comments-container">
                                     <div class="comments-title">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#3b82f6"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#4297CD"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
                                         ข้อเสนอแนะจากอาจารย์ที่ปรึกษา (Comments)
                                     </div>
                                     
@@ -587,7 +587,7 @@ if ($projects_stmt) {
                                                 endwhile;
                                             else:
                                         ?>
-                                                <p style="font-size: 0.85rem; color: #94a3b8; font-style: italic;">ยังไม่มีข้อเสนอแนะในโครงงานนี้</p>
+                                                <p style="font-size: 0.85rem; color: #9db1bf; font-style: italic;">ยังไม่มีข้อเสนอแนะในโครงงานนี้</p>
                                         <?php 
                                             endif;
                                             mysqli_stmt_close($cm_stmt);
@@ -607,7 +607,7 @@ if ($projects_stmt) {
                         <?php endwhile; ?>
                     <?php else: ?>
                         <div class="project-item">
-                            <p style="text-align: center; color: #64748b;">ยังไม่มีโครงงานที่คุณรับผิดชอบเป็นอาจารย์ที่ปรึกษา</p>
+                            <p style="text-align: center; color: #6f8798;">ยังไม่มีโครงงานที่คุณรับผิดชอบเป็นอาจารย์ที่ปรึกษา</p>
                         </div>
                     <?php endif; ?>
                 </div>

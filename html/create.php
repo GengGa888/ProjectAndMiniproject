@@ -492,7 +492,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     90deg,
                     #4aa4d6,
                     #4297cd,
-                    #3287bb
+                    #3287BB
                 );
 
             color: white;
@@ -578,7 +578,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         h1 {
             margin-top: 0;
-            color: #3287bb;
+            color: #3287BB;
         }
 
 
@@ -638,7 +638,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             outline: none;
 
-            border-color: #3287bb;
+            border-color: #3287BB;
 
             box-shadow:
                 0 0 0 3px
@@ -674,7 +674,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .btn-primary {
 
-            background: #3287bb;
+            background: #3287BB;
 
             color: white;
         }
