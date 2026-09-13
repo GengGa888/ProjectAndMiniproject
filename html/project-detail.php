@@ -1,9 +1,10 @@
 <?php
+
 session_start();
 require_once 'db_connect.php';
 
 /* =========================================================
-   SECURITY / HELPER
+   HELPER
 ========================================================= */
 
 function e($value)
@@ -13,10 +14,32 @@ function e($value)
 
 
 /* =========================================================
+   LOGIN
+========================================================= */
+
+$logged_in = isset($_SESSION['user_id']);
+
+$user_id = $logged_in
+    ? (int)$_SESSION['user_id']
+    : 0;
+
+$user_role = $_SESSION['role'] ?? '';
+
+$session_first_name = trim($_SESSION['first_name'] ?? '');
+$session_last_name  = trim($_SESSION['last_name'] ?? '');
+
+$teacher_fullname = trim(
+    $session_first_name . ' ' . $session_last_name
+);
+
+
+/* =========================================================
    PROJECT ID
 ========================================================= */
 
-$project_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$project_id = isset($_GET['id'])
+    ? (int)$_GET['id']
+    : 0;
 
 if ($project_id <= 0) {
     header("Location: index2.php");
@@ -57,37 +80,33 @@ if (!$stmt) {
     die("เกิดข้อผิดพลาดในการเตรียมคำสั่ง SQL");
 }
 
-mysqli_stmt_bind_param($stmt, "i", $project_id);
+mysqli_stmt_bind_param(
+    $stmt,
+    "i",
+    $project_id
+);
+
 mysqli_stmt_execute($stmt);
 
 $result = mysqli_stmt_get_result($stmt);
 
 if (!$result || mysqli_num_rows($result) === 0) {
+
     mysqli_stmt_close($stmt);
 
-    echo "<script>
+    echo "
+    <script>
         alert('ไม่พบโปรเจกต์ที่ต้องการ');
         window.location.href='index2.php';
-    </script>";
+    </script>
+    ";
+
     exit();
 }
 
 $row = mysqli_fetch_assoc($result);
 
 mysqli_stmt_close($stmt);
-
-
-/* =========================================================
-   LOGIN STATUS
-========================================================= */
-
-$logged_in = isset($_SESSION['user_id']);
-
-$user_id = $logged_in
-    ? (int)$_SESSION['user_id']
-    : 0;
-
-$user_role = $_SESSION['role'] ?? '';
 
 
 /* =========================================================
@@ -155,10 +174,6 @@ if ($status === '') {
 }
 
 
-/* =========================================================
-   PAGES
-========================================================= */
-
 $pages = isset($row['pages']) && $row['pages'] !== null
     ? (int)$row['pages']
     : 0;
@@ -180,6 +195,7 @@ $pdf_file = trim($row['pdf_file'] ?? '');
 $pdf_path = '';
 
 if ($pdf_file !== '') {
+
     $safe_pdf = basename($pdf_file);
 
     if ($safe_pdf !== '') {
@@ -221,28 +237,7 @@ $is_owner = (
 
 
 /* =========================================================
-   PERMISSIONS
-=========================================================
-
-   Guest
-   - ดูรายละเอียด
-   - ดู PDF
-   - ดู GitHub
-   - ไม่มีสิทธิ์แก้/ลบ
-
-   Student
-   - ดูรายละเอียด
-   - เจ้าของโปรเจกต์สามารถลบได้
-   - การแก้ไขให้ทำผ่านหน้าจัดการที่กำหนด
-
-   Teacher
-   - ดูโปรเจกต์ทั้งหมด
-   - ไม่มีสิทธิ์แก้/ลบ
-
-   Admin
-   - ดูทั้งหมด
-   - แก้ไขได้
-   - ลบได้
+   PERMISSION
 ========================================================= */
 
 $can_edit = false;
@@ -263,18 +258,129 @@ if ($logged_in) {
 
 
 /* =========================================================
-   PROJECT TYPE LABEL
+   TEACHER COMMENT PERMISSION
 ========================================================= */
 
-$project_type_label = trim($row['project_type'] ?? '');
+/*
+    อาจารย์สามารถคอมเมนต์ได้
+    เมื่อชื่อใน projects.advisor
+    ตรงกับชื่ออาจารย์ที่ Login
+*/
+
+$can_comment = false;
+
+if (
+    $logged_in &&
+    $user_role === 'teacher'
+) {
+
+    $advisor_normalized = preg_replace(
+        '/\s+/u',
+        ' ',
+        trim($advisor)
+    );
+
+    $teacher_normalized = preg_replace(
+        '/\s+/u',
+        ' ',
+        trim($teacher_fullname)
+    );
+
+    if (
+        $advisor_normalized !== '' &&
+        $teacher_normalized !== '' &&
+        mb_strtolower(
+            $advisor_normalized,
+            'UTF-8'
+        ) === mb_strtolower(
+            $teacher_normalized,
+            'UTF-8'
+        )
+    ) {
+
+        $can_comment = true;
+    }
+}
+
+
+/* =========================================================
+   PROJECT TYPE
+========================================================= */
+
+$project_type_label = trim(
+    $row['project_type'] ?? ''
+);
 
 if ($project_type_label === '') {
     $project_type_label = 'โปรเจกต์นักศึกษา';
 }
 
+
+/* =========================================================
+   GET COMMENTS
+========================================================= */
+
+$comments = [];
+
+$comment_sql = "
+    SELECT
+        pc.id,
+        pc.comment,
+        pc.created_at,
+        u.first_name,
+        u.last_name
+    FROM project_comments pc
+    LEFT JOIN users u
+        ON pc.teacher_id = u.id
+    WHERE pc.project_id = ?
+    ORDER BY pc.id DESC
+";
+
+$comment_stmt = mysqli_prepare(
+    $conn,
+    $comment_sql
+);
+
+if ($comment_stmt) {
+
+    mysqli_stmt_bind_param(
+        $comment_stmt,
+        "i",
+        $project_id
+    );
+
+    mysqli_stmt_execute(
+        $comment_stmt
+    );
+
+    $comment_result =
+        mysqli_stmt_get_result(
+            $comment_stmt
+        );
+
+    if ($comment_result) {
+
+        while (
+            $comment_row =
+            mysqli_fetch_assoc(
+                $comment_result
+            )
+        ) {
+
+            $comments[] =
+                $comment_row;
+        }
+    }
+
+    mysqli_stmt_close(
+        $comment_stmt
+    );
+}
+
 ?>
 
 <!DOCTYPE html>
+
 <html lang="th">
 
 <head>
@@ -290,13 +396,11 @@ if ($project_type_label === '') {
         <?php echo e($title); ?> - คลังโปรเจกต์ SDU
     </title>
 
-    <!-- Bootstrap -->
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
         rel="stylesheet"
     >
 
-    <!-- Bootstrap Icons -->
     <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
@@ -310,6 +414,7 @@ if ($project_type_label === '') {
 
         body {
             margin: 0;
+
             background:
                 linear-gradient(
                     180deg,
@@ -327,9 +432,7 @@ if ($project_type_label === '') {
         }
 
 
-        /* =====================================================
-           HEADER
-        ===================================================== */
+        /* HEADER */
 
         .custom-header {
             height: 90px;
@@ -351,6 +454,7 @@ if ($project_type_label === '') {
         .header-inner {
             max-width: 1280px;
             height: 90px;
+
             margin: auto;
             padding: 0 25px;
 
@@ -387,19 +491,13 @@ if ($project_type_label === '') {
             box-shadow:
                 0 3px 10px
                 rgba(0,0,0,0.15);
-
-            transition: 0.25s;
-        }
-
-
-        .sdu-logo:hover {
-            transform: scale(1.06);
         }
 
 
         .home-link {
             display: flex;
             align-items: center;
+
             gap: 9px;
 
             color: white;
@@ -407,14 +505,11 @@ if ($project_type_label === '') {
 
             font-size: 18px;
             font-weight: 600;
-
-            transition: 0.25s;
         }
 
 
         .home-link:hover {
             color: white;
-            transform: translateY(-2px);
         }
 
 
@@ -422,10 +517,6 @@ if ($project_type_label === '') {
             font-size: 22px;
         }
 
-
-        /* =====================================================
-           HEADER RIGHT
-        ===================================================== */
 
         .header-right {
             display: flex;
@@ -447,35 +538,33 @@ if ($project_type_label === '') {
 
             text-decoration: none;
             border-radius: 50%;
-
-            transition: 0.25s;
         }
 
 
         .profile-icon:hover {
             color: white;
             background: rgba(255,255,255,0.15);
-            transform: scale(1.05);
         }
 
 
         .login-button {
             display: flex;
             align-items: center;
+
             gap: 7px;
 
             color: white;
             text-decoration: none;
 
-            border: 1px solid rgba(255,255,255,0.5);
+            border:
+                1px solid
+                rgba(255,255,255,0.5);
 
             padding: 9px 15px;
             border-radius: 9px;
 
             font-size: 14px;
             font-weight: 600;
-
-            transition: 0.25s;
         }
 
 
@@ -485,9 +574,7 @@ if ($project_type_label === '') {
         }
 
 
-        /* =====================================================
-           MAIN
-        ===================================================== */
+        /* MAIN */
 
         .detail-container {
             max-width: 1200px;
@@ -516,9 +603,7 @@ if ($project_type_label === '') {
         }
 
 
-        /* =====================================================
-           SIDE PANEL
-        ===================================================== */
+        /* SIDE */
 
         .side-panel {
             height: 100%;
@@ -530,7 +615,9 @@ if ($project_type_label === '') {
                     #ffffff
                 );
 
-            border: 1px solid #e4edf3;
+            border:
+                1px solid #e4edf3;
+
             border-radius: 14px;
 
             padding: 22px;
@@ -547,9 +634,7 @@ if ($project_type_label === '') {
         }
 
 
-        /* =====================================================
-           PDF
-        ===================================================== */
+        /* PDF */
 
         .pdf-button {
             width: 100%;
@@ -577,12 +662,6 @@ if ($project_type_label === '') {
 
             font-weight: 700;
 
-            box-shadow:
-                0 5px 15px
-                rgba(53, 138, 189, 0.25);
-
-            transition: 0.25s;
-
             margin-bottom: 20px;
         }
 
@@ -590,10 +669,6 @@ if ($project_type_label === '') {
         .pdf-button:hover {
             color: white;
             transform: translateY(-2px);
-
-            box-shadow:
-                0 8px 18px
-                rgba(53, 138, 189, 0.32);
         }
 
 
@@ -602,13 +677,13 @@ if ($project_type_label === '') {
         }
 
 
-        /* =====================================================
-           INFO
-        ===================================================== */
+        /* INFO */
 
         .info-item {
             padding: 15px 0;
-            border-top: 1px solid #e7eef2;
+
+            border-top:
+                1px solid #e7eef2;
         }
 
 
@@ -643,9 +718,7 @@ if ($project_type_label === '') {
         }
 
 
-        /* =====================================================
-           GITHUB
-        ===================================================== */
+        /* GITHUB */
 
         .github-card {
             margin-top: 18px;
@@ -654,7 +727,9 @@ if ($project_type_label === '') {
 
             background: #f8fafc;
 
-            border: 1px solid #e1e7ec;
+            border:
+                1px solid #e1e7ec;
+
             border-radius: 12px;
         }
 
@@ -673,11 +748,6 @@ if ($project_type_label === '') {
         }
 
 
-        .github-title i {
-            font-size: 21px;
-        }
-
-
         .github-url {
             display: block;
 
@@ -685,24 +755,20 @@ if ($project_type_label === '') {
 
             background: white;
 
-            border: 1px solid #dce4e9;
+            border:
+                1px solid #dce4e9;
+
             border-radius: 8px;
 
             color: #3287BB;
 
             font-size: 13px;
-            line-height: 1.5;
 
             word-break: break-all;
+
             text-decoration: none;
 
             margin-bottom: 10px;
-        }
-
-
-        .github-url:hover {
-            color: #17628f;
-            text-decoration: underline;
         }
 
 
@@ -727,22 +793,16 @@ if ($project_type_label === '') {
 
             font-size: 14px;
             font-weight: 600;
-
-            transition: 0.25s;
         }
 
 
         .github-button:hover {
             background: #111;
             color: white;
-
-            transform: translateY(-1px);
         }
 
 
-        /* =====================================================
-           RIGHT CONTENT
-        ===================================================== */
+        /* CONTENT */
 
         .project-content {
             padding-left: 25px;
@@ -758,7 +818,8 @@ if ($project_type_label === '') {
             background: #eaf6fc;
             color: #3287BB;
 
-            border: 1px solid #cce9f7;
+            border:
+                1px solid #cce9f7;
 
             padding: 7px 13px;
 
@@ -802,14 +863,14 @@ if ($project_type_label === '') {
         }
 
 
-        /* =====================================================
-           DESCRIPTION
-        ===================================================== */
+        /* DESCRIPTION */
 
         .description-box {
             background: #fbfdfe;
 
-            border: 1px solid #edf2f5;
+            border:
+                1px solid #edf2f5;
+
             border-radius: 12px;
 
             padding: 22px;
@@ -848,9 +909,7 @@ if ($project_type_label === '') {
         }
 
 
-        /* =====================================================
-           ACTION BUTTONS
-        ===================================================== */
+        /* ACTION */
 
         .admin-actions {
             display: flex;
@@ -866,6 +925,7 @@ if ($project_type_label === '') {
         .edit-button,
         .delete-button {
             display: inline-flex;
+
             align-items: center;
             justify-content: center;
 
@@ -881,8 +941,6 @@ if ($project_type_label === '') {
 
             font-size: 14px;
             font-weight: 600;
-
-            transition: 0.25s;
         }
 
 
@@ -894,8 +952,6 @@ if ($project_type_label === '') {
         .edit-button:hover {
             background: #3287BB;
             color: white;
-
-            transform: translateY(-1px);
         }
 
 
@@ -907,14 +963,198 @@ if ($project_type_label === '') {
         .delete-button:hover {
             background: #bb2d3b;
             color: white;
-
-            transform: translateY(-1px);
         }
 
 
         /* =====================================================
-           GUEST NOTICE
+           COMMENTS
         ===================================================== */
+
+        .comments-box {
+            margin-top: 25px;
+
+            background: white;
+
+            border:
+                1px solid #e3edf3;
+
+            border-radius: 14px;
+
+            padding: 22px;
+
+            box-shadow:
+                0 5px 18px
+                rgba(48,105,139,0.06);
+        }
+
+
+        .comments-title {
+            display: flex;
+            align-items: center;
+
+            gap: 9px;
+
+            font-size: 20px;
+            font-weight: 700;
+
+            color: #245c7d;
+
+            margin-bottom: 18px;
+        }
+
+
+        .comments-title i {
+            color: #4297CD;
+        }
+
+
+        .teacher-comment-form {
+            background: #f5faff;
+
+            border:
+                1px solid #dceef8;
+
+            border-radius: 11px;
+
+            padding: 16px;
+
+            margin-bottom: 20px;
+        }
+
+
+        .teacher-comment-form textarea {
+            width: 100%;
+
+            min-height: 120px;
+
+            resize: vertical;
+
+            border:
+                1px solid #cedee8;
+
+            border-radius: 9px;
+
+            padding: 12px;
+
+            font-size: 14px;
+
+            outline: none;
+        }
+
+
+        .teacher-comment-form textarea:focus {
+            border-color: #4297CD;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(66,151,205,0.12);
+        }
+
+
+        .comment-submit {
+            margin-top: 10px;
+
+            background: #4297CD;
+
+            border: none;
+
+            color: white;
+
+            padding: 10px 18px;
+
+            border-radius: 8px;
+
+            font-weight: 600;
+        }
+
+
+        .comment-submit:hover {
+            background: #3287BB;
+        }
+
+
+        .comment-item {
+            padding: 16px 0;
+
+            border-top:
+                1px solid #e7eef2;
+        }
+
+
+        .comment-item:first-child {
+            border-top: none;
+        }
+
+
+        .comment-author {
+            display: flex;
+            align-items: center;
+
+            gap: 8px;
+
+            color: #245c7d;
+
+            font-weight: 700;
+
+            margin-bottom: 6px;
+        }
+
+
+        .comment-author i {
+            color: #4297CD;
+        }
+
+
+        .comment-date {
+            color: #8999a2;
+
+            font-size: 12px;
+
+            margin-left: 5px;
+        }
+
+
+        .comment-text {
+            color: #53636c;
+
+            font-size: 14px;
+
+            line-height: 1.8;
+
+            white-space: pre-line;
+
+            margin: 0;
+        }
+
+
+        .no-comments {
+            color: #8999a2;
+
+            text-align: center;
+
+            padding: 20px 10px;
+
+            font-size: 14px;
+        }
+
+
+        .teacher-only-notice {
+            background: #fff8e8;
+
+            border:
+                1px solid #f3dfaa;
+
+            color: #80651e;
+
+            border-radius: 9px;
+
+            padding: 11px 13px;
+
+            font-size: 13px;
+
+            margin-bottom: 18px;
+        }
+
 
         .guest-notice {
             margin-top: 20px;
@@ -923,7 +1163,8 @@ if ($project_type_label === '') {
 
             background: #eef8fd;
 
-            border: 1px solid #cfeaf7;
+            border:
+                1px solid #cfeaf7;
 
             border-radius: 10px;
 
@@ -935,15 +1176,7 @@ if ($project_type_label === '') {
         }
 
 
-        .guest-notice i {
-            color: #3287BB;
-            margin-right: 5px;
-        }
-
-
-        /* =====================================================
-           MOBILE
-        ===================================================== */
+        /* MOBILE */
 
         @media (max-width: 768px) {
 
@@ -951,66 +1184,45 @@ if ($project_type_label === '') {
                 height: 75px;
             }
 
-
             .header-inner {
                 height: 75px;
                 padding: 0 15px;
             }
 
-
             .header-left-area {
                 gap: 12px;
             }
-
 
             .sdu-logo {
                 width: 48px;
                 height: 48px;
             }
 
-
             .home-link {
                 font-size: 15px;
             }
 
-
-            .home-icon {
-                font-size: 19px;
-            }
-
-
             .profile-icon {
                 font-size: 27px;
             }
-
-
-            .login-button {
-                padding: 8px 11px;
-                font-size: 13px;
-            }
-
 
             .detail-container {
                 margin: 25px auto;
                 padding: 0 12px;
             }
 
-
             .project-card-body {
                 padding: 18px;
             }
-
 
             .project-content {
                 padding-left: 0;
                 margin-top: 25px;
             }
 
-
             .project-title {
                 font-size: 27px;
             }
-
 
             .side-panel {
                 padding: 18px;
@@ -1085,7 +1297,6 @@ if ($project_type_label === '') {
                 <a
                     href="login.php"
                     class="login-button"
-                    title="เข้าสู่ระบบ"
                 >
 
                     <i class="bi bi-box-arrow-in-right"></i>
@@ -1133,8 +1344,6 @@ if ($project_type_label === '') {
                         </div>
 
 
-                        <!-- PDF -->
-
                         <?php if ($pdf_path !== ''): ?>
 
                             <a
@@ -1167,8 +1376,6 @@ if ($project_type_label === '') {
                         <?php endif; ?>
 
 
-                        <!-- DATE -->
-
                         <div class="info-item">
 
                             <div class="info-label">
@@ -1187,8 +1394,6 @@ if ($project_type_label === '') {
 
                         </div>
 
-
-                        <!-- STATUS -->
 
                         <div class="info-item">
 
@@ -1209,8 +1414,6 @@ if ($project_type_label === '') {
                         </div>
 
 
-                        <!-- DEGREE -->
-
                         <div class="info-item">
 
                             <div class="info-label">
@@ -1229,8 +1432,6 @@ if ($project_type_label === '') {
 
                         </div>
 
-
-                        <!-- DEPARTMENT -->
 
                         <div class="info-item">
 
@@ -1251,8 +1452,6 @@ if ($project_type_label === '') {
                         </div>
 
 
-                        <!-- ADVISOR -->
-
                         <div class="info-item">
 
                             <div class="info-label">
@@ -1272,8 +1471,6 @@ if ($project_type_label === '') {
                         </div>
 
 
-                        <!-- AUTHORS -->
-
                         <div class="info-item">
 
                             <div class="info-label">
@@ -1292,8 +1489,6 @@ if ($project_type_label === '') {
 
                         </div>
 
-
-                        <!-- PAGES -->
 
                         <?php if ($pages > 0): ?>
 
@@ -1317,8 +1512,6 @@ if ($project_type_label === '') {
 
                         <?php endif; ?>
 
-
-                        <!-- GITHUB -->
 
                         <div class="github-card">
 
@@ -1387,8 +1580,6 @@ if ($project_type_label === '') {
                     <div class="project-content">
 
 
-                        <!-- CATEGORY -->
-
                         <div class="project-category">
 
                             <i class="bi bi-folder2-open"></i>
@@ -1398,16 +1589,12 @@ if ($project_type_label === '') {
                         </div>
 
 
-                        <!-- TITLE -->
-
                         <h1 class="project-title">
 
                             <?php echo e($title); ?>
 
                         </h1>
 
-
-                        <!-- UNIVERSITY -->
 
                         <div class="university-text">
 
@@ -1417,8 +1604,6 @@ if ($project_type_label === '') {
 
                         </div>
 
-
-                        <!-- DESCRIPTION -->
 
                         <div class="description-box">
 
@@ -1440,7 +1625,179 @@ if ($project_type_label === '') {
                         </div>
 
 
-                        <!-- ACTIONS -->
+                        <!-- =================================================
+                             COMMENTS
+                        ================================================== -->
+
+                        <div class="comments-box">
+
+                            <div class="comments-title">
+
+                                <i class="bi bi-chat-left-text-fill"></i>
+
+                                ความคิดเห็นจากอาจารย์
+
+                            </div>
+
+
+                            <?php if ($can_comment): ?>
+
+                                <div class="teacher-comment-form">
+
+                                    <div
+                                        class="mb-2"
+                                        style="font-size:14px;font-weight:600;color:#245c7d;"
+                                    >
+
+                                        <i class="bi bi-pencil-square"></i>
+
+                                        แสดงความคิดเห็นต่อโปรเจกต์นี้
+
+                                    </div>
+
+
+                                    <form
+                                        action="add-comment.php"
+                                        method="POST"
+                                    >
+
+                                        <input
+                                            type="hidden"
+                                            name="project_id"
+                                            value="<?php echo $project_id; ?>"
+                                        >
+
+
+                                        <textarea
+                                            name="comment"
+                                            placeholder="พิมพ์ความคิดเห็นหรือคำแนะนำ..."
+                                            required
+                                        ></textarea>
+
+
+                                        <button
+                                            type="submit"
+                                            class="comment-submit"
+                                        >
+
+                                            <i class="bi bi-send-fill"></i>
+
+                                            ส่งความคิดเห็น
+
+                                        </button>
+
+                                    </form>
+
+                                </div>
+
+                            <?php elseif (
+                                $logged_in &&
+                                $user_role === 'teacher'
+                            ): ?>
+
+                                <div class="teacher-only-notice">
+
+                                    <i class="bi bi-info-circle"></i>
+
+                                    โปรเจกต์นี้ไม่ได้อยู่ในความดูแลของอาจารย์
+                                    จึงไม่สามารถแสดงความคิดเห็นได้
+
+                                </div>
+
+                            <?php endif; ?>
+
+
+                            <?php if (count($comments) > 0): ?>
+
+                                <?php foreach ($comments as $comment): ?>
+
+                                    <?php
+
+                                    $comment_teacher =
+                                        trim(
+                                            ($comment['first_name'] ?? '') .
+                                            ' ' .
+                                            ($comment['last_name'] ?? '')
+                                        );
+
+                                    if ($comment_teacher === '') {
+                                        $comment_teacher = 'อาจารย์';
+                                    }
+
+                                    $comment_date = '-';
+
+                                    if (!empty($comment['created_at'])) {
+
+                                        $comment_timestamp =
+                                            strtotime(
+                                                $comment['created_at']
+                                            );
+
+                                        if (
+                                            $comment_timestamp !== false
+                                        ) {
+
+                                            $comment_date =
+                                                date(
+                                                    'd/m/Y H:i',
+                                                    $comment_timestamp
+                                                );
+                                        }
+                                    }
+
+                                    ?>
+
+                                    <div class="comment-item">
+
+                                        <div class="comment-author">
+
+                                            <i class="bi bi-person-workspace"></i>
+
+                                            <?php echo e($comment_teacher); ?>
+
+                                            <span class="comment-date">
+
+                                                <?php echo e($comment_date); ?>
+
+                                            </span>
+
+                                        </div>
+
+
+                                        <p class="comment-text">
+
+                                            <?php
+                                            echo nl2br(
+                                                e(
+                                                    $comment['comment']
+                                                )
+                                            );
+                                            ?>
+
+                                        </p>
+
+                                    </div>
+
+                                <?php endforeach; ?>
+
+                            <?php else: ?>
+
+                                <div class="no-comments">
+
+                                    <i class="bi bi-chat-square-text"></i>
+
+                                    ยังไม่มีความคิดเห็นจากอาจารย์
+
+                                </div>
+
+                            <?php endif; ?>
+
+                        </div>
+
+
+                        <!-- =================================================
+                             ACTIONS
+                        ================================================== -->
 
                         <?php if ($can_edit || $can_delete): ?>
 
@@ -1483,8 +1840,6 @@ if ($project_type_label === '') {
                         <?php endif; ?>
 
 
-                        <!-- GUEST -->
-
                         <?php if (!$logged_in): ?>
 
                             <div class="guest-notice">
@@ -1492,8 +1847,8 @@ if ($project_type_label === '') {
                                 <i class="bi bi-eye"></i>
 
                                 บุคคลทั่วไปสามารถดูรายละเอียดโปรเจกต์
-                                ดูไฟล์ PDF และเข้าชม GitHub ได้
-                                แต่ไม่สามารถเพิ่ม แก้ไข หรือลบโปรเจกต์ได้
+                                และอ่านความคิดเห็นจากอาจารย์ได้
+                                แต่ไม่สามารถแสดงความคิดเห็นได้
 
                             </div>
 
@@ -1512,8 +1867,6 @@ if ($project_type_label === '') {
 
 </div>
 
-
-<!-- Bootstrap JS -->
 
 <script
     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
