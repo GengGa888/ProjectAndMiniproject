@@ -13,6 +13,66 @@ function e($value)
 }
 
 
+/*
+    แปลงชื่อให้อยู่ในรูปแบบเดียวกัน
+    เพื่อใช้ตรวจสอบว่าอาจารย์ที่ Login
+    เป็นอาจารย์ที่ปรึกษาของโปรเจกต์หรือไม่
+*/
+function normalize_teacher_name($name)
+{
+    $name = trim((string)$name);
+
+    if ($name === '') {
+        return '';
+    }
+
+    /* ลบข้อความในวงเล็บ */
+    $name = preg_replace('/\([^)]*\)/u', '', $name);
+    $name = preg_replace('/（[^）]*）/u', '', $name);
+
+    /* ลบคำนำหน้าชื่อ */
+    $prefixes = [
+        'ศาสตราจารย์',
+        'รองศาสตราจารย์',
+        'ผู้ช่วยศาสตราจารย์',
+        'อาจารย์',
+        'ศ.',
+        'รศ.',
+        'ผศ.',
+        'ดร.',
+        'อ.',
+        'ศ',
+        'รศ',
+        'ผศ',
+        'ดร',
+        'อ'
+    ];
+
+    foreach ($prefixes as $prefix) {
+
+        $name = preg_replace(
+            '/^' . preg_quote($prefix, '/') . '\s*/u',
+            '',
+            $name
+        );
+    }
+
+    /* ลบช่องว่างซ้ำ */
+    $name = preg_replace('/\s+/u', ' ', $name);
+
+    /* ลบจุด */
+    $name = str_replace('.', '', $name);
+
+    /* ตัดช่องว่างหัวท้าย */
+    $name = trim($name);
+
+    /* ตัวพิมพ์เล็ก */
+    $name = mb_strtolower($name, 'UTF-8');
+
+    return $name;
+}
+
+
 /* =========================================================
    LOGIN
 ========================================================= */
@@ -42,6 +102,7 @@ $project_id = isset($_GET['id'])
     : 0;
 
 if ($project_id <= 0) {
+
     header("Location: index2.php");
     exit();
 }
@@ -77,6 +138,7 @@ $sql = "
 $stmt = mysqli_prepare($conn, $sql);
 
 if (!$stmt) {
+
     die("เกิดข้อผิดพลาดในการเตรียมคำสั่ง SQL");
 }
 
@@ -116,65 +178,122 @@ mysqli_stmt_close($stmt);
 $title = trim($row['title'] ?? '');
 
 if ($title === '') {
-    $title = trim($row['project_name'] ?? '');
+
+    $title = trim(
+        $row['project_name'] ?? ''
+    );
 }
 
 if ($title === '') {
+
     $title = 'ไม่พบชื่อโปรเจกต์';
 }
 
 
-$description = trim($row['description'] ?? '');
+/* =========================================================
+   DESCRIPTION
+========================================================= */
+
+$description = trim(
+    $row['description'] ?? ''
+);
 
 if ($description === '') {
+
     $description = 'ไม่มีคำอธิบายหรือบทคัดย่อ';
 }
 
 
-$authors = trim($row['authors'] ?? '');
+/* =========================================================
+   AUTHORS
+========================================================= */
+
+$authors = trim(
+    $row['authors'] ?? ''
+);
 
 if ($authors === '') {
-    $authors = trim($row['student_name'] ?? '');
+
+    $authors = trim(
+        $row['student_name'] ?? ''
+    );
 }
 
 if ($authors === '') {
+
     $authors = 'ไม่ระบุผู้แต่ง';
 }
 
 
-$advisor = trim($row['advisor'] ?? '');
+/* =========================================================
+   ADVISOR
+========================================================= */
+
+$advisor = trim(
+    $row['advisor'] ?? ''
+);
 
 if ($advisor === '') {
+
     $advisor = 'ไม่ระบุ';
 }
 
 
-$degree = trim($row['degree'] ?? '');
+/* =========================================================
+   DEGREE
+========================================================= */
+
+$degree = trim(
+    $row['degree'] ?? ''
+);
 
 if ($degree === '') {
-    $degree = trim($row['project_type'] ?? '');
+
+    $degree = trim(
+        $row['project_type'] ?? ''
+    );
 }
 
 if ($degree === '') {
+
     $degree = '-';
 }
 
 
-$department = trim($row['department'] ?? '');
+/* =========================================================
+   DEPARTMENT
+========================================================= */
+
+$department = trim(
+    $row['department'] ?? ''
+);
 
 if ($department === '') {
+
     $department = '-';
 }
 
 
-$status = trim($row['status'] ?? '');
+/* =========================================================
+   STATUS
+========================================================= */
+
+$status = trim(
+    $row['status'] ?? ''
+);
 
 if ($status === '') {
+
     $status = 'ส่งแล้ว';
 }
 
 
-$pages = isset($row['pages']) && $row['pages'] !== null
+/* =========================================================
+   PAGES
+========================================================= */
+
+$pages = isset($row['pages'])
+    && $row['pages'] !== null
     ? (int)$row['pages']
     : 0;
 
@@ -183,14 +302,18 @@ $pages = isset($row['pages']) && $row['pages'] !== null
    GITHUB
 ========================================================= */
 
-$github_url = trim($row['github_url'] ?? '');
+$github_url = trim(
+    $row['github_url'] ?? ''
+);
 
 
 /* =========================================================
    PDF
 ========================================================= */
 
-$pdf_file = trim($row['pdf_file'] ?? '');
+$pdf_file = trim(
+    $row['pdf_file'] ?? ''
+);
 
 $pdf_path = '';
 
@@ -199,7 +322,10 @@ if ($pdf_file !== '') {
     $safe_pdf = basename($pdf_file);
 
     if ($safe_pdf !== '') {
-        $pdf_path = 'uploads/' . $safe_pdf;
+
+        $pdf_path =
+            'uploads/' .
+            rawurlencode($safe_pdf);
     }
 }
 
@@ -212,10 +338,16 @@ $created_at = '-';
 
 if (!empty($row['created_at'])) {
 
-    $timestamp = strtotime($row['created_at']);
+    $timestamp = strtotime(
+        $row['created_at']
+    );
 
     if ($timestamp !== false) {
-        $created_at = date('d/m/Y', $timestamp);
+
+        $created_at = date(
+            'd/m/Y',
+            $timestamp
+        );
     }
 }
 
@@ -245,12 +377,26 @@ $can_delete = false;
 
 if ($logged_in) {
 
+    /*
+        ADMIN
+        สามารถแก้ไขและลบได้
+    */
+
     if ($user_role === 'admin') {
 
         $can_edit = true;
         $can_delete = true;
+    }
 
-    } elseif ($user_role === 'student' && $is_owner) {
+    /*
+        STUDENT
+        ลบได้เฉพาะโปรเจกต์ของตัวเอง
+    */
+
+    elseif (
+        $user_role === 'student' &&
+        $is_owner
+    ) {
 
         $can_delete = true;
     }
@@ -262,9 +408,25 @@ if ($logged_in) {
 ========================================================= */
 
 /*
-    อาจารย์สามารถคอมเมนต์ได้
-    เมื่อชื่อใน projects.advisor
-    ตรงกับชื่ออาจารย์ที่ Login
+    อาจารย์สามารถแสดงความคิดเห็นได้
+    เฉพาะโปรเจกต์ที่ตัวเองเป็นอาจารย์ที่ปรึกษา
+
+    ระบบจะเปรียบเทียบ:
+
+    projects.advisor
+
+    กับ
+
+    users.first_name + users.last_name
+
+    โดยจะไม่สนใจคำนำหน้า เช่น
+
+    อาจารย์
+    อ.
+    ดร.
+    ผศ.
+    รศ.
+    ศ.
 */
 
 $can_comment = false;
@@ -274,28 +436,24 @@ if (
     $user_role === 'teacher'
 ) {
 
-    $advisor_normalized = preg_replace(
-        '/\s+/u',
-        ' ',
-        trim($advisor)
-    );
+    $advisor_name =
+        normalize_teacher_name(
+            $advisor
+        );
 
-    $teacher_normalized = preg_replace(
-        '/\s+/u',
-        ' ',
-        trim($teacher_fullname)
-    );
+    $teacher_name =
+        normalize_teacher_name(
+            $teacher_fullname
+        );
+
+    /*
+        ตรวจสอบชื่อแบบตรงกัน
+    */
 
     if (
-        $advisor_normalized !== '' &&
-        $teacher_normalized !== '' &&
-        mb_strtolower(
-            $advisor_normalized,
-            'UTF-8'
-        ) === mb_strtolower(
-            $teacher_normalized,
-            'UTF-8'
-        )
+        $advisor_name !== '' &&
+        $teacher_name !== '' &&
+        $advisor_name === $teacher_name
     ) {
 
         $can_comment = true;
@@ -312,7 +470,9 @@ $project_type_label = trim(
 );
 
 if ($project_type_label === '') {
-    $project_type_label = 'โปรเจกต์นักศึกษา';
+
+    $project_type_label =
+        'โปรเจกต์นักศึกษา';
 }
 
 
@@ -321,6 +481,12 @@ if ($project_type_label === '') {
 ========================================================= */
 
 $comments = [];
+
+
+/*
+    ตรวจสอบก่อนว่าตาราง project_comments มีอยู่หรือไม่
+    ถ้าไม่มี ระบบรายละเอียดโปรเจกต์ยังเปิดได้ตามปกติ
+*/
 
 $comment_sql = "
     SELECT
@@ -396,15 +562,22 @@ if ($comment_stmt) {
         <?php echo e($title); ?> - คลังโปรเจกต์ SDU
     </title>
 
+
+    <!-- Bootstrap -->
+
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
         rel="stylesheet"
     >
 
+
+    <!-- Bootstrap Icons -->
+
     <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     >
+
 
     <style>
 
@@ -412,7 +585,9 @@ if ($comment_stmt) {
             box-sizing: border-box;
         }
 
+
         body {
+
             margin: 0;
 
             background:
@@ -432,9 +607,12 @@ if ($comment_stmt) {
         }
 
 
-        /* HEADER */
+        /* =====================================================
+           HEADER
+        ===================================================== */
 
         .custom-header {
+
             height: 90px;
 
             background:
@@ -452,40 +630,55 @@ if ($comment_stmt) {
 
 
         .header-inner {
+
             max-width: 1280px;
+
             height: 90px;
 
             margin: auto;
+
             padding: 0 25px;
 
             display: flex;
+
             align-items: center;
+
             justify-content: space-between;
         }
 
 
         .header-left-area {
+
             display: flex;
+
             align-items: center;
+
             gap: 20px;
         }
 
 
         .logo-link {
+
             display: flex;
+
             align-items: center;
+
             text-decoration: none;
         }
 
 
         .sdu-logo {
+
             width: 58px;
+
             height: 58px;
 
             object-fit: contain;
 
             background: white;
+
             border-radius: 50%;
+
             padding: 3px;
 
             box-shadow:
@@ -495,65 +688,86 @@ if ($comment_stmt) {
 
 
         .home-link {
+
             display: flex;
+
             align-items: center;
 
             gap: 9px;
 
             color: white;
+
             text-decoration: none;
 
             font-size: 18px;
+
             font-weight: 600;
         }
 
 
         .home-link:hover {
+
             color: white;
         }
 
 
         .home-icon {
+
             font-size: 22px;
         }
 
 
         .header-right {
+
             display: flex;
+
             align-items: center;
+
             gap: 10px;
         }
 
 
         .profile-icon {
+
             display: flex;
+
             align-items: center;
+
             justify-content: center;
 
             width: 45px;
+
             height: 45px;
 
             color: white;
+
             font-size: 30px;
 
             text-decoration: none;
+
             border-radius: 50%;
         }
 
 
         .profile-icon:hover {
+
             color: white;
-            background: rgba(255,255,255,0.15);
+
+            background:
+                rgba(255,255,255,0.15);
         }
 
 
         .login-button {
+
             display: flex;
+
             align-items: center;
 
             gap: 7px;
 
             color: white;
+
             text-decoration: none;
 
             border:
@@ -561,34 +775,46 @@ if ($comment_stmt) {
                 rgba(255,255,255,0.5);
 
             padding: 9px 15px;
+
             border-radius: 9px;
 
             font-size: 14px;
+
             font-weight: 600;
         }
 
 
         .login-button:hover {
+
             color: white;
-            background: rgba(255,255,255,0.15);
+
+            background:
+                rgba(255,255,255,0.15);
         }
 
 
-        /* MAIN */
+        /* =====================================================
+           MAIN
+        ===================================================== */
 
         .detail-container {
+
             max-width: 1200px;
 
             margin: 45px auto;
+
             padding: 0 20px;
         }
 
 
         .project-card {
+
             background: white;
 
             border-radius: 18px;
-            border: 1px solid #e5edf3;
+
+            border:
+                1px solid #e5edf3;
 
             box-shadow:
                 0 8px 30px
@@ -599,13 +825,17 @@ if ($comment_stmt) {
 
 
         .project-card-body {
+
             padding: 35px;
         }
 
 
-        /* SIDE */
+        /* =====================================================
+           SIDE
+        ===================================================== */
 
         .side-panel {
+
             height: 100%;
 
             background:
@@ -625,7 +855,9 @@ if ($comment_stmt) {
 
 
         .side-title {
+
             font-size: 17px;
+
             font-weight: 700;
 
             color: #245c7d;
@@ -634,13 +866,18 @@ if ($comment_stmt) {
         }
 
 
-        /* PDF */
+        /* =====================================================
+           PDF
+        ===================================================== */
 
         .pdf-button {
+
             width: 100%;
 
             display: flex;
+
             align-items: center;
+
             justify-content: center;
 
             gap: 10px;
@@ -663,23 +900,31 @@ if ($comment_stmt) {
             font-weight: 700;
 
             margin-bottom: 20px;
+
+            transition: 0.2s;
         }
 
 
         .pdf-button:hover {
+
             color: white;
+
             transform: translateY(-2px);
         }
 
 
         .pdf-button i {
+
             font-size: 20px;
         }
 
 
-        /* INFO */
+        /* =====================================================
+           INFO
+        ===================================================== */
 
         .info-item {
+
             padding: 15px 0;
 
             border-top:
@@ -688,7 +933,9 @@ if ($comment_stmt) {
 
 
         .info-label {
+
             display: flex;
+
             align-items: center;
 
             gap: 8px;
@@ -696,6 +943,7 @@ if ($comment_stmt) {
             color: #527184;
 
             font-size: 13px;
+
             font-weight: 600;
 
             margin-bottom: 6px;
@@ -703,24 +951,31 @@ if ($comment_stmt) {
 
 
         .info-label i {
+
             color: #4297CD;
+
             font-size: 16px;
         }
 
 
         .info-value {
+
             color: #263238;
 
             font-size: 14px;
+
             line-height: 1.6;
 
             word-break: break-word;
         }
 
 
-        /* GITHUB */
+        /* =====================================================
+           GITHUB
+        ===================================================== */
 
         .github-card {
+
             margin-top: 18px;
 
             padding: 17px;
@@ -735,7 +990,9 @@ if ($comment_stmt) {
 
 
         .github-title {
+
             display: flex;
+
             align-items: center;
 
             gap: 8px;
@@ -749,6 +1006,7 @@ if ($comment_stmt) {
 
 
         .github-url {
+
             display: block;
 
             padding: 10px;
@@ -773,10 +1031,13 @@ if ($comment_stmt) {
 
 
         .github-button {
+
             width: 100%;
 
             display: flex;
+
             align-items: center;
+
             justify-content: center;
 
             gap: 8px;
@@ -792,30 +1053,39 @@ if ($comment_stmt) {
             text-decoration: none;
 
             font-size: 14px;
+
             font-weight: 600;
         }
 
 
         .github-button:hover {
+
             background: #111;
+
             color: white;
         }
 
 
-        /* CONTENT */
+        /* =====================================================
+           CONTENT
+        ===================================================== */
 
         .project-content {
+
             padding-left: 25px;
         }
 
 
         .project-category {
+
             display: inline-flex;
+
             align-items: center;
 
             gap: 7px;
 
             background: #eaf6fc;
+
             color: #3287BB;
 
             border:
@@ -826,6 +1096,7 @@ if ($comment_stmt) {
             border-radius: 30px;
 
             font-size: 13px;
+
             font-weight: 600;
 
             margin-bottom: 16px;
@@ -833,7 +1104,9 @@ if ($comment_stmt) {
 
 
         .project-title {
+
             font-size: 34px;
+
             line-height: 1.35;
 
             font-weight: 750;
@@ -845,7 +1118,9 @@ if ($comment_stmt) {
 
 
         .university-text {
+
             display: flex;
+
             align-items: center;
 
             gap: 8px;
@@ -859,13 +1134,17 @@ if ($comment_stmt) {
 
 
         .university-text i {
+
             color: #4297CD;
         }
 
 
-        /* DESCRIPTION */
+        /* =====================================================
+           DESCRIPTION
+        ===================================================== */
 
         .description-box {
+
             background: #fbfdfe;
 
             border:
@@ -878,12 +1157,15 @@ if ($comment_stmt) {
 
 
         .description-title {
+
             display: flex;
+
             align-items: center;
 
             gap: 9px;
 
             font-size: 20px;
+
             font-weight: 700;
 
             color: #245c7d;
@@ -893,14 +1175,17 @@ if ($comment_stmt) {
 
 
         .description-title i {
+
             color: #4297CD;
         }
 
 
         .description-text {
+
             color: #53636c;
 
             font-size: 15px;
+
             line-height: 1.9;
 
             white-space: pre-line;
@@ -909,9 +1194,12 @@ if ($comment_stmt) {
         }
 
 
-        /* ACTION */
+        /* =====================================================
+           ACTION
+        ===================================================== */
 
         .admin-actions {
+
             display: flex;
 
             gap: 10px;
@@ -924,9 +1212,11 @@ if ($comment_stmt) {
 
         .edit-button,
         .delete-button {
+
             display: inline-flex;
 
             align-items: center;
+
             justify-content: center;
 
             gap: 7px;
@@ -940,28 +1230,37 @@ if ($comment_stmt) {
             text-decoration: none;
 
             font-size: 14px;
+
             font-weight: 600;
+
+            transition: 0.2s;
         }
 
 
         .edit-button {
+
             background: #4297CD;
         }
 
 
         .edit-button:hover {
+
             background: #3287BB;
+
             color: white;
         }
 
 
         .delete-button {
+
             background: #dc3545;
         }
 
 
         .delete-button:hover {
+
             background: #bb2d3b;
+
             color: white;
         }
 
@@ -971,6 +1270,7 @@ if ($comment_stmt) {
         ===================================================== */
 
         .comments-box {
+
             margin-top: 25px;
 
             background: white;
@@ -989,12 +1289,15 @@ if ($comment_stmt) {
 
 
         .comments-title {
+
             display: flex;
+
             align-items: center;
 
             gap: 9px;
 
             font-size: 20px;
+
             font-weight: 700;
 
             color: #245c7d;
@@ -1004,11 +1307,13 @@ if ($comment_stmt) {
 
 
         .comments-title i {
+
             color: #4297CD;
         }
 
 
         .teacher-comment-form {
+
             background: #f5faff;
 
             border:
@@ -1023,6 +1328,7 @@ if ($comment_stmt) {
 
 
         .teacher-comment-form textarea {
+
             width: 100%;
 
             min-height: 120px;
@@ -1043,6 +1349,7 @@ if ($comment_stmt) {
 
 
         .teacher-comment-form textarea:focus {
+
             border-color: #4297CD;
 
             box-shadow:
@@ -1052,6 +1359,7 @@ if ($comment_stmt) {
 
 
         .comment-submit {
+
             margin-top: 10px;
 
             background: #4297CD;
@@ -1065,15 +1373,19 @@ if ($comment_stmt) {
             border-radius: 8px;
 
             font-weight: 600;
+
+            transition: 0.2s;
         }
 
 
         .comment-submit:hover {
+
             background: #3287BB;
         }
 
 
         .comment-item {
+
             padding: 16px 0;
 
             border-top:
@@ -1081,13 +1393,10 @@ if ($comment_stmt) {
         }
 
 
-        .comment-item:first-child {
-            border-top: none;
-        }
-
-
         .comment-author {
+
             display: flex;
+
             align-items: center;
 
             gap: 8px;
@@ -1097,15 +1406,19 @@ if ($comment_stmt) {
             font-weight: 700;
 
             margin-bottom: 6px;
+
+            flex-wrap: wrap;
         }
 
 
         .comment-author i {
+
             color: #4297CD;
         }
 
 
         .comment-date {
+
             color: #8999a2;
 
             font-size: 12px;
@@ -1115,6 +1428,7 @@ if ($comment_stmt) {
 
 
         .comment-text {
+
             color: #53636c;
 
             font-size: 14px;
@@ -1128,6 +1442,7 @@ if ($comment_stmt) {
 
 
         .no-comments {
+
             color: #8999a2;
 
             text-align: center;
@@ -1139,6 +1454,7 @@ if ($comment_stmt) {
 
 
         .teacher-only-notice {
+
             background: #fff8e8;
 
             border:
@@ -1157,6 +1473,7 @@ if ($comment_stmt) {
 
 
         .guest-notice {
+
             margin-top: 20px;
 
             padding: 14px 16px;
@@ -1176,55 +1493,82 @@ if ($comment_stmt) {
         }
 
 
-        /* MOBILE */
+        /* =====================================================
+           MOBILE
+        ===================================================== */
 
         @media (max-width: 768px) {
 
             .custom-header {
+
                 height: 75px;
             }
 
+
             .header-inner {
+
                 height: 75px;
+
                 padding: 0 15px;
             }
 
+
             .header-left-area {
+
                 gap: 12px;
             }
 
+
             .sdu-logo {
+
                 width: 48px;
+
                 height: 48px;
             }
 
+
             .home-link {
+
                 font-size: 15px;
             }
 
+
             .profile-icon {
+
                 font-size: 27px;
             }
 
+
             .detail-container {
+
                 margin: 25px auto;
+
                 padding: 0 12px;
             }
 
+
             .project-card-body {
+
                 padding: 18px;
             }
 
+
             .project-content {
+
                 padding-left: 0;
+
                 margin-top: 25px;
             }
 
+
             .project-title {
+
                 font-size: 27px;
             }
 
+
             .side-panel {
+
                 padding: 18px;
             }
 
@@ -1314,6 +1658,7 @@ if ($comment_stmt) {
 </header>
 
 
+
 <!-- =========================================================
      MAIN
 ========================================================= -->
@@ -1343,6 +1688,8 @@ if ($comment_stmt) {
 
                         </div>
 
+
+                        <!-- PDF -->
 
                         <?php if ($pdf_path !== ''): ?>
 
@@ -1376,6 +1723,8 @@ if ($comment_stmt) {
                         <?php endif; ?>
 
 
+                        <!-- DATE -->
+
                         <div class="info-item">
 
                             <div class="info-label">
@@ -1394,6 +1743,8 @@ if ($comment_stmt) {
 
                         </div>
 
+
+                        <!-- STATUS -->
 
                         <div class="info-item">
 
@@ -1414,6 +1765,8 @@ if ($comment_stmt) {
                         </div>
 
 
+                        <!-- DEGREE -->
+
                         <div class="info-item">
 
                             <div class="info-label">
@@ -1432,6 +1785,8 @@ if ($comment_stmt) {
 
                         </div>
 
+
+                        <!-- DEPARTMENT -->
 
                         <div class="info-item">
 
@@ -1452,6 +1807,8 @@ if ($comment_stmt) {
                         </div>
 
 
+                        <!-- ADVISOR -->
+
                         <div class="info-item">
 
                             <div class="info-label">
@@ -1471,6 +1828,8 @@ if ($comment_stmt) {
                         </div>
 
 
+                        <!-- AUTHORS -->
+
                         <div class="info-item">
 
                             <div class="info-label">
@@ -1489,6 +1848,8 @@ if ($comment_stmt) {
 
                         </div>
 
+
+                        <!-- PAGES -->
 
                         <?php if ($pages > 0): ?>
 
@@ -1512,6 +1873,8 @@ if ($comment_stmt) {
 
                         <?php endif; ?>
 
+
+                        <!-- GITHUB -->
 
                         <div class="github-card">
 
@@ -1571,6 +1934,7 @@ if ($comment_stmt) {
                 </div>
 
 
+
                 <!-- =================================================
                      RIGHT
                 ================================================== -->
@@ -1579,6 +1943,8 @@ if ($comment_stmt) {
 
                     <div class="project-content">
 
+
+                        <!-- CATEGORY -->
 
                         <div class="project-category">
 
@@ -1589,12 +1955,16 @@ if ($comment_stmt) {
                         </div>
 
 
+                        <!-- TITLE -->
+
                         <h1 class="project-title">
 
                             <?php echo e($title); ?>
 
                         </h1>
 
+
+                        <!-- UNIVERSITY -->
 
                         <div class="university-text">
 
@@ -1604,6 +1974,8 @@ if ($comment_stmt) {
 
                         </div>
 
+
+                        <!-- DESCRIPTION -->
 
                         <div class="description-box">
 
@@ -1625,6 +1997,7 @@ if ($comment_stmt) {
                         </div>
 
 
+
                         <!-- =================================================
                              COMMENTS
                         ================================================== -->
@@ -1640,13 +2013,21 @@ if ($comment_stmt) {
                             </div>
 
 
+                            <!-- =========================================
+                                 TEACHER COMMENT FORM
+                            ========================================== -->
+
                             <?php if ($can_comment): ?>
 
                                 <div class="teacher-comment-form">
 
                                     <div
                                         class="mb-2"
-                                        style="font-size:14px;font-weight:600;color:#245c7d;"
+                                        style="
+                                            font-size:14px;
+                                            font-weight:600;
+                                            color:#245c7d;
+                                        "
                                     >
 
                                         <i class="bi bi-pencil-square"></i>
@@ -1690,6 +2071,7 @@ if ($comment_stmt) {
 
                                 </div>
 
+
                             <?php elseif (
                                 $logged_in &&
                                 $user_role === 'teacher'
@@ -1707,6 +2089,10 @@ if ($comment_stmt) {
                             <?php endif; ?>
 
 
+                            <!-- =========================================
+                                 COMMENTS LIST
+                            ========================================== -->
+
                             <?php if (count($comments) > 0): ?>
 
                                 <?php foreach ($comments as $comment): ?>
@@ -1721,12 +2107,20 @@ if ($comment_stmt) {
                                         );
 
                                     if ($comment_teacher === '') {
-                                        $comment_teacher = 'อาจารย์';
+
+                                        $comment_teacher =
+                                            'อาจารย์';
                                     }
+
 
                                     $comment_date = '-';
 
-                                    if (!empty($comment['created_at'])) {
+
+                                    if (
+                                        !empty(
+                                            $comment['created_at']
+                                        )
+                                    ) {
 
                                         $comment_timestamp =
                                             strtotime(
@@ -1747,17 +2141,28 @@ if ($comment_stmt) {
 
                                     ?>
 
+
                                     <div class="comment-item">
+
 
                                         <div class="comment-author">
 
                                             <i class="bi bi-person-workspace"></i>
 
-                                            <?php echo e($comment_teacher); ?>
+                                            <?php
+                                            echo e(
+                                                $comment_teacher
+                                            );
+                                            ?>
+
 
                                             <span class="comment-date">
 
-                                                <?php echo e($comment_date); ?>
+                                                <?php
+                                                echo e(
+                                                    $comment_date
+                                                );
+                                                ?>
 
                                             </span>
 
@@ -1767,11 +2172,13 @@ if ($comment_stmt) {
                                         <p class="comment-text">
 
                                             <?php
+
                                             echo nl2br(
                                                 e(
                                                     $comment['comment']
                                                 )
                                             );
+
                                             ?>
 
                                         </p>
@@ -1779,6 +2186,7 @@ if ($comment_stmt) {
                                     </div>
 
                                 <?php endforeach; ?>
+
 
                             <?php else: ?>
 
@@ -1795,13 +2203,20 @@ if ($comment_stmt) {
                         </div>
 
 
+
                         <!-- =================================================
                              ACTIONS
                         ================================================== -->
 
-                        <?php if ($can_edit || $can_delete): ?>
+                        <?php if (
+                            $can_edit ||
+                            $can_delete
+                        ): ?>
 
                             <div class="admin-actions">
+
+
+                                <!-- EDIT -->
 
                                 <?php if ($can_edit): ?>
 
@@ -1819,6 +2234,8 @@ if ($comment_stmt) {
                                 <?php endif; ?>
 
 
+                                <!-- DELETE -->
+
                                 <?php if ($can_delete): ?>
 
                                     <a
@@ -1835,10 +2252,15 @@ if ($comment_stmt) {
 
                                 <?php endif; ?>
 
+
                             </div>
 
                         <?php endif; ?>
 
+
+                        <!-- =================================================
+                             GUEST
+                        ================================================== -->
 
                         <?php if (!$logged_in): ?>
 
@@ -1868,9 +2290,13 @@ if ($comment_stmt) {
 </div>
 
 
+
+<!-- Bootstrap JS -->
+
 <script
     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
 ></script>
+
 
 </body>
 
