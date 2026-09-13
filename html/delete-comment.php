@@ -21,34 +21,29 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 
-/* =========================================================
-   USER
-========================================================= */
-
 $user_id = (int)$_SESSION['user_id'];
-
 $user_role = $_SESSION['role'] ?? '';
 
 
 /* =========================================================
-   GET COMMENT ID
+   GET DATA
 ========================================================= */
 
-$comment_id = isset($_GET['id'])
-    ? (int)$_GET['id']
+$comment_id = isset($_POST['comment_id'])
+    ? (int)$_POST['comment_id']
     : 0;
 
-$project_id = isset($_GET['project_id'])
-    ? (int)$_GET['project_id']
+$project_id = isset($_POST['project_id'])
+    ? (int)$_POST['project_id']
     : 0;
 
 
-if ($comment_id <= 0) {
+if ($comment_id <= 0 || $project_id <= 0) {
 
     echo "
     <script>
-        alert('ไม่พบความคิดเห็นที่ต้องการลบ');
-        window.location.href='index2.php';
+        alert('ข้อมูลไม่ถูกต้อง');
+        history.back();
     </script>
     ";
 
@@ -64,27 +59,16 @@ $sql = "
     SELECT
         id,
         project_id,
-        teacher_id,
-        comment
+        teacher_id
     FROM project_comments
     WHERE id = ?
     LIMIT 1
 ";
 
-
-$stmt =
-    mysqli_prepare(
-        $conn,
-        $sql
-    );
-
+$stmt = mysqli_prepare($conn, $sql);
 
 if (!$stmt) {
-
-    die(
-        "SQL Error: " .
-        mysqli_error($conn)
-    );
+    die("เกิดข้อผิดพลาดในการเตรียม SQL");
 }
 
 
@@ -94,31 +78,19 @@ mysqli_stmt_bind_param(
     $comment_id
 );
 
+mysqli_stmt_execute($stmt);
 
-mysqli_stmt_execute(
-    $stmt
-);
-
-
-$result =
-    mysqli_stmt_get_result(
-        $stmt
-    );
+$result = mysqli_stmt_get_result($stmt);
 
 
-if (
-    !$result ||
-    mysqli_num_rows($result) === 0
-) {
+if (!$result || mysqli_num_rows($result) === 0) {
 
-    mysqli_stmt_close(
-        $stmt
-    );
+    mysqli_stmt_close($stmt);
 
     echo "
     <script>
         alert('ไม่พบความคิดเห็นนี้');
-        window.location.href='index2.php';
+        history.back();
     </script>
     ";
 
@@ -126,87 +98,69 @@ if (
 }
 
 
-$comment =
-    mysqli_fetch_assoc(
-        $result
-    );
+$comment = mysqli_fetch_assoc($result);
 
-
-mysqli_stmt_close(
-    $stmt
-);
+mysqli_stmt_close($stmt);
 
 
 /* =========================================================
-   PROJECT ID
+   CHECK PROJECT
 ========================================================= */
 
 $comment_project_id =
     (int)$comment['project_id'];
 
-
-if ($project_id <= 0) {
-
-    $project_id =
-        $comment_project_id;
-}
-
-
-/* =========================================================
-   CHECK PERMISSION
-========================================================= */
-
 $comment_teacher_id =
     (int)$comment['teacher_id'];
 
 
+if ($comment_project_id !== $project_id) {
+
+    echo "
+    <script>
+        alert('ข้อมูลโปรเจกต์ไม่ถูกต้อง');
+        history.back();
+    </script>
+    ";
+
+    exit();
+}
+
+
+/* =========================================================
+   PERMISSION
+========================================================= */
+
 /*
- * ADMIN
- * ลบความคิดเห็นของใครก็ได้
- */
+    ADMIN
+    - ลบความคิดเห็นของใครก็ได้
+
+    TEACHER
+    - ลบได้เฉพาะความคิดเห็นของตัวเอง
+*/
+
+$can_delete = false;
+
 
 if ($user_role === 'admin') {
 
     $can_delete = true;
 
-}
-
-
-/*
- * TEACHER
- * ลบเฉพาะความคิดเห็นของตัวเอง
- */
-
-elseif (
+} elseif (
     $user_role === 'teacher' &&
     $comment_teacher_id === $user_id
 ) {
 
     $can_delete = true;
-
 }
 
-
-/*
- * STUDENT / GUEST / OTHER
- */
-
-else {
-
-    $can_delete = false;
-}
-
-
-/* =========================================================
-   NO PERMISSION
-========================================================= */
 
 if (!$can_delete) {
 
     echo "
     <script>
         alert('คุณไม่มีสิทธิ์ลบความคิดเห็นนี้');
-        window.location.href='project-detail.php?id={$project_id}';
+        history.back();
     </script>
     ";
 
@@ -218,75 +172,46 @@ if (!$can_delete) {
    DELETE
 ========================================================= */
 
-$delete_sql = "
+$sql = "
     DELETE FROM project_comments
     WHERE id = ?
     LIMIT 1
 ";
 
+$stmt = mysqli_prepare($conn, $sql);
 
-$delete_stmt =
-    mysqli_prepare(
-        $conn,
-        $delete_sql
-    );
-
-
-if (!$delete_stmt) {
-
-    die(
-        "SQL Error: " .
-        mysqli_error($conn)
-    );
+if (!$stmt) {
+    die("เกิดข้อผิดพลาดในการเตรียม SQL");
 }
 
 
 mysqli_stmt_bind_param(
-    $delete_stmt,
+    $stmt,
     "i",
     $comment_id
 );
 
 
-if (
-    !mysqli_stmt_execute(
-        $delete_stmt
-    )
-) {
-
-    $error =
-        mysqli_error($conn);
-
-    mysqli_stmt_close(
-        $delete_stmt
-    );
+if (!mysqli_stmt_execute($stmt)) {
 
     die(
         "SQL Error: " .
-        htmlspecialchars(
-            $error,
-            ENT_QUOTES,
-            'UTF-8'
-        )
+        mysqli_stmt_error($stmt)
     );
 }
 
 
-mysqli_stmt_close(
-    $delete_stmt
-);
+mysqli_stmt_close($stmt);
 
 
 /* =========================================================
    SUCCESS
 ========================================================= */
 
-echo "
-<script>
-    alert('ลบความคิดเห็นเรียบร้อยแล้ว');
-    window.location.href='project-detail.php?id={$project_id}';
-</script>
-";
+header(
+    "Location: project-detail.php?id=" .
+    $project_id
+);
 
 exit();
 
