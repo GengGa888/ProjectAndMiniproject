@@ -1,35 +1,71 @@
 <?php
 
 session_start();
-require_once "db_connect.php";
+require_once 'db_connect.php';
 
-$error = "";
 
-/* =====================================================
-   สมัครสมาชิก
-===================================================== */
+/* =========================================================
+   รหัสสำหรับสมัคร Admin
+   ========================================================= */
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
+$ADMIN_REGISTER_CODE = "SDUADMIN2026";
 
-    $username = trim($_POST['username'] ?? '');
-    $user_code = trim($_POST['user_code'] ?? '');
 
-    $firstname = trim($_POST['firstname'] ?? '');
-    $lastname = trim($_POST['lastname'] ?? '');
+/* =========================================================
+   HELPER
+   ========================================================= */
 
-    $email = trim($_POST['email'] ?? '');
+function e($value)
+{
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
 
-    $department = trim($_POST['department'] ?? '');
 
-    $role = $_POST['role'] ?? 'student';
+/* =========================================================
+   ถ้า Login อยู่แล้ว
+   ========================================================= */
 
-    $password = $_POST['password'] ?? '';
+if (isset($_SESSION['user_id'])) {
+
+    if (($_SESSION['role'] ?? '') === 'admin') {
+        header("Location: admin.php");
+    } else {
+        header("Location: index2.php");
+    }
+
+    exit;
+}
+
+
+/* =========================================================
+   ตัวแปร
+   ========================================================= */
+
+$error = '';
+$success = '';
+
+
+/* =========================================================
+   REGISTER
+   ========================================================= */
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $username         = trim($_POST['username'] ?? '');
+    $user_code        = trim($_POST['user_code'] ?? '');
+    $firstname        = trim($_POST['firstname'] ?? '');
+    $lastname         = trim($_POST['lastname'] ?? '');
+    $email            = trim($_POST['email'] ?? '');
+    $role             = trim($_POST['role'] ?? '');
+    $department       = trim($_POST['department'] ?? '');
+    $password         = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
+    $admin_code       = trim($_POST['admin_code'] ?? '');
 
 
-    /* =================================================
-       ตรวจสอบข้อมูล
-    ================================================= */
+    /* =====================================================
+       ตรวจสอบข้อมูลพื้นฐาน
+       ===================================================== */
 
     if (
         $username === '' ||
@@ -37,247 +73,261 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $firstname === '' ||
         $lastname === '' ||
         $email === '' ||
+        $role === '' ||
         $department === '' ||
         $password === '' ||
         $confirm_password === ''
     ) {
 
-        echo "<script>
-            alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
-            window.history.back();
-        </script>";
+        $error = "กรุณากรอกข้อมูลให้ครบทุกช่อง";
 
-        exit;
-    }
+    } elseif (!in_array($role, ['student', 'teacher', 'admin'], true)) {
 
+        $error = "ประเภทบัญชีไม่ถูกต้อง";
 
-    /* =================================================
-       ตรวจสอบ Role
-    ================================================= */
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
-    if (!in_array($role, ['student', 'teacher'], true)) {
+        $error = "รูปแบบอีเมลไม่ถูกต้อง";
 
-        echo "<script>
-            alert('ประเภทผู้ใช้งานไม่ถูกต้อง');
-            window.history.back();
-        </script>";
-
-        exit;
-    }
-
-
-    /* =================================================
-       ตรวจสอบ Email
-    ================================================= */
-
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-
-        echo "<script>
-            alert('รูปแบบ Email ไม่ถูกต้อง');
-            window.history.back();
-        </script>";
-
-        exit;
-    }
-
-
-    /* =================================================
-       ตรวจสอบ Email มหาวิทยาลัย
-    ================================================= */
-
-    $email_domain = strtolower(
-        substr(
-            strrchr($email, "@"),
-            1
-        )
-    );
-
-    if (
-        $email_domain !== 'mail.dusit.ac.th' &&
-        $email_domain !== 'dusit.ac.th'
+    } elseif (
+        !str_ends_with(strtolower($email), '@mail.dusit.ac.th') &&
+        !str_ends_with(strtolower($email), '@dusit.ac.th')
     ) {
 
-        echo "<script>
-            alert('กรุณาใช้อีเมลมหาวิทยาลัย เช่น example@mail.dusit.ac.th');
-            window.history.back();
-        </script>";
+        $error = "กรุณาใช้อีเมลของมหาวิทยาลัยสวนดุสิต";
 
-        exit;
+    } elseif (strlen($password) < 4) {
+
+        $error = "รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร";
+
+    } elseif ($password !== $confirm_password) {
+
+        $error = "รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน";
     }
 
 
-    /* =================================================
-       ตรวจสอบ Password
-    ================================================= */
+    /* =====================================================
+       ตรวจสอบรหัสสมัคร Admin
+       ===================================================== */
 
-    if ($password !== $confirm_password) {
+    if (
+        $error === '' &&
+        $role === 'admin'
+    ) {
 
-        echo "<script>
-            alert('รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน');
-            window.history.back();
-        </script>";
+        if ($admin_code === '') {
 
-        exit;
+            $error = "กรุณากรอกรหัสสมัครแอดมิน";
+
+        } elseif (!hash_equals($ADMIN_REGISTER_CODE, $admin_code)) {
+
+            $error = "รหัสสมัครแอดมินไม่ถูกต้อง";
+        }
     }
 
 
-    if (strlen($password) < 4) {
+    /* =====================================================
+       ตรวจสอบ Username ซ้ำ
+       ===================================================== */
 
-        echo "<script>
-            alert('รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร');
-            window.history.back();
-        </script>";
+    if ($error === '') {
 
-        exit;
-    }
+        $check_sql = "
+            SELECT id
+            FROM users
+            WHERE username = ?
+            LIMIT 1
+        ";
 
-
-    /* =================================================
-       ตรวจสอบข้อมูลซ้ำ
-    ================================================= */
-
-    $stmt_check = mysqli_prepare(
-        $conn,
-        "
-        SELECT id
-        FROM users
-        WHERE username = ?
-           OR email = ?
-           OR user_code = ?
-        LIMIT 1
-        "
-    );
-
-    if (!$stmt_check) {
-
-        die(
-            "SQL Error: " .
-            htmlspecialchars(
-                mysqli_error($conn)
-            )
+        $check_stmt = mysqli_prepare(
+            $conn,
+            $check_sql
         );
+
+        if (!$check_stmt) {
+
+            $error = "เกิดข้อผิดพลาดในการตรวจสอบ Username";
+
+        } else {
+
+            mysqli_stmt_bind_param(
+                $check_stmt,
+                "s",
+                $username
+            );
+
+            mysqli_stmt_execute($check_stmt);
+
+            mysqli_stmt_store_result($check_stmt);
+
+            if (mysqli_stmt_num_rows($check_stmt) > 0) {
+
+                $error = "Username นี้ถูกใช้งานแล้ว";
+            }
+
+            mysqli_stmt_close($check_stmt);
+        }
     }
 
-    mysqli_stmt_bind_param(
-        $stmt_check,
-        "sss",
-        $username,
-        $email,
-        $user_code
-    );
 
-    mysqli_stmt_execute($stmt_check);
+    /* =====================================================
+       ตรวจสอบ User Code ซ้ำ
+       ===================================================== */
 
-    mysqli_stmt_store_result($stmt_check);
+    if ($error === '') {
 
-    if (mysqli_stmt_num_rows($stmt_check) > 0) {
+        $check_sql = "
+            SELECT id
+            FROM users
+            WHERE user_code = ?
+            LIMIT 1
+        ";
 
-        mysqli_stmt_close($stmt_check);
-
-        echo "<script>
-            alert('Username, Email หรือรหัสประจำตัวนี้ถูกใช้งานแล้ว');
-            window.history.back();
-        </script>";
-
-        exit;
-    }
-
-    mysqli_stmt_close($stmt_check);
-
-
-    /* =================================================
-       เข้ารหัส Password
-    ================================================= */
-
-    $hashed_password = password_hash(
-        $password,
-        PASSWORD_DEFAULT
-    );
-
-
-    /* =================================================
-       เพิ่มผู้ใช้
-    ================================================= */
-
-    $sql = "
-        INSERT INTO users
-        (
-            username,
-            user_code,
-            first_name,
-            last_name,
-            email,
-            role,
-            department,
-            password
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ";
-
-    $stmt_insert = mysqli_prepare(
-        $conn,
-        $sql
-    );
-
-    if (!$stmt_insert) {
-
-        die(
-            "SQL Error (Insert): " .
-            htmlspecialchars(
-                mysqli_error($conn)
-            )
+        $check_stmt = mysqli_prepare(
+            $conn,
+            $check_sql
         );
+
+        if (!$check_stmt) {
+
+            $error = "เกิดข้อผิดพลาดในการตรวจสอบรหัสประจำตัว";
+
+        } else {
+
+            mysqli_stmt_bind_param(
+                $check_stmt,
+                "s",
+                $user_code
+            );
+
+            mysqli_stmt_execute($check_stmt);
+
+            mysqli_stmt_store_result($check_stmt);
+
+            if (mysqli_stmt_num_rows($check_stmt) > 0) {
+
+                $error = "รหัสประจำตัวนี้ถูกใช้งานแล้ว";
+            }
+
+            mysqli_stmt_close($check_stmt);
+        }
     }
 
-    mysqli_stmt_bind_param(
-        $stmt_insert,
-        "ssssssss",
-        $username,
-        $user_code,
-        $firstname,
-        $lastname,
-        $email,
-        $role,
-        $department,
-        $hashed_password
-    );
+
+    /* =====================================================
+       ตรวจสอบ Email ซ้ำ
+       ===================================================== */
+
+    if ($error === '') {
+
+        $check_sql = "
+            SELECT id
+            FROM users
+            WHERE email = ?
+            LIMIT 1
+        ";
+
+        $check_stmt = mysqli_prepare(
+            $conn,
+            $check_sql
+        );
+
+        if (!$check_stmt) {
+
+            $error = "เกิดข้อผิดพลาดในการตรวจสอบอีเมล";
+
+        } else {
+
+            mysqli_stmt_bind_param(
+                $check_stmt,
+                "s",
+                $email
+            );
+
+            mysqli_stmt_execute($check_stmt);
+
+            mysqli_stmt_store_result($check_stmt);
+
+            if (mysqli_stmt_num_rows($check_stmt) > 0) {
+
+                $error = "อีเมลนี้ถูกใช้งานแล้ว";
+            }
+
+            mysqli_stmt_close($check_stmt);
+        }
+    }
 
 
-    /* =================================================
-       บันทึก
-    ================================================= */
+    /* =====================================================
+       INSERT USER
+       ===================================================== */
 
-    if (mysqli_stmt_execute($stmt_insert)) {
+    if ($error === '') {
 
-        mysqli_stmt_close($stmt_insert);
-        mysqli_close($conn);
+        $hashed_password = password_hash(
+            $password,
+            PASSWORD_DEFAULT
+        );
 
-        echo "<script>
-            alert('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ');
-            window.location.href='login.php';
-        </script>";
 
-        exit;
+        $insert_sql = "
+            INSERT INTO users
+            (
+                username,
+                user_code,
+                first_name,
+                last_name,
+                email,
+                role,
+                department,
+                password
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ";
 
-    } else {
 
-        $error = mysqli_stmt_error($stmt_insert);
+        $insert_stmt = mysqli_prepare(
+            $conn,
+            $insert_sql
+        );
 
-        mysqli_stmt_close($stmt_insert);
-        mysqli_close($conn);
 
-        echo "<script>
-            alert('เกิดข้อผิดพลาด: " .
-            htmlspecialchars(
-                $error,
-                ENT_QUOTES,
-                'UTF-8'
-            ) .
-            "');
-            window.history.back();
-        </script>";
+        if (!$insert_stmt) {
 
-        exit;
+            $error = "ไม่สามารถสร้างบัญชีได้";
+
+        } else {
+
+            mysqli_stmt_bind_param(
+                $insert_stmt,
+                "ssssssss",
+                $username,
+                $user_code,
+                $firstname,
+                $lastname,
+                $email,
+                $role,
+                $department,
+                $hashed_password
+            );
+
+
+            if (mysqli_stmt_execute($insert_stmt)) {
+
+                $success = "สมัครสมาชิกสำเร็จ สามารถเข้าสู่ระบบได้เลย";
+
+                $password = '';
+                $confirm_password = '';
+                $admin_code = '';
+
+            } else {
+
+                $error = "เกิดข้อผิดพลาดในการสมัครสมาชิก";
+            }
+
+
+            mysqli_stmt_close($insert_stmt);
+        }
     }
 }
 
@@ -295,143 +345,161 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>สมัครสมาชิก - ระบบสืบค้นโปรเจกต์</title>
+    <title>สมัครสมาชิก - คลังโปรเจกต์ SDU</title>
+
+
+    <!-- Bootstrap -->
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+
+    <!-- Bootstrap Icons -->
 
     <link
         rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     >
+
 
     <style>
 
         * {
             box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-
-            font-family:
-                'Sarabun',
-                'Segoe UI',
-                Tahoma,
-                Geneva,
-                Verdana,
-                sans-serif;
         }
 
 
         body {
 
+            margin: 0;
+
             min-height: 100vh;
 
             display: flex;
 
+            align-items: center;
+
             justify-content: center;
 
-            align-items: center;
+            padding: 30px 15px;
 
             background:
                 linear-gradient(
                     135deg,
-                    #29b6f6 0%,
-                    #b3e5fc 50%,
-                    #e1f5fe 100%
+                    #eaf7fd,
+                    #ffffff,
+                    #dff2fc
                 );
 
-            padding: 40px 0;
+            font-family:
+                'Segoe UI',
+                Tahoma,
+                Arial,
+                sans-serif;
         }
 
 
-        .register-wrapper {
+        /* =====================================================
+           CONTAINER
+           ===================================================== */
 
-            position: relative;
+        .register-container {
 
             width: 100%;
 
-            max-width: 480px;
+            max-width: 520px;
 
-            padding: 0 20px;
+            background: white;
 
-            margin-top: 40px;
-        }
+            border-radius: 20px;
 
-
-        .logo-container {
-
-            position: absolute;
-
-            top: -55px;
-
-            left: 50%;
-
-            transform: translateX(-50%);
-
-            z-index: 2;
-        }
-
-
-        .logo-container img {
-
-            width: 110px;
-
-            height: 110px;
-
-            object-fit: contain;
-
-            filter:
-                drop-shadow(
-                    0px 4px 6px
-                    rgba(0, 0, 0, 0.15)
-                );
-        }
-
-
-        .register-card {
-
-            background: #ffffff;
-
-            border-radius: 6px;
-
-            padding: 70px 35px 35px 35px;
+            padding: 35px;
 
             box-shadow:
-                0 10px 25px
-                rgba(0, 0, 0, 0.15);
+                0 10px 35px
+                rgba(48, 105, 139, 0.15);
+
+            border:
+                1px solid #e1edf4;
         }
 
 
-        .register-card h2 {
+        /* =====================================================
+           LOGO
+           ===================================================== */
 
-            font-size: 1.25rem;
-
-            color: #2b2b2b;
-
-            font-weight: 600;
-
-            margin-bottom: 20px;
-
-            text-align: center;
-        }
-
-
-        .form-group {
-
-            margin-bottom: 15px;
-
-            text-align: left;
-        }
-
-
-        .form-group label {
+        .logo {
 
             display: block;
 
-            font-size: 0.85rem;
+            width: 75px;
 
-            color: #333333;
+            height: 75px;
 
-            margin-bottom: 5px;
+            object-fit: contain;
 
-            font-weight: 500;
+            margin:
+                0 auto 15px;
+
+            background: white;
+
+            border-radius: 50%;
+
+            padding: 4px;
+
+            box-shadow:
+                0 4px 12px
+                rgba(0,0,0,0.12);
+        }
+
+
+        h2 {
+
+            text-align: center;
+
+            color: #245c7d;
+
+            font-weight: 700;
+
+            margin-bottom: 6px;
+        }
+
+
+        .subtitle {
+
+            text-align: center;
+
+            color: #7a8d98;
+
+            font-size: 14px;
+
+            margin-bottom: 25px;
+        }
+
+
+        /* =====================================================
+           FORM
+           ===================================================== */
+
+        .form-group {
+
+            margin-bottom: 17px;
+        }
+
+
+        label {
+
+            display: block;
+
+            margin-bottom: 7px;
+
+            color: #315d73;
+
+            font-size: 14px;
+
+            font-weight: 600;
         }
 
 
@@ -441,135 +509,324 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
 
+        .input-wrapper i {
+
+            position: absolute;
+
+            left: 14px;
+
+            top: 50%;
+
+            transform:
+                translateY(-50%);
+
+            color: #4297CD;
+
+            font-size: 17px;
+
+            z-index: 2;
+        }
+
+
         .input-wrapper input,
         .input-wrapper select {
 
             width: 100%;
 
-            padding: 9px 35px 9px 12px;
+            height: 46px;
 
-            font-size: 0.9rem;
+            padding:
+                0 14px 0 42px;
 
             border:
-                1px solid #bce0fd;
+                1px solid #d5e3eb;
 
-            background-color: #f0f7ff;
-
-            border-radius: 5px;
+            border-radius: 10px;
 
             outline: none;
 
-            transition: all 0.2s ease;
+            font-size: 14px;
 
-            color: #333;
+            background: white;
 
-            appearance: none;
+            color: #263238;
+        }
+
+
+        .input-wrapper select {
+
+            cursor: pointer;
+
+            appearance: auto;
         }
 
 
         .input-wrapper input:focus,
         .input-wrapper select:focus {
 
-            border-color: #29b6f6;
+            border-color: #4297CD;
 
             box-shadow:
-                0 0 5px
-                rgba(41, 182, 246, 0.5);
+                0 0 0 3px
+                rgba(66,151,205,0.12);
         }
 
 
-        .input-wrapper i {
+        /* =====================================================
+           ROLE
+           ===================================================== */
+
+        .role-box {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 10px;
+        }
+
+
+        .role-option {
+
+            position: relative;
+        }
+
+
+        .role-option input {
 
             position: absolute;
 
-            right: 12px;
-
-            top: 50%;
-
-            transform: translateY(-50%);
-
-            color: #888888;
-
-            font-size: 0.85rem;
-
-            pointer-events: none;
+            opacity: 0;
         }
 
 
-        .btn-submit {
+        .role-option label {
 
-            width: 100%;
+            margin: 0;
 
-            padding: 11px;
-
-            background:
-                linear-gradient(
-                    to bottom,
-                    #34b3c7,
-                    #258ca3
-                );
-
-            border: none;
-
-            border-radius: 5px;
-
-            color: #ffffff;
-
-            font-size: 0.95rem;
-
-            font-weight: bold;
-
-            cursor: pointer;
-
-            margin-top: 15px;
-
-            transition: opacity 0.2s ease;
-        }
-
-
-        .btn-submit:hover {
-
-            opacity: 0.9;
-        }
-
-
-        .footer-links {
-
-            margin-top: 20px;
+            padding: 13px 8px;
 
             text-align: center;
 
-            font-size: 0.85rem;
+            border:
+                1px solid #d5e3eb;
+
+            border-radius: 10px;
+
+            cursor: pointer;
+
+            color: #527184;
+
+            background: #fff;
+
+            font-size: 13px;
+
+            transition: 0.2s;
         }
 
 
-        .footer-links a {
+        .role-option label i {
 
-            color: #0088cc;
+            display: block;
+
+            font-size: 21px;
+
+            margin-bottom: 5px;
+
+            color: #4297CD;
+        }
+
+
+        .role-option input:checked + label {
+
+            border-color: #4297CD;
+
+            background: #eef8fd;
+
+            color: #245c7d;
+
+            box-shadow:
+                0 0 0 2px
+                rgba(66,151,205,0.10);
+        }
+
+
+        /* =====================================================
+           ADMIN CODE
+           ===================================================== */
+
+        .admin-code-box {
+
+            display: none;
+
+            background: #fff8e8;
+
+            border:
+                1px solid #f0d993;
+
+            border-radius: 10px;
+
+            padding: 13px;
+
+            margin-top: 12px;
+        }
+
+
+        .admin-code-box.show {
+
+            display: block;
+        }
+
+
+        .admin-code-title {
+
+            color: #80651e;
+
+            font-size: 13px;
+
+            font-weight: 700;
+
+            margin-bottom: 7px;
+        }
+
+
+        .admin-code-box input {
+
+            width: 100%;
+
+            height: 42px;
+
+            border:
+                1px solid #dfcb8a;
+
+            border-radius: 8px;
+
+            padding: 0 12px;
+
+            outline: none;
+
+            font-size: 14px;
+        }
+
+
+        .admin-code-box input:focus {
+
+            border-color: #d0ae3d;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(208,174,61,0.12);
+        }
+
+
+        /* =====================================================
+           ALERT
+           ===================================================== */
+
+        .alert {
+
+            border-radius: 10px;
+
+            font-size: 14px;
+        }
+
+
+        /* =====================================================
+           BUTTON
+           ===================================================== */
+
+        .register-button {
+
+            width: 100%;
+
+            border: none;
+
+            height: 48px;
+
+            border-radius: 10px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #58b4df,
+                    #358abd
+                );
+
+            color: white;
+
+            font-size: 15px;
+
+            font-weight: 700;
+
+            cursor: pointer;
+
+            transition: 0.2s;
+
+            margin-top: 8px;
+        }
+
+
+        .register-button:hover {
+
+            transform:
+                translateY(-1px);
+
+            box-shadow:
+                0 5px 15px
+                rgba(53,138,189,0.25);
+        }
+
+
+        /* =====================================================
+           LOGIN LINK
+           ===================================================== */
+
+        .login-link {
+
+            text-align: center;
+
+            margin-top: 20px;
+
+            color: #7a8d98;
+
+            font-size: 14px;
+        }
+
+
+        .login-link a {
+
+            color: #287cab;
+
+            font-weight: 700;
 
             text-decoration: none;
-
-            font-weight: 500;
         }
 
 
-        .footer-links a:hover {
+        .login-link a:hover {
 
             text-decoration: underline;
         }
 
 
+        /* =====================================================
+           MOBILE
+           ===================================================== */
+
         @media (max-width: 500px) {
 
-            .register-card {
+            .register-container {
 
                 padding:
-                    65px
-                    25px
-                    30px
-                    25px;
+                    25px 20px;
             }
 
+
+            .role-box {
+
+                grid-template-columns: 1fr;
+            }
         }
 
     </style>
@@ -579,326 +836,651 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 <body>
 
-<div class="register-wrapper">
 
-    <!-- LOGO -->
+<div class="register-container">
 
-    <div class="logo-container">
 
-        <img
-            src="https://academic.dusit.ac.th/academic/edu/util/img/login/sdu-newlogo.png"
-            alt="ตราสัญลักษณ์"
-        >
+    <!-- =====================================================
+         LOGO
+         ===================================================== -->
 
+    <img
+        src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png"
+        class="logo"
+        alt="SDU Logo"
+    >
+
+
+    <h2>
+        สมัครสมาชิก
+    </h2>
+
+
+    <div class="subtitle">
+        คลังโปรเจกต์ มหาวิทยาลัยสวนดุสิต
     </div>
 
 
-    <div class="register-card">
+    <!-- =====================================================
+         ERROR
+         ===================================================== -->
 
-        <h2>
-            ลงทะเบียนใช้งานระบบ
-        </h2>
+    <?php if ($error !== ''): ?>
 
+        <div class="alert alert-danger">
 
-        <form
-            action="sign-up.php"
-            method="POST"
-            id="registerForm"
-        >
+            <i class="bi bi-exclamation-circle"></i>
 
+            <?php echo e($error); ?>
 
-            <!-- ประเภทผู้ใช้งาน -->
+        </div>
 
-            <div class="form-group">
+    <?php endif; ?>
 
-                <label for="role">
-                    ประเภทผู้ใช้งาน
-                </label>
 
-                <div class="input-wrapper">
+    <!-- =====================================================
+         SUCCESS
+         ===================================================== -->
 
-                    <select
-                        id="role"
-                        name="role"
-                        required
-                    >
+    <?php if ($success !== ''): ?>
 
-                        <option
-                            value="student"
-                            selected
-                        >
-                            นักศึกษา (Student)
-                        </option>
+        <div class="alert alert-success">
 
-                        <option value="teacher">
-                            อาจารย์ / ที่ปรึกษา (Teacher)
-                        </option>
+            <i class="bi bi-check-circle"></i>
 
-                    </select>
+            <?php echo e($success); ?>
 
-                    <i class="fa-solid fa-chevron-down"></i>
-
-                </div>
-
-            </div>
-
-
-            <!-- Username -->
-
-            <div class="form-group">
-
-                <label for="username">
-                    Username
-                </label>
-
-                <div class="input-wrapper">
-
-                    <input
-                        type="text"
-                        id="username"
-                        name="username"
-                        placeholder="ชื่อผู้ใช้งาน"
-                        maxlength="50"
-                        required
-                    >
-
-                    <i class="fa-solid fa-user"></i>
-
-                </div>
-
-            </div>
-
-
-            <!-- รหัสนักศึกษา -->
-
-            <div class="form-group">
-
-                <label for="user_code">
-                    รหัสนักศึกษา / รหัสประจำตัว
-                </label>
-
-                <div class="input-wrapper">
-
-                    <input
-                        type="text"
-                        id="user_code"
-                        name="user_code"
-                        placeholder="กรอกรหัสประจำตัว"
-                        maxlength="50"
-                        required
-                    >
-
-                    <i class="fa-solid fa-id-badge"></i>
-
-                </div>
-
-            </div>
-
-
-            <!-- ชื่อ -->
-
-            <div class="form-group">
-
-                <label for="firstname">
-                    ชื่อ
-                </label>
-
-                <div class="input-wrapper">
-
-                    <input
-                        type="text"
-                        id="firstname"
-                        name="firstname"
-                        placeholder="กรอกชื่อ"
-                        maxlength="50"
-                        required
-                    >
-
-                    <i class="fa-solid fa-id-card"></i>
-
-                </div>
-
-            </div>
-
-
-            <!-- นามสกุล -->
-
-            <div class="form-group">
-
-                <label for="lastname">
-                    นามสกุล
-                </label>
-
-                <div class="input-wrapper">
-
-                    <input
-                        type="text"
-                        id="lastname"
-                        name="lastname"
-                        placeholder="กรอกนามสกุล"
-                        maxlength="50"
-                        required
-                    >
-
-                    <i class="fa-solid fa-id-card"></i>
-
-                </div>
-
-            </div>
-
-
-            <!-- Email -->
-
-            <div class="form-group">
-
-                <label for="email">
-                    อีเมลมหาวิทยาลัย
-                </label>
-
-                <div class="input-wrapper">
-
-                    <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        placeholder="example@mail.dusit.ac.th"
-                        maxlength="100"
-                        required
-                    >
-
-                    <i class="fa-solid fa-envelope"></i>
-
-                </div>
-
-            </div>
-
-
-            <!-- Department -->
-
-            <div class="form-group">
-
-                <label for="department">
-                    สาขาวิชา / คณะ
-                </label>
-
-                <div class="input-wrapper">
-
-                    <select
-                        id="department"
-                        name="department"
-                        required
-                    >
-
-                        <option
-                            value=""
-                            disabled
-                            selected
-                        >
-                            -- เลือกสาขาวิชา --
-                        </option>
-
-                        <option value="เทคโนโลยีสารสนเทศ">
-                            เทคโนโลยีสารสนเทศ
-                        </option>
-
-                        <option value="วิทยาการคอมพิวเตอร์">
-                            วิทยาการคอมพิวเตอร์
-                        </option>
-
-                        <option value="วิศวกรรมซอฟต์แวร์">
-                            วิศวกรรมซอฟต์แวร์
-                        </option>
-
-                        <option value="สาขาอื่นๆ">
-                            สาขาอื่นๆ
-                        </option>
-
-                    </select>
-
-                    <i class="fa-solid fa-chevron-down"></i>
-
-                </div>
-
-            </div>
-
-
-            <!-- Password -->
-
-            <div class="form-group">
-
-                <label for="password">
-                    รหัสผ่าน
-                </label>
-
-                <div class="input-wrapper">
-
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        placeholder="กำหนดรหัสผ่าน"
-                        required
-                    >
-
-                    <i class="fa-solid fa-lock"></i>
-
-                </div>
-
-            </div>
-
-
-            <!-- Confirm Password -->
-
-            <div class="form-group">
-
-                <label for="confirm_password">
-                    ยืนยันรหัสผ่าน
-                </label>
-
-                <div class="input-wrapper">
-
-                    <input
-                        type="password"
-                        id="confirm_password"
-                        name="confirm_password"
-                        placeholder="กรอกรหัสผ่านอีกครั้ง"
-                        required
-                    >
-
-                    <i class="fa-solid fa-shield-halved"></i>
-
-                </div>
-
-            </div>
-
-
-            <!-- Submit -->
-
-            <button
-                type="submit"
-                class="btn-submit"
-            >
-                ยืนยันการสมัครสมาชิก
-            </button>
-
-        </form>
-
-
-        <!-- กลับหน้า Login -->
-
-        <div class="footer-links">
-
-            มีบัญชีผู้ใช้งานอยู่แล้ว?
+            <br>
 
             <a href="login.php">
-                เข้าสู่ระบบที่นี่
+                ไปหน้าเข้าสู่ระบบ
             </a>
 
         </div>
 
+    <?php endif; ?>
+
+
+    <!-- =====================================================
+         FORM
+         ===================================================== -->
+
+    <form
+        method="POST"
+        action=""
+    >
+
+
+        <!-- =================================================
+             USERNAME
+             ================================================= -->
+
+        <div class="form-group">
+
+            <label>
+                Username
+            </label>
+
+            <div class="input-wrapper">
+
+                <input
+                    type="text"
+                    name="username"
+                    placeholder="กรอก Username"
+                    value="<?php echo e($_POST['username'] ?? ''); ?>"
+                    maxlength="50"
+                    required
+                >
+
+                <i class="bi bi-person"></i>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             USER CODE
+             ================================================= -->
+
+        <div class="form-group">
+
+            <label>
+                รหัสนักศึกษา / รหัสประจำตัว
+            </label>
+
+            <div class="input-wrapper">
+
+                <input
+                    type="text"
+                    name="user_code"
+                    placeholder="กรอกรหัสประจำตัว"
+                    value="<?php echo e($_POST['user_code'] ?? ''); ?>"
+                    maxlength="50"
+                    required
+                >
+
+                <i class="bi bi-person-vcard"></i>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             NAME
+             ================================================= -->
+
+        <div class="row">
+
+            <div class="col-md-6">
+
+                <div class="form-group">
+
+                    <label>
+                        ชื่อ
+                    </label>
+
+                    <div class="input-wrapper">
+
+                        <input
+                            type="text"
+                            name="firstname"
+                            placeholder="ชื่อ"
+                            value="<?php echo e($_POST['firstname'] ?? ''); ?>"
+                            maxlength="50"
+                            required
+                        >
+
+                        <i class="bi bi-person"></i>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="col-md-6">
+
+                <div class="form-group">
+
+                    <label>
+                        นามสกุล
+                    </label>
+
+                    <div class="input-wrapper">
+
+                        <input
+                            type="text"
+                            name="lastname"
+                            placeholder="นามสกุล"
+                            value="<?php echo e($_POST['lastname'] ?? ''); ?>"
+                            maxlength="50"
+                            required
+                        >
+
+                        <i class="bi bi-person"></i>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             EMAIL
+             ================================================= -->
+
+        <div class="form-group">
+
+            <label>
+                อีเมล
+            </label>
+
+            <div class="input-wrapper">
+
+                <input
+                    type="email"
+                    name="email"
+                    placeholder="example@mail.dusit.ac.th"
+                    value="<?php echo e($_POST['email'] ?? ''); ?>"
+                    maxlength="100"
+                    required
+                >
+
+                <i class="bi bi-envelope"></i>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             ROLE
+             ================================================= -->
+
+        <div class="form-group">
+
+            <label>
+                ประเภทบัญชี
+            </label>
+
+
+            <div class="role-box">
+
+
+                <!-- STUDENT -->
+
+                <div class="role-option">
+
+                    <input
+                        type="radio"
+                        id="student"
+                        name="role"
+                        value="student"
+
+                        <?php
+                        echo (
+                            ($_POST['role'] ?? '') === 'student'
+                        )
+                        ? 'checked'
+                        : '';
+                        ?>
+
+                        required
+                    >
+
+                    <label for="student">
+
+                        <i class="bi bi-mortarboard-fill"></i>
+
+                        นักศึกษา
+
+                    </label>
+
+                </div>
+
+
+                <!-- TEACHER -->
+
+                <div class="role-option">
+
+                    <input
+                        type="radio"
+                        id="teacher"
+                        name="role"
+                        value="teacher"
+
+                        <?php
+                        echo (
+                            ($_POST['role'] ?? '') === 'teacher'
+                        )
+                        ? 'checked'
+                        : '';
+                        ?>
+                    >
+
+                    <label for="teacher">
+
+                        <i class="bi bi-person-workspace"></i>
+
+                        อาจารย์
+
+                    </label>
+
+                </div>
+
+
+                <!-- ADMIN -->
+
+                <div class="role-option">
+
+                    <input
+                        type="radio"
+                        id="admin"
+                        name="role"
+                        value="admin"
+
+                        <?php
+                        echo (
+                            ($_POST['role'] ?? '') === 'admin'
+                        )
+                        ? 'checked'
+                        : '';
+                        ?>
+                    >
+
+                    <label for="admin">
+
+                        <i class="bi bi-shield-lock-fill"></i>
+
+                        แอดมิน
+
+                    </label>
+
+                </div>
+
+
+            </div>
+
+
+            <!-- =================================================
+                 ADMIN REGISTER CODE
+                 ================================================= -->
+
+            <div
+                id="adminCodeBox"
+                class="admin-code-box"
+            >
+
+                <div class="admin-code-title">
+
+                    <i class="bi bi-shield-lock-fill"></i>
+
+                    รหัสสมัครแอดมิน
+
+                </div>
+
+
+                <input
+                    type="password"
+                    name="admin_code"
+                    id="admin_code"
+                    placeholder="กรอกรหัสสมัครแอดมิน"
+                >
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             DEPARTMENT
+             ================================================= -->
+
+        <div class="form-group">
+
+            <label>
+                สาขา / ภาควิชา
+            </label>
+
+
+            <div class="input-wrapper">
+
+                <select
+                    name="department"
+                    required
+                >
+
+                    <option value="">
+                        -- เลือกสาขา / ภาควิชา --
+                    </option>
+
+
+                    <option
+                        value="เทคโนโลยีสารสนเทศ"
+
+                        <?php
+                        echo (
+                            ($_POST['department'] ?? '') ===
+                            'เทคโนโลยีสารสนเทศ'
+                        )
+                        ? 'selected'
+                        : '';
+                        ?>
+                    >
+                        เทคโนโลยีสารสนเทศ
+                    </option>
+
+
+                    <option
+                        value="วิทยาการคอมพิวเตอร์"
+
+                        <?php
+                        echo (
+                            ($_POST['department'] ?? '') ===
+                            'วิทยาการคอมพิวเตอร์'
+                        )
+                        ? 'selected'
+                        : '';
+                        ?>
+                    >
+                        วิทยาการคอมพิวเตอร์
+                    </option>
+
+
+                    <option
+                        value="เทคโนโลยีดิจิทัล"
+
+                        <?php
+                        echo (
+                            ($_POST['department'] ?? '') ===
+                            'เทคโนโลยีดิจิทัล'
+                        )
+                        ? 'selected'
+                        : '';
+                        ?>
+                    >
+                        เทคโนโลยีดิจิทัล
+                    </option>
+
+
+                    <option
+                        value="คอมพิวเตอร์ธุรกิจ"
+
+                        <?php
+                        echo (
+                            ($_POST['department'] ?? '') ===
+                            'คอมพิวเตอร์ธุรกิจ'
+                        )
+                        ? 'selected'
+                        : '';
+                        ?>
+                    >
+                        คอมพิวเตอร์ธุรกิจ
+                    </option>
+
+
+                    <option
+                        value="มัลติมีเดีย"
+
+                        <?php
+                        echo (
+                            ($_POST['department'] ?? '') ===
+                            'มัลติมีเดีย'
+                        )
+                        ? 'selected'
+                        : '';
+                        ?>
+                    >
+                        มัลติมีเดีย
+                    </option>
+
+
+                    <option
+                        value="อื่นๆ"
+
+                        <?php
+                        echo (
+                            ($_POST['department'] ?? '') ===
+                            'อื่นๆ'
+                        )
+                        ? 'selected'
+                        : '';
+                        ?>
+                    >
+                        อื่นๆ
+                    </option>
+
+                </select>
+
+
+                <i class="bi bi-building"></i>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             PASSWORD
+             ================================================= -->
+
+        <div class="form-group">
+
+            <label>
+                รหัสผ่าน
+            </label>
+
+            <div class="input-wrapper">
+
+                <input
+                    type="password"
+                    name="password"
+                    placeholder="กรอกรหัสผ่าน"
+                    required
+                >
+
+                <i class="bi bi-lock"></i>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             CONFIRM PASSWORD
+             ================================================= -->
+
+        <div class="form-group">
+
+            <label>
+                ยืนยันรหัสผ่าน
+            </label>
+
+            <div class="input-wrapper">
+
+                <input
+                    type="password"
+                    name="confirm_password"
+                    placeholder="กรอกรหัสผ่านอีกครั้ง"
+                    required
+                >
+
+                <i class="bi bi-lock-fill"></i>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             REGISTER BUTTON
+             ================================================= -->
+
+        <button
+            type="submit"
+            class="register-button"
+        >
+
+            <i class="bi bi-person-plus-fill"></i>
+
+            สมัครสมาชิก
+
+        </button>
+
+
+    </form>
+
+
+    <!-- =====================================================
+         LOGIN
+         ===================================================== -->
+
+    <div class="login-link">
+
+        มีบัญชีอยู่แล้ว?
+
+        <a href="login.php">
+            เข้าสู่ระบบ
+        </a>
+
     </div>
 
+
 </div>
+
+
+<!-- =========================================================
+     JAVASCRIPT
+========================================================= -->
+
+<script>
+
+    const studentRadio =
+        document.getElementById('student');
+
+    const teacherRadio =
+        document.getElementById('teacher');
+
+    const adminRadio =
+        document.getElementById('admin');
+
+    const adminCodeBox =
+        document.getElementById('adminCodeBox');
+
+    const adminCodeInput =
+        document.getElementById('admin_code');
+
+
+    function checkAdmin()
+    {
+
+        if (adminRadio.checked) {
+
+            adminCodeBox.classList.add('show');
+
+            adminCodeInput.required = true;
+
+        } else {
+
+            adminCodeBox.classList.remove('show');
+
+            adminCodeInput.required = false;
+
+            adminCodeInput.value = '';
+
+        }
+
+    }
+
+
+    studentRadio.addEventListener(
+        'change',
+        checkAdmin
+    );
+
+
+    teacherRadio.addEventListener(
+        'change',
+        checkAdmin
+    );
+
+
+    adminRadio.addEventListener(
+        'change',
+        checkAdmin
+    );
+
+
+    checkAdmin();
+
+</script>
+
 
 </body>
 
