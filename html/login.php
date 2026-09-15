@@ -64,6 +64,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             /* =================================================
                CHECK PASSWORD
             ================================================= */
+
             if ($user) {
 
                 // Password แบบ Hash
@@ -120,6 +121,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             /* =================================================
                LOGIN SUCCESS
             ================================================= */
+
             if ($login_success) {
 
                 session_regenerate_id(true);
@@ -194,7 +196,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             min-height: 100vh;
 
             display: flex;
+
             justify-content: center;
+
             align-items: center;
 
             background:
@@ -207,6 +211,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             padding: 20px;
         }
 
+
         /* =====================================================
            WRAPPER
         ===================================================== */
@@ -214,8 +219,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         .login-wrapper {
 
             width: 100%;
+
             max-width: 400px;
         }
+
 
         /* =====================================================
            LOGIN BOX
@@ -234,6 +241,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 rgba(0, 0, 0, 0.20);
         }
 
+
         /* =====================================================
            LOGO
         ===================================================== */
@@ -248,10 +256,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         .logo img {
 
             width: 85px;
+
             height: 85px;
 
             object-fit: contain;
         }
+
 
         /* =====================================================
            TITLE
@@ -279,6 +289,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             font-size: 14px;
         }
 
+
         /* =====================================================
            ERROR
         ===================================================== */
@@ -288,6 +299,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             display: flex;
 
             align-items: center;
+
             justify-content: center;
 
             gap: 8px;
@@ -308,6 +320,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             line-height: 1.5;
         }
+
 
         /* =====================================================
            FORM
@@ -339,6 +352,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             position: absolute;
 
             left: 14px;
+
             top: 50%;
 
             transform: translateY(-50%);
@@ -378,6 +392,41 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 0 0 0 3px
                 rgba(66, 151, 205, 0.12);
         }
+
+
+        /* =====================================================
+           FORGOT PASSWORD
+        ===================================================== */
+
+        .forgot-password {
+
+            text-align: right;
+
+            margin-top: -10px;
+
+            margin-bottom: 18px;
+        }
+
+        .forgot-password a {
+
+            color: #287cab;
+
+            text-decoration: none;
+
+            font-size: 14px;
+
+            font-weight: 600;
+
+            transition: 0.2s;
+        }
+
+        .forgot-password a:hover {
+
+            color: #17628f;
+
+            text-decoration: underline;
+        }
+
 
         /* =====================================================
            LOGIN BUTTON
@@ -425,6 +474,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             transform: translateY(0);
         }
 
+
         /* =====================================================
            REGISTER
         ===================================================== */
@@ -458,6 +508,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             text-decoration: underline;
         }
 
+
         /* =====================================================
            BACK HOME
         ===================================================== */
@@ -487,6 +538,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             color: #17628f;
         }
 
+
         /* =====================================================
            MOBILE
         ===================================================== */
@@ -494,6 +546,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         @media (max-width: 480px) {
 
             body {
+
                 padding: 15px;
             }
 
@@ -509,6 +562,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             .logo img {
 
                 width: 75px;
+
                 height: 75px;
             }
 
@@ -539,6 +593,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         </div>
 
+
         <!-- TITLE -->
 
         <h2>
@@ -549,6 +604,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             ระบบสืบค้นโปรเจกต์ SDU
         </div>
 
+
         <!-- ERROR -->
 
         <?php if ($error !== ""): ?>
@@ -558,6 +614,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 <i class="fa-solid fa-circle-exclamation"></i>
 
                 <span>
+
                     <?php
                     echo htmlspecialchars(
                         $error,
@@ -565,11 +622,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         'UTF-8'
                     );
                     ?>
+
                 </span>
 
             </div>
 
         <?php endif; ?>
+
 
         <!-- LOGIN FORM -->
 
@@ -612,6 +671,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             </div>
 
+
             <!-- PASSWORD -->
 
             <div class="form-group">
@@ -637,6 +697,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             </div>
 
+
+            <!-- FORGOT PASSWORD -->
+
+            <div class="forgot-password">
+
+                <a href="forgot-password.php">
+
+                    <i class="fa-solid fa-key"></i>
+
+                    ลืมรหัสผ่าน?
+
+                </a>
+
+            </div>
+
+
             <!-- LOGIN BUTTON -->
 
             <button
@@ -652,6 +728,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         </form>
 
+
         <!-- REGISTER -->
 
         <div class="register-link">
@@ -663,6 +740,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </a>
 
         </div>
+
 
         <!-- BACK HOME -->
 
