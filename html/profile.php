@@ -1,10 +1,8 @@
 <?php
 session_start();
-require_once 'db_connect.php';
+include 'db_connect.php';
 
-/* =========================================================
-   CHECK LOGIN
-========================================================= */
+/* ================= CHECK LOGIN ================= */
 
 if (!isset($_SESSION['user_id'])) {
     echo "<script>
@@ -15,45 +13,170 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = intval($_SESSION['user_id']);
+$role = $_SESSION['role'] ?? 'student';
 
-/* =========================================================
-   FUNCTION
-========================================================= */
 
-function e($text)
-{
-    return htmlspecialchars(
-        (string)$text,
-        ENT_QUOTES,
-        'UTF-8'
-    );
+/* ================= UPLOAD PROFILE IMAGE ================= */
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_image'])) {
+
+    $file = $_FILES['profile_image'];
+
+    if ($file['error'] === UPLOAD_ERR_OK) {
+
+        $allowed_types = [
+            'image/jpeg',
+            'image/png',
+            'image/gif',
+            'image/webp'
+        ];
+
+        if (!in_array($file['type'], $allowed_types)) {
+            echo "<script>
+                    alert('กรุณาเลือกไฟล์ JPG, PNG, GIF หรือ WEBP เท่านั้น');
+                    window.location.href='profile.php';
+                  </script>";
+            exit();
+        }
+
+        /* จำกัดขนาด 5 MB */
+
+        if ($file['size'] > 5 * 1024 * 1024) {
+            echo "<script>
+                    alert('รูปภาพต้องมีขนาดไม่เกิน 5 MB');
+                    window.location.href='profile.php';
+                  </script>";
+            exit();
+        }
+
+        /* สร้างชื่อไฟล์ใหม่ */
+
+        $extension = strtolower(
+            pathinfo($file['name'], PATHINFO_EXTENSION)
+        );
+
+        $new_filename =
+            'profile_' .
+            $user_id .
+            '_' .
+            time() .
+            '.' .
+            $extension;
+
+        $upload_dir = __DIR__ . '/profile_uploads/';
+        $upload_path = $upload_dir . $new_filename;
+
+        /* สร้างโฟลเดอร์ถ้ายังไม่มี */
+
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0777, true);
+        }
+
+        /* ย้ายไฟล์ */
+
+        if (move_uploaded_file($file['tmp_name'], $upload_path)) {
+
+            /* ดึงรูปเก่า */
+
+            $old_stmt = $conn->prepare(
+                "SELECT profile_image FROM users WHERE id = ? LIMIT 1"
+            );
+
+            $old_stmt->bind_param("i", $user_id);
+            $old_stmt->execute();
+
+            $old_result = $old_stmt->get_result();
+            $old_data = $old_result->fetch_assoc();
+
+            $old_stmt->close();
+
+            $old_image = $old_data['profile_image'] ?? '';
+
+            /* บันทึกชื่อไฟล์ใหม่ */
+
+            $update_stmt = $conn->prepare(
+                "UPDATE users
+                 SET profile_image = ?
+                 WHERE id = ?"
+            );
+
+            $update_stmt->bind_param(
+                "si",
+                $new_filename,
+                $user_id
+            );
+
+            $update = $update_stmt->execute();
+
+            $update_stmt->close();
+
+            /* ลบรูปเก่า */
+
+            if (
+                $update &&
+                !empty($old_image) &&
+                $old_image !== $new_filename
+            ) {
+
+                $old_path =
+                    $upload_dir . basename($old_image);
+
+                if (file_exists($old_path)) {
+                    unlink($old_path);
+                }
+            }
+
+            if ($update) {
+
+                echo "<script>
+                        alert('เปลี่ยนรูปโปรไฟล์เรียบร้อยแล้ว');
+                        window.location.href='profile.php';
+                      </script>";
+                exit();
+
+            } else {
+
+                /* ถ้าบันทึก DB ไม่สำเร็จ ลบไฟล์ใหม่ทิ้ง */
+
+                if (file_exists($upload_path)) {
+                    unlink($upload_path);
+                }
+
+                echo "<script>
+                        alert('ไม่สามารถบันทึกรูปโปรไฟล์ลงฐานข้อมูลได้');
+                        window.location.href='profile.php';
+                      </script>";
+                exit();
+            }
+
+        } else {
+
+            echo "<script>
+                    alert('ไม่สามารถอัปโหลดรูปได้');
+                    window.location.href='profile.php';
+                  </script>";
+            exit();
+        }
+
+    } else {
+
+        echo "<script>
+                alert('กรุณาเลือกรูปภาพ');
+                window.location.href='profile.php';
+              </script>";
+        exit();
+    }
 }
 
-/* =========================================================
-   GET USER DATA
-========================================================= */
 
-$user_stmt = $conn->prepare("
-    SELECT
-        id,
-        username,
-        first_name,
-        last_name,
-        email,
-        role,
-        department,
-        profile_image
-    FROM users
-    WHERE id = ?
-    LIMIT 1
-");
+/* ================= GET USER ================= */
 
-if (!$user_stmt) {
-    die(
-        "เกิดข้อผิดพลาด SQL: " .
-        e($conn->error)
-    );
-}
+$user_stmt = $conn->prepare(
+    "SELECT *
+     FROM users
+     WHERE id = ?
+     LIMIT 1"
+);
 
 $user_stmt->bind_param("i", $user_id);
 $user_stmt->execute();
@@ -62,6 +185,7 @@ $user_result = $user_stmt->get_result();
 $user_data = $user_result->fetch_assoc();
 
 $user_stmt->close();
+
 
 if (!$user_data) {
 
@@ -74,9 +198,8 @@ if (!$user_data) {
     exit();
 }
 
-/* =========================================================
-   USER DATA
-========================================================= */
+
+/* ================= USER DATA ================= */
 
 $firstname = $user_data['first_name'] ?? '';
 $lastname = $user_data['last_name'] ?? '';
@@ -87,9 +210,8 @@ $role = $user_data['role'] ?? 'student';
 $department = $user_data['department'] ?? '-';
 $profile_image = $user_data['profile_image'] ?? '';
 
-/* =========================================================
-   ROLE
-========================================================= */
+
+/* ================= ROLE ================= */
 
 if ($role === 'teacher') {
 
@@ -107,17 +229,14 @@ if ($role === 'teacher') {
     $role_icon = 'bi-mortarboard-fill';
 }
 
-/* =========================================================
-   PROFILE IMAGE
-========================================================= */
+
+/* ================= PROFILE IMAGE ================= */
 
 if (!empty($profile_image)) {
 
     $profile_image_url =
         'profile_uploads/' .
-        rawurlencode(
-            basename($profile_image)
-        );
+        rawurlencode(basename($profile_image));
 
 } else {
 
@@ -125,291 +244,45 @@ if (!empty($profile_image)) {
         'https://cdn-icons-png.flaticon.com/512/149/149071.png';
 }
 
-/* =========================================================
-   UPLOAD PROFILE IMAGE
-========================================================= */
 
-if (
-    $_SERVER['REQUEST_METHOD'] === 'POST' &&
-    isset($_FILES['profile_image'])
-) {
-
-    $file = $_FILES['profile_image'];
-
-    if ($file['error'] !== UPLOAD_ERR_OK) {
-
-        echo "<script>
-                alert('กรุณาเลือกรูปภาพ');
-                window.location.href='profile.php';
-              </script>";
-        exit();
-    }
-
-    /* ตรวจชนิดไฟล์ */
-
-    $allowed_types = [
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-        'image/webp'
-    ];
-
-    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-
-    $real_type = finfo_file(
-        $finfo,
-        $file['tmp_name']
-    );
-
-    finfo_close($finfo);
-
-    if (!in_array($real_type, $allowed_types)) {
-
-        echo "<script>
-                alert('กรุณาเลือกไฟล์ JPG, PNG, GIF หรือ WEBP เท่านั้น');
-                window.location.href='profile.php';
-              </script>";
-        exit();
-    }
-
-    /* จำกัดขนาด 5 MB */
-
-    if ($file['size'] > 5 * 1024 * 1024) {
-
-        echo "<script>
-                alert('รูปภาพต้องมีขนาดไม่เกิน 5 MB');
-                window.location.href='profile.php';
-              </script>";
-        exit();
-    }
-
-    /* =====================================================
-       CREATE FOLDER
-    ===================================================== */
-
-    $upload_dir = __DIR__ . '/profile_uploads/';
-
-    if (!is_dir($upload_dir)) {
-
-        if (!mkdir($upload_dir, 0777, true)) {
-
-            echo "<script>
-                    alert('ไม่สามารถสร้างโฟลเดอร์เก็บรูปได้');
-                    window.location.href='profile.php';
-                  </script>";
-            exit();
-        }
-    }
-
-    /* =====================================================
-       EXTENSION
-    ===================================================== */
-
-    $extension = 'jpg';
-
-    if ($real_type === 'image/png') {
-        $extension = 'png';
-    } elseif ($real_type === 'image/gif') {
-        $extension = 'gif';
-    } elseif ($real_type === 'image/webp') {
-        $extension = 'webp';
-    }
-
-    /* =====================================================
-       NEW FILE NAME
-    ===================================================== */
-
-    $new_filename =
-        'profile_' .
-        $user_id .
-        '_' .
-        time() .
-        '.' .
-        $extension;
-
-    $upload_path =
-        $upload_dir .
-        $new_filename;
-
-    /* =====================================================
-       MOVE FILE
-    ===================================================== */
-
-    if (
-        !move_uploaded_file(
-            $file['tmp_name'],
-            $upload_path
-        )
-    ) {
-
-        echo "<script>
-                alert('ไม่สามารถอัปโหลดรูปได้');
-                window.location.href='profile.php';
-              </script>";
-        exit();
-    }
-
-    /* =====================================================
-       GET OLD IMAGE
-    ===================================================== */
-
-    $old_stmt = $conn->prepare("
-        SELECT profile_image
-        FROM users
-        WHERE id = ?
-        LIMIT 1
-    ");
-
-    if (!$old_stmt) {
-
-        if (file_exists($upload_path)) {
-            unlink($upload_path);
-        }
-
-        die(
-            "เกิดข้อผิดพลาด SQL: " .
-            e($conn->error)
-        );
-    }
-
-    $old_stmt->bind_param(
-        "i",
-        $user_id
-    );
-
-    $old_stmt->execute();
-
-    $old_result = $old_stmt->get_result();
-    $old_data = $old_result->fetch_assoc();
-
-    $old_stmt->close();
-
-    $old_image =
-        $old_data['profile_image'] ?? '';
-
-    /* =====================================================
-       UPDATE DATABASE
-    ===================================================== */
-
-    $update_stmt = $conn->prepare("
-        UPDATE users
-        SET profile_image = ?
-        WHERE id = ?
-        LIMIT 1
-    ");
-
-    if (!$update_stmt) {
-
-        if (file_exists($upload_path)) {
-            unlink($upload_path);
-        }
-
-        die(
-            "ไม่สามารถเตรียมคำสั่งบันทึกรูปได้: " .
-            e($conn->error)
-        );
-    }
-
-    $update_stmt->bind_param(
-        "si",
-        $new_filename,
-        $user_id
-    );
-
-    $update_success =
-        $update_stmt->execute();
-
-    $update_stmt->close();
-
-    /* =====================================================
-       SUCCESS
-    ===================================================== */
-
-    if ($update_success) {
-
-        /* ลบรูปเก่า */
-
-        if (
-            !empty($old_image) &&
-            $old_image !== $new_filename
-        ) {
-
-            $old_path =
-                $upload_dir .
-                basename($old_image);
-
-            if (file_exists($old_path)) {
-                unlink($old_path);
-            }
-        }
-
-        echo "<script>
-                alert('เปลี่ยนรูปโปรไฟล์เรียบร้อยแล้ว');
-                window.location.href='profile.php';
-              </script>";
-        exit();
-
-    } else {
-
-        /* ถ้า DB ไม่สำเร็จ ลบรูปใหม่ */
-
-        if (file_exists($upload_path)) {
-            unlink($upload_path);
-        }
-
-        echo "<script>
-                alert('ไม่สามารถบันทึกรูปโปรไฟล์ได้');
-                window.location.href='profile.php';
-              </script>";
-        exit();
-    }
-}
-
-/* =========================================================
+/* =====================================================
    PROJECTS
-========================================================= */
+   ===================================================== */
+
+/*
+   นักศึกษา:
+   แสดงเฉพาะโปรเจกต์ที่ student_id ตรงกับ user_id
+
+   อาจารย์:
+   แสดงโปรเจกต์ทั้งหมด
+
+   admin:
+   แสดงโปรเจกต์ทั้งหมด
+*/
 
 if ($role === 'student') {
 
-    $projects_stmt = $conn->prepare("
-        SELECT *
-        FROM projects
-        WHERE student_id = ?
-        ORDER BY id DESC
-    ");
-
-    if (!$projects_stmt) {
-        die(
-            "เกิดข้อผิดพลาด SQL: " .
-            e($conn->error)
-        );
-    }
-
-    $projects_stmt->bind_param(
-        "i",
-        $user_id
+    $projects_stmt = $conn->prepare(
+        "SELECT *
+         FROM projects
+         WHERE student_id = ?
+         ORDER BY id DESC"
     );
+
+    $projects_stmt->bind_param("i", $user_id);
 
 } else {
 
-    $projects_stmt = $conn->prepare("
-        SELECT *
-        FROM projects
-        ORDER BY id DESC
-    ");
-
-    if (!$projects_stmt) {
-        die(
-            "เกิดข้อผิดพลาด SQL: " .
-            e($conn->error)
-        );
-    }
+    $projects_stmt = $conn->prepare(
+        "SELECT *
+         FROM projects
+         ORDER BY id DESC"
+    );
 }
 
 $projects_stmt->execute();
 
-$projects_query =
-    $projects_stmt->get_result();
+$projects_query = $projects_stmt->get_result();
 
 ?>
 
@@ -422,20 +295,21 @@ $projects_query =
 
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+        content="width=device-width, initial-scale=1.0">
 
     <title>โปรไฟล์ - คลังโปรเจกต์ SDU</title>
 
+    <!-- Bootstrap -->
+
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-    >
+        rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
 
     <link
         rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-    >
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <style>
 
@@ -444,19 +318,27 @@ $projects_query =
         }
 
         body {
+
             margin: 0;
+
             font-family:
                 "Sarabun",
                 "Segoe UI",
                 Arial,
                 sans-serif;
+
             background: #f4f8fb;
+
             color: #333;
         }
 
-        /* ================= HEADER ================= */
+
+        /* =====================================================
+           HEADER
+        ===================================================== */
 
         .custom-header {
+
             height: 90px;
 
             background:
@@ -470,34 +352,50 @@ $projects_query =
             color: white;
 
             box-shadow:
-                0 4px 15px
-                rgba(0,0,0,0.12);
+                0 4px 15px rgba(0,0,0,0.12);
         }
 
+
         .header-inner {
+
             max-width: 1280px;
+
             height: 100%;
+
             margin: auto;
+
             padding: 0 20px;
 
             display: flex;
+
             align-items: center;
         }
 
+
         .header-left-area {
+
             display: flex;
+
             align-items: center;
+
             gap: 18px;
         }
 
+
         .logo-link {
+
             display: flex;
+
             align-items: center;
+
             text-decoration: none;
         }
 
+
         .sdu-logo {
+
             width: 58px;
+
             height: 58px;
 
             object-fit: contain;
@@ -509,18 +407,14 @@ $projects_query =
             padding: 4px;
 
             box-shadow:
-                0 3px 10px
-                rgba(0,0,0,0.12);
+                0 3px 10px rgba(0,0,0,0.12);
         }
 
-        .header-title {
-            font-size: 22px;
-            font-weight: 700;
-            color: white;
-        }
 
         .home-link {
+
             display: flex;
+
             align-items: center;
 
             gap: 8px;
@@ -540,18 +434,40 @@ $projects_query =
             transition: 0.2s;
         }
 
+
         .home-link:hover {
+
             color: white;
-            background: rgba(255,255,255,0.15);
+
+            background:
+                rgba(255,255,255,0.15);
+
+            transform: translateY(-1px);
         }
 
+
         .home-link i {
+
             font-size: 20px;
         }
 
-        /* ================= MAIN ================= */
+
+        .header-title {
+
+            font-size: 22px;
+
+            font-weight: 700;
+
+            color: white;
+        }
+
+
+        /* =====================================================
+           MAIN
+        ===================================================== */
 
         .container-main {
+
             max-width: 1150px;
 
             margin: 35px auto 60px;
@@ -559,11 +475,19 @@ $projects_query =
             padding: 0 20px;
         }
 
+
+        /* =====================================================
+           PAGE TITLE
+        ===================================================== */
+
         .page-heading {
+
             margin-bottom: 25px;
         }
 
+
         .page-heading h1 {
+
             margin: 0;
 
             color: #1f6f9f;
@@ -573,7 +497,9 @@ $projects_query =
             font-weight: 700;
         }
 
+
         .page-heading p {
+
             margin: 7px 0 0;
 
             color: #777;
@@ -581,9 +507,13 @@ $projects_query =
             font-size: 15px;
         }
 
-        /* ================= PROFILE ================= */
+
+        /* =====================================================
+           PROFILE CARD
+        ===================================================== */
 
         .profile-card {
+
             background: white;
 
             border-radius: 20px;
@@ -591,13 +521,14 @@ $projects_query =
             overflow: hidden;
 
             box-shadow:
-                0 5px 20px
-                rgba(0,0,0,0.07);
+                0 5px 20px rgba(0,0,0,0.07);
 
             margin-bottom: 35px;
         }
 
+
         .profile-cover {
+
             height: 165px;
 
             background:
@@ -610,10 +541,15 @@ $projects_query =
             position: relative;
         }
 
-        /* ================= PROFILE AVATAR ================= */
+
+        /* =====================================================
+           PROFILE AVATAR
+        ===================================================== */
 
         .profile-avatar {
+
             width: 130px;
+
             height: 130px;
 
             border-radius: 50%;
@@ -631,8 +567,7 @@ $projects_query =
             overflow: hidden;
 
             box-shadow:
-                0 5px 18px
-                rgba(0,0,0,0.18);
+                0 5px 18px rgba(0,0,0,0.18);
 
             display: flex;
 
@@ -641,16 +576,23 @@ $projects_query =
             justify-content: center;
         }
 
+
         .profile-avatar img {
+
             width: 100%;
+
             height: 100%;
 
             object-fit: cover;
         }
 
-        /* ================= CHANGE PHOTO ================= */
+
+        /* =====================================================
+           CHANGE PHOTO
+        ===================================================== */
 
         .change-photo-btn {
+
             position: absolute;
 
             bottom: 15px;
@@ -674,29 +616,32 @@ $projects_query =
             cursor: pointer;
 
             box-shadow:
-                0 3px 12px
-                rgba(0,0,0,0.15);
+                0 3px 12px rgba(0,0,0,0.15);
 
             transition: 0.2s;
         }
 
+
         .change-photo-btn:hover {
+
             background: #f1f8fc;
 
-            transform:
-                translateY(-2px);
+            transform: translateY(-2px);
         }
 
-        /* ================= PROFILE BODY ================= */
+
+        /* =====================================================
+           PROFILE BODY
+        ===================================================== */
 
         .profile-body {
-            padding:
-                82px
-                45px
-                40px;
+
+            padding: 82px 45px 40px;
         }
 
+
         .profile-name {
+
             font-size: 30px;
 
             font-weight: 700;
@@ -706,7 +651,9 @@ $projects_query =
             margin-bottom: 5px;
         }
 
+
         .profile-username {
+
             color: #777;
 
             font-size: 15px;
@@ -714,7 +661,13 @@ $projects_query =
             margin-bottom: 15px;
         }
 
+
+        /* =====================================================
+           ROLE
+        ===================================================== */
+
         .role-badge {
+
             display: inline-flex;
 
             align-items: center;
@@ -734,9 +687,13 @@ $projects_query =
             margin-bottom: 28px;
         }
 
-        /* ================= INFORMATION ================= */
+
+        /* =====================================================
+           INFORMATION
+        ===================================================== */
 
         .info-title {
+
             font-size: 21px;
 
             font-weight: 700;
@@ -746,7 +703,9 @@ $projects_query =
             margin-bottom: 16px;
         }
 
+
         .info-grid {
+
             display: grid;
 
             grid-template-columns:
@@ -755,11 +714,12 @@ $projects_query =
             gap: 15px;
         }
 
-        .info-box {
-            background: #f8fcff;
 
-            border:
-                1px solid #e3edf3;
+        .info-box {
+
+            background: #f8fbfd;
+
+            border: 1px solid #e3edf3;
 
             border-radius: 12px;
 
@@ -768,13 +728,17 @@ $projects_query =
             transition: 0.2s;
         }
 
+
         .info-box:hover {
+
             border-color: #b9dced;
 
             background: #f4fafe;
         }
 
+
         .info-label {
+
             font-size: 14px;
 
             color: #777;
@@ -782,7 +746,9 @@ $projects_query =
             margin-bottom: 6px;
         }
 
+
         .info-value {
+
             font-size: 16px;
 
             font-weight: 600;
@@ -792,9 +758,13 @@ $projects_query =
             word-break: break-word;
         }
 
-        /* ================= PROJECT ================= */
+
+        /* =====================================================
+           PROJECT SECTION
+        ===================================================== */
 
         .section-header {
+
             display: flex;
 
             align-items: center;
@@ -804,7 +774,9 @@ $projects_query =
             margin-bottom: 18px;
         }
 
+
         .section-title {
+
             font-size: 25px;
 
             font-weight: 700;
@@ -814,11 +786,15 @@ $projects_query =
             margin: 0;
         }
 
+
         .section-title i {
+
             margin-right: 5px;
         }
 
+
         .project-count {
+
             background: #e8f4fc;
 
             color: #287cab;
@@ -832,7 +808,13 @@ $projects_query =
             font-weight: 600;
         }
 
+
+        /* =====================================================
+           PROJECT CARD
+        ===================================================== */
+
         .project-card {
+
             background: white;
 
             border-radius: 16px;
@@ -842,8 +824,7 @@ $projects_query =
             margin-bottom: 18px;
 
             box-shadow:
-                0 4px 15px
-                rgba(0,0,0,0.06);
+                0 4px 15px rgba(0,0,0,0.06);
 
             border-left:
                 5px solid #4aa4d6;
@@ -851,16 +832,18 @@ $projects_query =
             transition: 0.2s;
         }
 
+
         .project-card:hover {
-            transform:
-                translateY(-3px);
+
+            transform: translateY(-3px);
 
             box-shadow:
-                0 8px 22px
-                rgba(0,0,0,0.09);
+                0 8px 22px rgba(0,0,0,0.09);
         }
 
+
         .project-title {
+
             font-size: 19px;
 
             font-weight: 700;
@@ -870,23 +853,33 @@ $projects_query =
             line-height: 1.5;
         }
 
+
         .project-title-link {
+
             color: #287cab;
 
             text-decoration: none;
+
+            transition: 0.2s;
         }
 
+
         .project-title-link:hover {
+
             color: #185d84;
 
             text-decoration: underline;
         }
 
+
         .project-title-link i {
+
             margin-right: 6px;
         }
 
+
         .project-info {
+
             margin-bottom: 8px;
 
             color: #555;
@@ -896,11 +889,15 @@ $projects_query =
             line-height: 1.6;
         }
 
+
         .project-info strong {
+
             color: #444;
         }
 
+
         .project-buttons {
+
             display: flex;
 
             flex-wrap: wrap;
@@ -910,13 +907,21 @@ $projects_query =
             margin-top: 12px;
         }
 
+
         .pdf-btn {
+
             border-radius: 8px;
 
             padding: 8px 14px;
         }
 
+
+        /* =====================================================
+           DELETE BUTTON
+        ===================================================== */
+
         .btn-delete {
+
             display: inline-flex;
 
             align-items: center;
@@ -936,15 +941,67 @@ $projects_query =
             font-size: 14px;
 
             border: none;
+
+            transition: 0.2s;
         }
 
+
         .btn-delete:hover {
+
             background: #b02a37;
 
             color: white;
+
+            transform: translateY(-1px);
         }
 
+
+        /* =====================================================
+           EDIT PROJECT BUTTON
+        ===================================================== */
+
+        .btn-edit-project {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 6px;
+
+            padding: 8px 14px;
+
+            border-radius: 8px;
+
+            background: #4297cd;
+
+            color: white;
+
+            text-decoration: none;
+
+            font-size: 14px;
+
+            border: none;
+
+            transition: 0.2s;
+        }
+
+
+        .btn-edit-project:hover {
+
+            background: #287cab;
+
+            color: white;
+
+            transform: translateY(-1px);
+        }
+
+
+        /* =====================================================
+           NO PROJECT
+        ===================================================== */
+
         .no-project {
+
             background: white;
 
             padding: 50px 30px;
@@ -956,51 +1013,86 @@ $projects_query =
             color: #777;
 
             box-shadow:
-                0 4px 15px
-                rgba(0,0,0,0.05);
+                0 4px 15px rgba(0,0,0,0.05);
         }
 
-        /* ================= MOBILE ================= */
+
+        .no-project i {
+
+            color: #8bbbd5;
+        }
+
+
+        .no-project p {
+
+            font-size: 16px;
+        }
+
+
+        /* =====================================================
+           RESPONSIVE
+        ===================================================== */
 
         @media (max-width: 700px) {
 
             .custom-header {
+
                 height: 75px;
             }
 
+
             .header-inner {
+
                 padding: 0 15px;
             }
 
+
             .sdu-logo {
+
                 width: 45px;
+
                 height: 45px;
             }
 
+
             .header-title {
+
                 display: none;
             }
 
+
             .home-link {
+
                 font-size: 14px;
+
                 padding: 8px 10px;
             }
 
+
             .container-main {
+
                 margin-top: 25px;
+
                 padding: 0 15px;
             }
 
+
             .page-heading h1 {
+
                 font-size: 25px;
             }
 
+
             .profile-cover {
+
                 height: 145px;
             }
 
+
             .profile-avatar {
+
                 width: 110px;
+
                 height: 110px;
 
                 left: 25px;
@@ -1008,7 +1100,9 @@ $projects_query =
                 bottom: -55px;
             }
 
+
             .change-photo-btn {
+
                 left: 145px;
 
                 bottom: 12px;
@@ -1018,22 +1112,28 @@ $projects_query =
                 font-size: 13px;
             }
 
+
             .profile-body {
+
                 padding:
-                    72px
-                    22px
-                    30px;
+                    72px 22px 30px;
             }
 
+
             .profile-name {
+
                 font-size: 25px;
             }
 
+
             .info-grid {
+
                 grid-template-columns: 1fr;
             }
 
+
             .section-header {
+
                 align-items: flex-start;
 
                 gap: 10px;
@@ -1041,22 +1141,31 @@ $projects_query =
                 flex-direction: column;
             }
 
+
             .section-title {
+
                 font-size: 22px;
             }
 
+
             .project-card {
+
                 padding: 20px;
             }
+
         }
 
     </style>
 
 </head>
 
+
 <body>
 
-<!-- ================= HEADER ================= -->
+
+<!-- =====================================================
+     HEADER
+===================================================== -->
 
 <header class="custom-header">
 
@@ -1077,9 +1186,13 @@ $projects_query =
 
             </a>
 
+
             <div class="header-title">
+
                 คลังโปรเจกต์ SDU
+
             </div>
+
 
             <a
                 href="index2.php"
@@ -1098,9 +1211,13 @@ $projects_query =
 
 </header>
 
-<!-- ================= MAIN ================= -->
+
+<!-- =====================================================
+     MAIN
+===================================================== -->
 
 <div class="container-main">
+
 
     <!-- PAGE HEADING -->
 
@@ -1120,22 +1237,28 @@ $projects_query =
 
     </div>
 
-    <!-- ================= PROFILE ================= -->
+
+    <!-- =================================================
+         PROFILE
+    ================================================= -->
 
     <div class="profile-card">
 
+
         <div class="profile-cover">
+
 
             <!-- PROFILE IMAGE -->
 
             <div class="profile-avatar">
 
                 <img
-                    src="<?php echo e($profile_image_url); ?>"
+                    src="<?php echo htmlspecialchars($profile_image_url); ?>"
                     alt="รูปโปรไฟล์"
                 >
 
             </div>
+
 
             <!-- CHANGE PHOTO -->
 
@@ -1151,8 +1274,9 @@ $projects_query =
                     id="profileImageInput"
                     accept="image/jpeg,image/png,image/gif,image/webp"
                     style="display:none;"
-                    onchange="previewAndUpload()"
+                    onchange="document.getElementById('profileForm').submit();"
                 >
+
 
                 <label
                     for="profileImageInput"
@@ -1169,19 +1293,19 @@ $projects_query =
 
         </div>
 
+
         <!-- PROFILE BODY -->
 
         <div class="profile-body">
+
 
             <div class="profile-name">
 
                 <?php
 
-                echo e(
+                echo htmlspecialchars(
                     trim(
-                        $firstname .
-                        ' ' .
-                        $lastname
+                        $firstname . ' ' . $lastname
                     ) ?: $username
                 );
 
@@ -1189,23 +1313,24 @@ $projects_query =
 
             </div>
 
+
             <div class="profile-username">
 
-                @<?php echo e($username); ?>
+                @<?php echo htmlspecialchars($username); ?>
 
             </div>
+
 
             <!-- ROLE -->
 
             <div class="role-badge">
 
-                <i
-                    class="bi <?php echo e($role_icon); ?>"
-                ></i>
+                <i class="bi <?php echo $role_icon; ?>"></i>
 
-                <?php echo e($role_text); ?>
+                <?php echo $role_text; ?>
 
             </div>
+
 
             <!-- ACCOUNT -->
 
@@ -1217,7 +1342,9 @@ $projects_query =
 
             </div>
 
+
             <div class="info-grid">
+
 
                 <!-- EMAIL -->
 
@@ -1228,10 +1355,13 @@ $projects_query =
                     </div>
 
                     <div class="info-value">
-                        <?php echo e($email); ?>
+
+                        <?php echo htmlspecialchars($email); ?>
+
                     </div>
 
                 </div>
+
 
                 <!-- ROLE -->
 
@@ -1243,15 +1373,14 @@ $projects_query =
 
                     <div class="info-value">
 
-                        <i
-                            class="bi <?php echo e($role_icon); ?>"
-                        ></i>
+                        <i class="bi <?php echo $role_icon; ?>"></i>
 
-                        <?php echo e($role_text); ?>
+                        <?php echo $role_text; ?>
 
                     </div>
 
                 </div>
+
 
                 <!-- DEPARTMENT -->
 
@@ -1263,11 +1392,12 @@ $projects_query =
 
                     <div class="info-value">
 
-                        <?php echo e($department); ?>
+                        <?php echo htmlspecialchars($department); ?>
 
                     </div>
 
                 </div>
+
 
                 <!-- USERNAME -->
 
@@ -1279,11 +1409,12 @@ $projects_query =
 
                     <div class="info-value">
 
-                        <?php echo e($username); ?>
+                        <?php echo htmlspecialchars($username); ?>
 
                     </div>
 
                 </div>
+
 
             </div>
 
@@ -1291,7 +1422,10 @@ $projects_query =
 
     </div>
 
-    <!-- ================= PROJECTS ================= -->
+
+    <!-- =================================================
+         PROJECTS
+    ================================================= -->
 
     <div class="section-header">
 
@@ -1303,6 +1437,7 @@ $projects_query =
 
         </h2>
 
+
         <div class="project-count">
 
             <?php echo $projects_query->num_rows; ?>
@@ -1313,14 +1448,15 @@ $projects_query =
 
     </div>
 
+
     <?php if ($projects_query->num_rows > 0): ?>
 
-        <?php while (
-            $row =
-            $projects_query->fetch_assoc()
-        ): ?>
+
+        <?php while ($row = $projects_query->fetch_assoc()): ?>
+
 
             <div class="project-card">
+
 
                 <!-- TITLE -->
 
@@ -1331,9 +1467,7 @@ $projects_query =
                         class="project-title-link"
                     >
 
-                        <i
-                            class="bi bi-file-earmark-text"
-                        ></i>
+                        <i class="bi bi-file-earmark-text"></i>
 
                         <?php
 
@@ -1346,13 +1480,14 @@ $projects_query =
                                 : 'ไม่มีชื่อโปรเจกต์'
                             );
 
-                        echo e($display_title);
+                        echo htmlspecialchars($display_title);
 
                         ?>
 
                     </a>
 
                 </div>
+
 
                 <!-- DEGREE -->
 
@@ -1368,7 +1503,7 @@ $projects_query =
 
                     <?php
 
-                    echo e(
+                    echo htmlspecialchars(
                         !empty($row['degree'])
                         ? $row['degree']
                         : ($row['project_type'] ?? '-')
@@ -1377,6 +1512,7 @@ $projects_query =
                     ?>
 
                 </div>
+
 
                 <!-- DEPARTMENT -->
 
@@ -1392,13 +1528,14 @@ $projects_query =
 
                     <?php
 
-                    echo e(
+                    echo htmlspecialchars(
                         $row['department'] ?? '-'
                     );
 
                     ?>
 
                 </div>
+
 
                 <!-- AUTHORS -->
 
@@ -1414,47 +1551,45 @@ $projects_query =
 
                     <?php
 
-                    echo e(
-                        !empty($row['authors'])
-                        ? $row['authors']
-                        : ($row['student_name'] ?? '-')
+                    echo nl2br(
+                        htmlspecialchars(
+                            !empty($row['authors'])
+                            ? $row['authors']
+                            : ($row['student_name'] ?? '-')
+                        )
                     );
 
                     ?>
 
                 </div>
 
+
                 <!-- BUTTONS -->
 
                 <div class="project-buttons">
 
+
                     <!-- PDF -->
 
-                    <?php if (
-                        !empty($row['pdf_file'])
-                    ): ?>
+                    <?php if (!empty($row['pdf_file'])): ?>
 
                         <?php
 
                         $pdf_file =
                             'uploads/' .
                             rawurlencode(
-                                basename(
-                                    $row['pdf_file']
-                                )
+                                basename($row['pdf_file'])
                             );
 
                         ?>
 
                         <a
-                            href="<?php echo e($pdf_file); ?>"
+                            href="<?php echo htmlspecialchars($pdf_file); ?>"
                             target="_blank"
                             class="btn btn-primary pdf-btn"
                         >
 
-                            <i
-                                class="bi bi-file-earmark-pdf"
-                            ></i>
+                            <i class="bi bi-file-earmark-pdf"></i>
 
                             เปิดไฟล์ PDF
 
@@ -1462,47 +1597,68 @@ $projects_query =
 
                     <?php endif; ?>
 
-                    <!-- DELETE -->
+
+                    <!-- STUDENT ACTIONS -->
 
                     <?php
+
+                    /*
+                       นักศึกษาแก้ไขและลบได้เฉพาะโปรเจกต์ของตัวเอง
+                       ตรวจสอบจาก student_id ของโปรเจกต์
+                    */
 
                     if (
                         $role === 'student' &&
                         isset($row['student_id']) &&
-                        intval(
-                            $row['student_id']
-                        ) === $user_id
+                        intval($row['student_id']) === $user_id
                     ):
 
                     ?>
 
+
+                        <!-- EDIT -->
+
+                        <a
+                            href="edit-project.php?id=<?php echo intval($row['id']); ?>"
+                            class="btn-edit-project"
+                        >
+
+                            <i class="bi bi-pencil-square"></i>
+
+                            แก้ไขโปรเจกต์
+
+                        </a>
+
+
+                        <!-- DELETE -->
+
                         <a
                             href="delete-project.php?id=<?php echo intval($row['id']); ?>"
                             class="btn-delete"
-                            onclick="
-                                return confirm(
-                                    'ต้องการลบโปรเจกต์นี้ใช่หรือไม่?\n\nเมื่อลบแล้วจะไม่สามารถกู้คืนได้'
-                                );
-                            "
+                            onclick="return confirm('ต้องการลบโปรเจกต์นี้ใช่หรือไม่?\n\nเมื่อลบแล้วจะไม่สามารถกู้คืนได้');"
                         >
 
-                            <i
-                                class="bi bi-trash-fill"
-                            ></i>
+                            <i class="bi bi-trash-fill"></i>
 
                             ลบโปรเจกต์
 
                         </a>
 
+
                     <?php endif; ?>
+
 
                 </div>
 
+
             </div>
+
 
         <?php endwhile; ?>
 
+
     <?php else: ?>
+
 
         <div class="no-project">
 
@@ -1510,6 +1666,7 @@ $projects_query =
                 class="bi bi-folder-x"
                 style="font-size:48px;"
             ></i>
+
 
             <p class="mt-3 mb-0">
 
@@ -1519,85 +1676,23 @@ $projects_query =
 
         </div>
 
+
     <?php endif; ?>
+
 
 </div>
 
-<script>
 
-function previewAndUpload() {
-
-    const input =
-        document.getElementById(
-            'profileImageInput'
-        );
-
-    if (
-        input.files &&
-        input.files.length > 0
-    ) {
-
-        const file = input.files[0];
-
-        /* ตรวจขนาดก่อนส่ง */
-
-        if (
-            file.size >
-            5 * 1024 * 1024
-        ) {
-
-            alert(
-                'รูปภาพต้องมีขนาดไม่เกิน 5 MB'
-            );
-
-            input.value = '';
-
-            return;
-        }
-
-        /* แสดงรูปใหม่ทันที */
-
-        const reader =
-            new FileReader();
-
-        reader.onload = function(e) {
-
-            const avatar =
-                document.querySelector(
-                    '.profile-avatar img'
-                );
-
-            avatar.src =
-                e.target.result;
-        };
-
-        reader.readAsDataURL(file);
-
-        /* ส่งไปบันทึก */
-
-        setTimeout(function() {
-
-            document
-                .getElementById(
-                    'profileForm'
-                )
-                .submit();
-
-        }, 200);
-
-    }
-
-}
-
-</script>
+<!-- Bootstrap JS -->
 
 <script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
-></script>
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js">
+</script>
+
 
 </body>
-
 </html>
+
 
 <?php
 

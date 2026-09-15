@@ -5,7 +5,21 @@ require_once "db_connect.php";
 
 
 /* =========================================================
-   ตรวจสอบ Login
+   HELPER
+========================================================= */
+
+function e($value)
+{
+    return htmlspecialchars(
+        (string)$value,
+        ENT_QUOTES,
+        'UTF-8'
+    );
+}
+
+
+/* =========================================================
+   LOGIN
 ========================================================= */
 
 if (!isset($_SESSION['user_id'])) {
@@ -16,7 +30,7 @@ if (!isset($_SESSION['user_id'])) {
 
 
 /* =========================================================
-   ตรวจสอบ Admin
+   ADMIN CHECK
 ========================================================= */
 
 if (($_SESSION['role'] ?? '') !== 'admin') {
@@ -31,7 +45,7 @@ if (($_SESSION['role'] ?? '') !== 'admin') {
 
 
 /* =========================================================
-   รับ ID ผู้ใช้
+   GET USER ID
 ========================================================= */
 
 $user_id = isset($_GET['id'])
@@ -47,7 +61,7 @@ if ($user_id <= 0) {
 
 
 /* =========================================================
-   ดึงข้อมูลผู้ใช้
+   GET USER
 ========================================================= */
 
 $stmt = $conn->prepare("
@@ -71,11 +85,7 @@ if (!$stmt) {
 
     die(
         "เกิดข้อผิดพลาด SQL: "
-        . htmlspecialchars(
-            $conn->error,
-            ENT_QUOTES,
-            'UTF-8'
-        )
+        . e($conn->error)
     );
 }
 
@@ -99,7 +109,7 @@ $stmt->close();
 
 
 /* =========================================================
-   ไม่พบผู้ใช้
+   USER NOT FOUND
 ========================================================= */
 
 if (!$user) {
@@ -114,23 +124,37 @@ if (!$user) {
 
 
 $error = "";
+$saved = false;
 
 
 /* =========================================================
-   เมื่อกดบันทึก
+   FORM SUBMIT
 ========================================================= */
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
     /* =====================================================
-       รับข้อมูล
+       USERNAME
+    ===================================================== */
+
+    $username = trim(
+        $_POST["username"] ?? ""
+    );
+
+
+    /* =====================================================
+       USER CODE
     ===================================================== */
 
     $user_code = trim(
         $_POST["user_code"] ?? ""
     );
 
+
+    /* =====================================================
+       PREFIX
+    ===================================================== */
 
     $prefix = trim(
         $_POST["prefix"] ?? ""
@@ -142,6 +166,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     );
 
 
+    /* =====================================================
+       NAME
+    ===================================================== */
+
     $first_name = trim(
         $_POST["first_name"] ?? ""
     );
@@ -152,27 +180,57 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     );
 
 
+    /* =====================================================
+       EMAIL
+    ===================================================== */
+
     $email = trim(
         $_POST["email"] ?? ""
     );
 
+
+    /* =====================================================
+       ROLE
+    ===================================================== */
 
     $role = trim(
         $_POST["role"] ?? ""
     );
 
 
-    $department = trim(
+    /* =====================================================
+       DEPARTMENT
+    ===================================================== */
+
+    $department_select = trim(
         $_POST["department"] ?? ""
     );
 
+
+    $other_department = trim(
+        $_POST["other_department"] ?? ""
+    );
+
+
+    if ($department_select === "อื่นๆ") {
+
+        $department = $other_department;
+
+    } else {
+
+        $department = $department_select;
+    }
+
+
+    /* =====================================================
+       PASSWORD
+    ===================================================== */
 
     $password = $_POST["password"] ?? "";
 
 
     /* =====================================================
-       ถ้าเลือก "อื่น ๆ"
-       ใช้ค่าที่พิมพ์เอง
+       OTHER PREFIX
     ===================================================== */
 
     if ($prefix === "other") {
@@ -191,21 +249,40 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
     /* =====================================================
-       ตรวจสอบข้อมูล
+       BASIC VALIDATION
     ===================================================== */
 
     if ($error === "") {
 
-        if (
-            $user_code === "" ||
-            $prefix === "" ||
-            $first_name === "" ||
-            $last_name === "" ||
-            $email === ""
-        ) {
+        if ($username === "") {
 
             $error =
-                "กรุณากรอกข้อมูลให้ครบ";
+                "กรุณากรอก Username";
+
+        } elseif ($user_code === "") {
+
+            $error =
+                "กรุณากรอกรหัสนักศึกษา / รหัสบุคลากร";
+
+        } elseif ($prefix === "") {
+
+            $error =
+                "กรุณาเลือกคำนำหน้า";
+
+        } elseif ($first_name === "") {
+
+            $error =
+                "กรุณากรอกชื่อ";
+
+        } elseif ($last_name === "") {
+
+            $error =
+                "กรุณากรอกนามสกุล";
+
+        } elseif ($email === "") {
+
+            $error =
+                "กรุณากรอก Email";
 
         } elseif (
             !filter_var(
@@ -231,12 +308,68 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             $error =
                 "Role ไม่ถูกต้อง";
+
+        } elseif (
+            $department === ""
+        ) {
+
+            $error =
+                "กรุณาเลือกสาขา";
         }
     }
 
 
     /* =====================================================
-       ตรวจสอบ User Code ซ้ำ
+       CHECK USERNAME DUPLICATE
+    ===================================================== */
+
+    if ($error === "") {
+
+        $stmt = $conn->prepare("
+            SELECT id
+            FROM users
+            WHERE username = ?
+            AND id != ?
+            LIMIT 1
+        ");
+
+
+        if (!$stmt) {
+
+            $error =
+                "เกิดข้อผิดพลาดในการตรวจสอบ Username: "
+                . $conn->error;
+
+        } else {
+
+            $stmt->bind_param(
+                "si",
+                $username,
+                $user_id
+            );
+
+
+            $stmt->execute();
+
+
+            $result =
+                $stmt->get_result();
+
+
+            if ($result->num_rows > 0) {
+
+                $error =
+                    "Username นี้ถูกใช้งานแล้ว";
+            }
+
+
+            $stmt->close();
+        }
+    }
+
+
+    /* =====================================================
+       CHECK USER CODE DUPLICATE
     ===================================================== */
 
     if ($error === "") {
@@ -285,7 +418,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
     /* =====================================================
-       ตรวจสอบ Email ซ้ำ
+       CHECK EMAIL DUPLICATE
     ===================================================== */
 
     if ($error === "") {
@@ -334,17 +467,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
     /* =====================================================
-       บันทึกข้อมูล
+       UPDATE DATABASE
     ===================================================== */
-
-    $saved = false;
-
 
     if ($error === "") {
 
 
         /* =================================================
-           ถ้าเปลี่ยน Password
+           CHANGE PASSWORD
         ================================================= */
 
         if ($password !== "") {
@@ -368,6 +498,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $stmt = $conn->prepare("
                     UPDATE users
                     SET
+                        username = ?,
                         user_code = ?,
                         prefix = ?,
                         first_name = ?,
@@ -388,9 +519,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 } else {
 
-
                     $stmt->bind_param(
-                        "ssssssssi",
+                        "sssssssssi",
+                        $username,
                         $user_code,
                         $prefix,
                         $first_name,
@@ -423,13 +554,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         } else {
 
 
-            /* =============================================
-               ใช้ Password เดิม
-            ============================================= */
+            /* =================================================
+               KEEP OLD PASSWORD
+            ================================================= */
 
             $stmt = $conn->prepare("
                 UPDATE users
                 SET
+                    username = ?,
                     user_code = ?,
                     prefix = ?,
                     first_name = ?,
@@ -449,9 +581,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             } else {
 
-
                 $stmt->bind_param(
-                    "sssssssi",
+                    "ssssssssi",
+                    $username,
                     $user_code,
                     $prefix,
                     $first_name,
@@ -482,7 +614,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
     /* =====================================================
-       บันทึกสำเร็จ
+       SAVE SUCCESS
     ===================================================== */
 
     if (
@@ -492,8 +624,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
         /* =================================================
-           ถ้าแก้บัญชีตัวเอง
-           อัปเดต Session
+           UPDATE SESSION
+           กรณีแอดมินแก้บัญชีตัวเอง
         ================================================= */
 
         if (
@@ -501,29 +633,26 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             (int)$_SESSION['user_id'] === $user_id
         ) {
 
+            $_SESSION['username'] =
+                $username;
+
             $_SESSION['user_code'] =
                 $user_code;
-
 
             $_SESSION['prefix'] =
                 $prefix;
 
-
-            $_SESSION['role'] =
-                $role;
-
-
             $_SESSION['first_name'] =
                 $first_name;
-
 
             $_SESSION['last_name'] =
                 $last_name;
 
-
             $_SESSION['email'] =
                 $email;
 
+            $_SESSION['role'] =
+                $role;
 
             $_SESSION['department'] =
                 $department;
@@ -540,40 +669,134 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
     /* =====================================================
-       ถ้า Error
-       แสดงค่าที่กรอกล่าสุด
+       ERROR
+       KEEP LATEST DATA
     ===================================================== */
+
+    $user['username'] =
+        $username;
 
     $user['user_code'] =
         $user_code;
 
-
     $user['prefix'] =
         $prefix;
-
 
     $user['first_name'] =
         $first_name;
 
-
     $user['last_name'] =
         $last_name;
-
 
     $user['email'] =
         $email;
 
-
     $user['role'] =
         $role;
-
 
     $user['department'] =
         $department;
 }
 
-?>
 
+/* =========================================================
+   DEPARTMENT OPTIONS
+========================================================= */
+
+$departments = [
+
+    "เทคโนโลยีสารสนเทศ",
+
+    "วิทยาการคอมพิวเตอร์",
+
+    "เทคโนโลยีดิจิทัล",
+
+    "คอมพิวเตอร์ธุรกิจ",
+
+    "มัลติมีเดีย",
+
+    "วิทยาศาสตร์สิ่งแวดล้อม",
+
+    "เทคโนโลยีการประกอบอาหาร",
+
+    "อื่นๆ"
+];
+
+
+$current_department =
+    trim(
+        $user['department'] ?? ''
+    );
+
+
+$is_other_department =
+    $current_department !== ''
+    &&
+    !in_array(
+        $current_department,
+        array_slice(
+            $departments,
+            0,
+            -1
+        ),
+        true
+    );
+
+
+/* =========================================================
+   PREFIX DATA
+========================================================= */
+
+$teacher_prefixes = [
+
+    "อ." => "อาจารย์",
+
+    "ผศ." => "ผู้ช่วยศาสตราจารย์",
+
+    "ผศ.ดร." => "ผู้ช่วยศาสตราจารย์ ดร.",
+
+    "รศ." => "รองศาสตราจารย์",
+
+    "รศ.ดร." => "รองศาสตราจารย์ ดร.",
+
+    "ศ." => "ศาสตราจารย์",
+
+    "ศ.ดร." => "ศาสตราจารย์ ดร.",
+
+    "ดร." => "ดอกเตอร์"
+];
+
+
+$normal_prefixes = [
+
+    "นาย" => "นาย",
+
+    "นาง" => "นาง",
+
+    "นางสาว" => "นางสาว"
+];
+
+
+$current_prefix =
+    trim(
+        $user['prefix'] ?? ''
+    );
+
+
+$is_custom_prefix =
+    $current_prefix !== ''
+    &&
+    !array_key_exists(
+        $current_prefix,
+        $teacher_prefixes
+    )
+    &&
+    !array_key_exists(
+        $current_prefix,
+        $normal_prefixes
+    );
+
+?>
 
 <!DOCTYPE html>
 
@@ -588,7 +811,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>แก้ไขผู้ใช้ - Admin</title>
+    <title>
+        แก้ไขผู้ใช้ - Admin
+    </title>
 
 
     <link
@@ -613,15 +838,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 "Sarabun",
                 sans-serif;
 
-            background: #f4f8fb;
+            background:
+                #f4f8fb;
 
-            color: #333;
+            color:
+                #333;
         }
 
 
-        /* =========================
+        /* =================================================
            HEADER
-        ========================= */
+        ================================================= */
 
         .header {
 
@@ -632,16 +859,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     #3287BB
                 );
 
-            color: white;
+            color:
+                white;
 
-            padding: 18px 40px;
+            padding:
+                18px 40px;
 
-            display: flex;
+            display:
+                flex;
 
             justify-content:
                 space-between;
 
-            align-items: center;
+            align-items:
+                center;
 
             box-shadow:
                 0 2px 8px
@@ -651,67 +882,93 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         .header h2 {
 
-            margin: 0;
+            margin:
+                0;
 
-            font-size: 23px;
+            font-size:
+                23px;
 
-            display: flex;
+            display:
+                flex;
 
-            align-items: center;
+            align-items:
+                center;
 
-            gap: 10px;
+            gap:
+                10px;
         }
 
 
         .header a {
 
-            color: white;
+            color:
+                white;
 
-            text-decoration: none;
+            text-decoration:
+                none;
 
             background:
-                rgba(255,255,255,.18);
+                rgba(
+                    255,
+                    255,
+                    255,
+                    .18
+                );
 
-            padding: 10px 15px;
+            padding:
+                10px 15px;
 
-            border-radius: 8px;
+            border-radius:
+                8px;
 
-            transition: .2s;
+            transition:
+                .2s;
         }
 
 
         .header a:hover {
 
             background:
-                rgba(255,255,255,.28);
+                rgba(
+                    255,
+                    255,
+                    255,
+                    .28
+                );
         }
 
 
-        /* =========================
+        /* =================================================
            CONTAINER
-        ========================= */
+        ================================================= */
 
         .container {
 
-            max-width: 850px;
+            max-width:
+                900px;
 
-            margin: 40px auto;
+            margin:
+                40px auto;
 
-            padding: 0 20px;
+            padding:
+                0 20px;
         }
 
 
-        /* =========================
+        /* =================================================
            BOX
-        ========================= */
+        ================================================= */
 
         .box {
 
-            background: white;
+            background:
+                white;
 
-            border-radius: 15px;
+            border-radius:
+                15px;
 
-            padding: 30px;
+            padding:
+                30px;
 
             box-shadow:
                 0 4px 15px
@@ -721,271 +978,378 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         .box h2 {
 
-            margin-top: 0;
+            margin-top:
+                0;
 
-            margin-bottom: 25px;
+            margin-bottom:
+                25px;
 
-            color: #287cab;
+            color:
+                #287cab;
 
-            display: flex;
+            display:
+                flex;
 
-            align-items: center;
+            align-items:
+                center;
 
-            gap: 10px;
+            gap:
+                10px;
         }
 
 
-        /* =========================
-           USERNAME
-        ========================= */
-
-        .username-box {
-
-            background: #f4f8fb;
-
-            padding: 13px 15px;
-
-            border-radius: 8px;
-
-            margin-bottom: 22px;
-
-            color: #555;
-
-            border-left:
-                4px solid #4297cd;
-        }
-
-
-        .username-box strong {
-
-            color: #287cab;
-        }
-
-
-        /* =========================
+        /* =================================================
            FORM
-        ========================= */
+        ================================================= */
 
         .form-group {
 
-            margin-bottom: 18px;
+            margin-bottom:
+                18px;
         }
 
 
         label {
 
-            display: block;
+            display:
+                block;
 
-            margin-bottom: 7px;
+            margin-bottom:
+                7px;
 
-            font-weight: bold;
+            font-weight:
+                bold;
 
-            color: #444;
+            color:
+                #444;
         }
 
 
         input,
         select {
 
-            width: 100%;
+            width:
+                100%;
 
-            padding: 12px 14px;
+            padding:
+                12px 14px;
 
             border:
                 1px solid #d8d8d8;
 
-            border-radius: 8px;
+            border-radius:
+                8px;
 
-            font-size: 15px;
+            font-size:
+                15px;
 
-            outline: none;
+            outline:
+                none;
 
-            background: white;
+            background:
+                white;
 
-            transition: .2s;
+            transition:
+                .2s;
         }
 
 
         input:focus,
         select:focus {
 
-            border-color: #4297cd;
+            border-color:
+                #4297cd;
 
             box-shadow:
                 0 0 0 3px
-                rgba(66,151,205,.12);
+                rgba(
+                    66,
+                    151,
+                    205,
+                    .12
+                );
         }
 
 
-        /* =========================
-           NAME GRID
-        ========================= */
+        /* =================================================
+           USERNAME INFO
+        ================================================= */
 
-        .name-grid {
+        .username-info {
 
-            display: grid;
-
-            grid-template-columns:
-                1fr 1.5fr 1.5fr;
-
-            gap: 15px;
-        }
-
-
-        /* =========================
-           PREFIX NOTE
-        ========================= */
-
-        .prefix-note {
-
-            font-size: 13px;
-
-            color: #777;
-
-            margin-top: 6px;
-
-            line-height: 1.5;
-        }
-
-
-        /* =========================
-           OTHER PREFIX
-        ========================= */
-
-        #otherPrefixBox {
-
-            display: none;
-
-            background: #f8fbfd;
-
-            padding: 15px;
-
-            border-radius: 10px;
+            background:
+                #eef8fd;
 
             border-left:
                 4px solid #4297cd;
 
-            margin-top: -5px;
+            padding:
+                13px 15px;
+
+            border-radius:
+                8px;
+
+            margin-bottom:
+                22px;
+
+            color:
+                #555;
         }
 
 
-        /* =========================
-           ERROR
-        ========================= */
+        .username-info strong {
 
-        .error {
-
-            background: #ffe6e6;
-
-            color: #b00000;
-
-            padding: 12px;
-
-            border-radius: 8px;
-
-            margin-bottom: 20px;
-
-            text-align: center;
+            color:
+                #287cab;
         }
 
 
-        /* =========================
-           PASSWORD NOTE
-        ========================= */
+        /* =================================================
+           NAME GRID
+        ================================================= */
+
+        .name-grid {
+
+            display:
+                grid;
+
+            grid-template-columns:
+                1fr 1.5fr 1.5fr;
+
+            gap:
+                15px;
+        }
+
+
+        /* =================================================
+           PREFIX
+        ================================================= */
+
+        .prefix-note {
+
+            font-size:
+                13px;
+
+            color:
+                #777;
+
+            margin-top:
+                6px;
+
+            line-height:
+                1.5;
+        }
+
+
+        #otherPrefixBox {
+
+            display:
+                none;
+
+            background:
+                #f8fbfd;
+
+            padding:
+                15px;
+
+            border-radius:
+                10px;
+
+            border-left:
+                4px solid #4297cd;
+
+            margin-bottom:
+                18px;
+        }
+
+
+        /* =================================================
+           DEPARTMENT
+        ================================================= */
+
+        .department-note {
+
+            font-size:
+                13px;
+
+            color:
+                #777;
+
+            margin-top:
+                6px;
+        }
+
+
+        #otherDepartmentBox {
+
+            display:
+                none;
+
+            background:
+                #f8fbfd;
+
+            padding:
+                15px;
+
+            border-radius:
+                10px;
+
+            border-left:
+                4px solid #4297cd;
+
+            margin-top:
+                10px;
+        }
+
+
+        /* =================================================
+           PASSWORD
+        ================================================= */
 
         .password-note {
 
-            font-size: 13px;
+            font-size:
+                13px;
 
-            color: #777;
+            color:
+                #777;
 
-            margin-top: 6px;
+            margin-top:
+                6px;
         }
 
 
-        /* =========================
+        /* =================================================
+           ERROR
+        ================================================= */
+
+        .error {
+
+            background:
+                #ffe6e6;
+
+            color:
+                #b00000;
+
+            padding:
+                12px;
+
+            border-radius:
+                8px;
+
+            margin-bottom:
+                20px;
+
+            text-align:
+                center;
+        }
+
+
+        /* =================================================
+           REQUIRED
+        ================================================= */
+
+        .required {
+
+            color:
+                #dc3545;
+        }
+
+
+        /* =================================================
            BUTTONS
-        ========================= */
+        ================================================= */
 
         .buttons {
 
-            display: flex;
+            display:
+                flex;
 
-            gap: 10px;
+            gap:
+                10px;
 
-            margin-top: 25px;
+            margin-top:
+                25px;
         }
 
 
         .btn {
 
-            flex: 1;
+            flex:
+                1;
 
-            border: none;
+            border:
+                none;
 
-            padding: 12px;
+            padding:
+                12px;
 
-            border-radius: 8px;
+            border-radius:
+                8px;
 
-            text-decoration: none;
+            text-decoration:
+                none;
 
-            text-align: center;
+            text-align:
+                center;
 
-            cursor: pointer;
+            cursor:
+                pointer;
 
-            font-size: 15px;
+            font-size:
+                15px;
 
-            transition: .2s;
+            transition:
+                .2s;
         }
 
 
         .save {
 
-            background: #198754;
+            background:
+                #198754;
 
-            color: white;
+            color:
+                white;
         }
 
 
         .save:hover {
 
-            background: #157347;
+            background:
+                #157347;
         }
 
 
         .cancel {
 
-            background: #6c757d;
+            background:
+                #6c757d;
 
-            color: white;
+            color:
+                white;
         }
 
 
         .cancel:hover {
 
-            background: #5c636a;
+            background:
+                #5c636a;
         }
 
 
-        /* =========================
-           REQUIRED
-        ========================= */
+        /* =================================================
+           MOBILE
+        ================================================= */
 
-        .required {
-
-            color: #dc3545;
-        }
-
-
-        /* =========================
-           RESPONSIVE
-        ========================= */
-
-        @media (max-width: 700px) {
+        @media (
+            max-width: 700px
+        ) {
 
             .name-grid {
 
-                grid-template-columns: 1fr;
+                grid-template-columns:
+                    1fr;
             }
 
 
@@ -998,7 +1362,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             .header h2 {
 
-                font-size: 20px;
+                font-size:
+                    20px;
             }
 
 
@@ -1007,13 +1372,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 padding:
                     8px 10px;
 
-                font-size: 14px;
+                font-size:
+                    14px;
             }
 
 
             .box {
 
-                padding: 22px;
+                padding:
+                    22px;
+            }
+
+
+            .buttons {
+
+                flex-direction:
+                    column;
             }
 
         }
@@ -1069,17 +1443,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         </h2>
 
 
+        <!-- =================================================
+             ERROR
+        ================================================= -->
+
         <?php if ($error !== ""): ?>
 
             <div class="error">
 
                 <i class="bi bi-exclamation-circle"></i>
 
-                <?= htmlspecialchars(
-                    $error,
-                    ENT_QUOTES,
-                    'UTF-8'
-                ) ?>
+                <?= e($error) ?>
 
             </div>
 
@@ -1090,26 +1464,63 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
              USERNAME
         ================================================= -->
 
-        <div class="username-box">
+        <div class="username-info">
 
             <i class="bi bi-person"></i>
 
-            Username:
+            กำลังแก้ไขบัญชี:
 
             <strong>
-
-                <?= htmlspecialchars(
-                    $user['username'],
-                    ENT_QUOTES,
-                    'UTF-8'
-                ) ?>
-
+                <?= e($user['username'] ?? '') ?>
             </strong>
 
         </div>
 
 
-        <form method="POST">
+        <form
+            method="POST"
+            autocomplete="off"
+        >
+
+
+            <!-- =================================================
+                 USERNAME
+            ================================================= -->
+
+            <div class="form-group">
+
+                <label for="username">
+
+                    Username
+
+                    <span class="required">*</span>
+
+                </label>
+
+
+                <input
+                    type="text"
+                    name="username"
+                    id="username"
+                    value="<?= e(
+                        $user['username'] ?? ''
+                    ) ?>"
+                    placeholder="กรอก Username"
+                    maxlength="50"
+                    required
+                >
+
+
+                <div class="prefix-note">
+
+                    <i class="bi bi-info-circle"></i>
+
+                    สามารถเปลี่ยน Username ได้
+                    แต่ต้องไม่ซ้ำกับสมาชิกคนอื่น
+
+                </div>
+
+            </div>
 
 
             <!-- =================================================
@@ -1118,7 +1529,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             <div class="form-group">
 
-                <label>
+                <label for="user_code">
 
                     รหัสนักศึกษา / รหัสบุคลากร
 
@@ -1126,15 +1537,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 </label>
 
+
                 <input
                     type="text"
                     name="user_code"
-                    value="<?= htmlspecialchars(
-                        $user['user_code'] ?? '',
-                        ENT_QUOTES,
-                        'UTF-8'
+                    id="user_code"
+                    value="<?= e(
+                        $user['user_code'] ?? ''
                     ) ?>"
                     placeholder="เช่น 6600000000"
+                    maxlength="50"
                     required
                 >
 
@@ -1152,7 +1564,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 <div class="form-group">
 
-                    <label>
+                    <label for="prefix">
 
                         คำนำหน้า
 
@@ -1167,7 +1579,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         required
                     >
 
-                        <!-- JavaScript สร้างรายการ -->
+                        <!-- JavaScript -->
 
                     </select>
 
@@ -1176,7 +1588,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                         <i class="bi bi-info-circle"></i>
 
-                        สำหรับอาจารย์ รายการจะแสดงชื่อเต็ม
+                        สำหรับอาจารย์
+                        Dropdown จะแสดงชื่อเต็ม
                         แต่ระบบจะบันทึกเป็นตัวย่อ
 
                     </div>
@@ -1188,7 +1601,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 <div class="form-group">
 
-                    <label>
+                    <label for="first_name">
 
                         ชื่อ
 
@@ -1196,13 +1609,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                     </label>
 
+
                     <input
                         type="text"
                         name="first_name"
-                        value="<?= htmlspecialchars(
-                            $user['first_name'] ?? '',
-                            ENT_QUOTES,
-                            'UTF-8'
+                        id="first_name"
+                        value="<?= e(
+                            $user['first_name'] ?? ''
                         ) ?>"
                         required
                     >
@@ -1214,7 +1627,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 <div class="form-group">
 
-                    <label>
+                    <label for="last_name">
 
                         นามสกุล
 
@@ -1222,13 +1635,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                     </label>
 
+
                     <input
                         type="text"
                         name="last_name"
-                        value="<?= htmlspecialchars(
-                            $user['last_name'] ?? '',
-                            ENT_QUOTES,
-                            'UTF-8'
+                        id="last_name"
+                        value="<?= e(
+                            $user['last_name'] ?? ''
                         ) ?>"
                         required
                     >
@@ -1247,7 +1660,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 id="otherPrefixBox"
             >
 
-                <label>
+                <label for="other_prefix">
 
                     ระบุคำนำหน้าเอง
 
@@ -1262,6 +1675,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     id="other_prefix"
                     placeholder="พิมพ์คำนำหน้าที่ต้องการ"
                     maxlength="50"
+                    value="<?= $is_custom_prefix
+                        ? e($current_prefix)
+                        : '' ?>"
                 >
 
             </div>
@@ -1273,7 +1689,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             <div class="form-group">
 
-                <label>
+                <label for="email">
 
                     Email
 
@@ -1281,14 +1697,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 </label>
 
+
                 <input
                     type="email"
                     name="email"
-                    value="<?= htmlspecialchars(
-                        $user['email'] ?? '',
-                        ENT_QUOTES,
-                        'UTF-8'
+                    id="email"
+                    value="<?= e(
+                        $user['email'] ?? ''
                     ) ?>"
+                    placeholder="example@email.com"
+                    maxlength="100"
                     required
                 >
 
@@ -1301,13 +1719,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             <div class="form-group">
 
-                <label>
+                <label for="role">
 
                     Role
 
                     <span class="required">*</span>
 
                 </label>
+
 
                 <select
                     name="role"
@@ -1325,7 +1744,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         : ''
                         ?>
                     >
+
                         Student
+
                     </option>
 
 
@@ -1339,7 +1760,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         : ''
                         ?>
                     >
+
                         Teacher
+
                     </option>
 
 
@@ -1353,7 +1776,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         : ''
                         ?>
                     >
+
                         Admin
+
                     </option>
 
                 </select>
@@ -1367,20 +1792,91 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             <div class="form-group">
 
-                <label>
-                    สาขา
+                <label for="department">
+
+                    สาขาวิชา
+
+                    <span class="required">*</span>
+
                 </label>
 
-                <input
-                    type="text"
+
+                <select
                     name="department"
-                    value="<?= htmlspecialchars(
-                        $user['department'] ?? '',
-                        ENT_QUOTES,
-                        'UTF-8'
-                    ) ?>"
-                    placeholder="เช่น เทคโนโลยีสารสนเทศ"
+                    id="department"
+                    required
                 >
+
+                    <option value="">
+
+                        -- เลือกสาขาวิชา --
+
+                    </option>
+
+
+                    <?php foreach (
+                        $departments as $dept
+                    ): ?>
+
+                        <option
+                            value="<?= e($dept) ?>"
+                            <?= (
+                                !$is_other_department &&
+                                $current_department === $dept
+                            )
+                            ? 'selected'
+                            : ''
+                            ?>
+                        >
+
+                            <?= e($dept) ?>
+
+                        </option>
+
+                    <?php endforeach; ?>
+
+                </select>
+
+
+                <!-- OTHER DEPARTMENT -->
+
+                <div
+                    id="otherDepartmentBox"
+                >
+
+                    <label
+                        for="other_department"
+                    >
+
+                        ระบุสาขาวิชาเอง
+
+                        <span class="required">*</span>
+
+                    </label>
+
+
+                    <input
+                        type="text"
+                        name="other_department"
+                        id="other_department"
+                        maxlength="100"
+                        placeholder="พิมพ์ชื่อสาขาวิชา"
+                        value="<?= $is_other_department
+                            ? e($current_department)
+                            : '' ?>"
+                    >
+
+                </div>
+
+
+                <div class="department-note">
+
+                    <i class="bi bi-info-circle"></i>
+
+                    หากเลือก "อื่นๆ"
+                    สามารถพิมพ์ชื่อสาขาวิชาเองได้
+
+                </div>
 
             </div>
 
@@ -1391,22 +1887,30 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             <div class="form-group">
 
-                <label>
+                <label for="password">
+
                     Password ใหม่
+
                 </label>
+
 
                 <input
                     type="password"
                     name="password"
+                    id="password"
                     minlength="4"
+                    maxlength="255"
                     placeholder="เว้นว่างถ้าไม่ต้องการเปลี่ยน"
+                    autocomplete="new-password"
                 >
+
 
                 <div class="password-note">
 
                     <i class="bi bi-info-circle"></i>
 
-                    ถ้าไม่กรอก จะใช้ Password เดิม
+                    ถ้าไม่กรอก
+                    ระบบจะใช้ Password เดิม
 
                 </div>
 
@@ -1455,10 +1959,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <script>
 
 /* =========================================================
-   คำนำหน้าอาจารย์
-
-   label = สิ่งที่เห็นใน Dropdown
-   value = สิ่งที่ส่งไปบันทึก Database
+   PREFIX DATA
 ========================================================= */
 
 const teacherPrefixes = [
@@ -1511,10 +2012,6 @@ const teacherPrefixes = [
 ];
 
 
-/* =========================================================
-   คำนำหน้าทั่วไป
-========================================================= */
-
 const normalPrefixes = [
 
     {
@@ -1541,41 +2038,69 @@ const normalPrefixes = [
 
 
 /* =========================================================
-   ตัวแปร
+   ELEMENTS
 ========================================================= */
 
 const roleSelect =
-    document.getElementById("role");
+    document.getElementById(
+        "role"
+    );
 
 
 const prefixSelect =
-    document.getElementById("prefix");
+    document.getElementById(
+        "prefix"
+    );
 
 
 const otherPrefixBox =
-    document.getElementById("otherPrefixBox");
+    document.getElementById(
+        "otherPrefixBox"
+    );
 
 
 const otherPrefixInput =
-    document.getElementById("other_prefix");
+    document.getElementById(
+        "other_prefix"
+    );
+
+
+const departmentSelect =
+    document.getElementById(
+        "department"
+    );
+
+
+const otherDepartmentBox =
+    document.getElementById(
+        "otherDepartmentBox"
+    );
+
+
+const otherDepartmentInput =
+    document.getElementById(
+        "other_department"
+    );
 
 
 /* =========================================================
-   Prefix เดิมจาก Database
+   CURRENT PREFIX
 ========================================================= */
 
 let currentPrefix =
     <?= json_encode(
-        $user['prefix'] ?? '',
+        $current_prefix,
         JSON_UNESCAPED_UNICODE
     ) ?>;
 
 
 /* =========================================================
-   สร้างรายการคำนำหน้า
+   UPDATE PREFIX
 ========================================================= */
 
-function updatePrefixOptions() {
+function updatePrefixOptions(
+    keepCurrent = true
+) {
 
 
     const role =
@@ -1592,11 +2117,13 @@ function updatePrefixOptions() {
 
 
     /* =====================================================
-       ตัวเลือกแรก
+       DEFAULT
     ===================================================== */
 
     const defaultOption =
-        document.createElement("option");
+        document.createElement(
+            "option"
+        );
 
 
     defaultOption.value =
@@ -1613,7 +2140,7 @@ function updatePrefixOptions() {
 
 
     /* =====================================================
-       สร้าง Options
+       OPTIONS
     ===================================================== */
 
     options.forEach(
@@ -1621,7 +2148,9 @@ function updatePrefixOptions() {
 
 
             const option =
-                document.createElement("option");
+                document.createElement(
+                    "option"
+                );
 
 
             option.value =
@@ -1641,46 +2170,52 @@ function updatePrefixOptions() {
 
 
     /* =====================================================
-       เช็ก Prefix เดิม
+       SELECT CURRENT
     ===================================================== */
 
-    let found = false;
+    let found =
+        false;
 
 
-    options.forEach(
-        function(item) {
+    if (keepCurrent) {
+
+        options.forEach(
+            function(item) {
 
 
-            if (
-                item.value === currentPrefix
-            ) {
+                if (
+                    item.value ===
+                    currentPrefix
+                ) {
 
-                prefixSelect.value =
-                    currentPrefix;
+                    prefixSelect.value =
+                        currentPrefix;
 
+                    found =
+                        true;
+                }
 
-                found = true;
             }
+        );
 
+
+        /* =================================================
+           CUSTOM PREFIX
+        ================================================= */
+
+        if (
+            !found &&
+            currentPrefix !== ""
+        ) {
+
+            prefixSelect.value =
+                "other";
+
+
+            otherPrefixInput.value =
+                currentPrefix;
         }
-    );
 
-
-    /* =====================================================
-       ถ้าเป็น Prefix ที่พิมพ์เอง
-    ===================================================== */
-
-    if (
-        !found &&
-        currentPrefix !== ""
-    ) {
-
-        prefixSelect.value =
-            "other";
-
-
-        otherPrefixInput.value =
-            currentPrefix;
     }
 
 
@@ -1689,87 +2224,84 @@ function updatePrefixOptions() {
 
 
 /* =========================================================
-   ตรวจสอบ "อื่น ๆ"
+   CHECK OTHER PREFIX
 ========================================================= */
 
-function checkOtherPrefix() {
-
+function checkOtherPrefix()
+{
 
     if (
-        prefixSelect.value === "other"
+        prefixSelect.value ===
+        "other"
     ) {
 
-
-        /* แสดงช่อง */
 
         otherPrefixBox.style.display =
             "block";
 
 
-        /* บังคับกรอก */
-
         otherPrefixInput.required =
             true;
-
-
-        /* โฟกัสช่อง */
-
-        otherPrefixInput.focus();
 
 
     } else {
 
 
-        /* ซ่อนช่อง */
-
         otherPrefixBox.style.display =
             "none";
 
-
-        /* ไม่บังคับ */
 
         otherPrefixInput.required =
             false;
 
 
-        /* ล้างค่า */
+        /*
+         * ไม่ล้างค่าตรงนี้
+         * เพื่อไม่ให้ข้อมูลหายเวลาเปลี่ยน Role
+         */
 
-        otherPrefixInput.value =
-            "";
     }
 }
 
 
 /* =========================================================
-   เปลี่ยน Role
+   ROLE CHANGE
 ========================================================= */
 
 roleSelect.addEventListener(
     "change",
-    function() {
-
+    function()
+    {
 
         /*
-         * ถ้าเปลี่ยน Role
-         * ให้สร้างรายการ Prefix ใหม่
+         * เปลี่ยน Role
+         * แล้วเลือก Prefix ใหม่
          */
 
-        currentPrefix = "";
+        currentPrefix =
+            "";
 
 
-        updatePrefixOptions();
+        prefixSelect.value =
+            "";
+
+
+        updatePrefixOptions(
+            false
+        );
 
     }
 );
 
 
 /* =========================================================
-   เปลี่ยน Prefix
+   PREFIX CHANGE
 ========================================================= */
 
 prefixSelect.addEventListener(
     "change",
-    function() {
+    function()
+    {
 
         checkOtherPrefix();
 
@@ -1778,10 +2310,61 @@ prefixSelect.addEventListener(
 
 
 /* =========================================================
-   เริ่มต้นหน้า
+   DEPARTMENT
 ========================================================= */
 
-updatePrefixOptions();
+function checkOtherDepartment()
+{
+
+    if (
+        departmentSelect.value ===
+        "อื่นๆ"
+    ) {
+
+
+        otherDepartmentBox.style.display =
+            "block";
+
+
+        otherDepartmentInput.required =
+            true;
+
+
+    } else {
+
+
+        otherDepartmentBox.style.display =
+            "none";
+
+
+        otherDepartmentInput.required =
+            false;
+
+    }
+}
+
+
+departmentSelect.addEventListener(
+    "change",
+    function()
+    {
+
+        checkOtherDepartment();
+
+    }
+);
+
+
+/* =========================================================
+   INITIAL
+========================================================= */
+
+updatePrefixOptions(
+    true
+);
+
+
+checkOtherDepartment();
 
 </script>
 

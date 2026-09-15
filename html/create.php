@@ -1,81 +1,91 @@
 <?php
 
 session_start();
-require_once "db_connect.php";
+include 'db_connect.php';
 
 /* =========================================================
    ตรวจสอบ Login
 ========================================================= */
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+
+    echo "<script>
+        alert('กรุณาเข้าสู่ระบบก่อนใช้งาน');
+        window.location.href='login.php';
+    </script>";
+
     exit();
 }
 
 $user_id = (int)$_SESSION['user_id'];
 
-$first_name = trim($_SESSION['first_name'] ?? '');
-$last_name  = trim($_SESSION['last_name'] ?? '');
-
-$submitter_fullname = trim($first_name . ' ' . $last_name);
-
+$user_role = $_SESSION['role'] ?? '';
 
 /* =========================================================
-   HELPER
+   ดึงข้อมูลผู้ใช้ปัจจุบัน
 ========================================================= */
 
-function e($value)
-{
-    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
-}
+$user_data = [];
 
-
-/* =========================================================
-   ดึงข้อมูลผู้ใช้
-========================================================= */
-
-$user_sql = "
-    SELECT
-        id,
-        username,
-        first_name,
-        last_name,
-        email,
-        role,
-        department
-    FROM users
-    WHERE id = ?
-    LIMIT 1
-";
-
-$user_stmt = mysqli_prepare($conn, $user_sql);
-
-if (!$user_stmt) {
-    die("เกิดข้อผิดพลาดในการเตรียมข้อมูลผู้ใช้");
-}
-
-mysqli_stmt_bind_param(
-    $user_stmt,
-    "i",
-    $user_id
+$stmt = mysqli_prepare(
+    $conn,
+    "SELECT * FROM users WHERE id = ? LIMIT 1"
 );
 
-mysqli_stmt_execute($user_stmt);
+if ($stmt) {
 
-$user_result = mysqli_stmt_get_result($user_stmt);
+    mysqli_stmt_bind_param(
+        $stmt,
+        "i",
+        $user_id
+    );
 
-if (!$user_result || mysqli_num_rows($user_result) === 0) {
-    mysqli_stmt_close($user_stmt);
+    mysqli_stmt_execute($stmt);
 
-    session_destroy();
+    $result = mysqli_stmt_get_result($stmt);
 
-    header("Location: login.php");
-    exit();
+    if ($result) {
+        $user_data = mysqli_fetch_assoc($result) ?: [];
+    }
+
+    mysqli_stmt_close($stmt);
 }
 
-$current_user = mysqli_fetch_assoc($user_result);
 
-mysqli_stmt_close($user_stmt);
+/* =========================================================
+   ชื่อผู้ส่ง
+========================================================= */
+
+$first_name =
+    $user_data['first_name']
+    ?? $user_data['firstname']
+    ?? '';
+
+$last_name =
+    $user_data['last_name']
+    ?? $user_data['lastname']
+    ?? '';
+
+$student_name = trim(
+    $first_name . ' ' . $last_name
+);
+
+if ($student_name === '') {
+
+    $student_name =
+        $user_data['username']
+        ?? 'นักศึกษา';
+}
+
+
+/* =========================================================
+   สาขาวิชาของผู้ใช้
+========================================================= */
+
+$user_department =
+    trim(
+        $user_data['department'] ?? ''
+    );
 
 
 /* =========================================================
@@ -87,76 +97,93 @@ $teachers = [];
 $teacher_sql = "
     SELECT
         id,
+        prefix,
         first_name,
-        last_name,
-        department
+        last_name
     FROM users
     WHERE role = 'teacher'
     ORDER BY first_name ASC, last_name ASC
 ";
 
-$teacher_result = mysqli_query($conn, $teacher_sql);
+$teacher_result = mysqli_query(
+    $conn,
+    $teacher_sql
+);
 
 if ($teacher_result) {
 
-    while ($teacher = mysqli_fetch_assoc($teacher_result)) {
+    while (
+        $teacher = mysqli_fetch_assoc(
+            $teacher_result
+        )
+    ) {
 
-        $teacher_fullname = trim(
-            ($teacher['first_name'] ?? '') .
-            ' ' .
-            ($teacher['last_name'] ?? '')
-        );
-
-        if ($teacher_fullname !== '') {
-
-            $teachers[] = [
-                'id' => (int)$teacher['id'],
-                'name' => $teacher_fullname,
-                'department' => trim($teacher['department'] ?? '')
-            ];
-        }
+        $teachers[] = $teacher;
     }
 }
 
 
 /* =========================================================
-   ค่าเริ่มต้น
+   ตรวจสอบ Columns ใน projects
 ========================================================= */
 
-$title       = '';
-$description = '';
-$degree      = '';
-$department  = '';
-$authors     = '';
-$advisor     = '';
-$github_url  = '';
+$project_columns = [];
 
-$error = '';
-$success = '';
+$columns_result = mysqli_query(
+    $conn,
+    "SHOW COLUMNS FROM projects"
+);
+
+if ($columns_result) {
+
+    while (
+        $column = mysqli_fetch_assoc(
+            $columns_result
+        )
+    ) {
+
+        $project_columns[] =
+            $column['Field'];
+    }
+}
 
 
 /* =========================================================
-   SUBMIT
+   ตัวแปร
+========================================================= */
+
+$error = '';
+
+$title = '';
+$degree = '';
+$project_department = '';
+$other_department = '';
+$advisor = '';
+$github_url = '';
+
+$selected_department = '';
+
+
+/* =========================================================
+   รับข้อมูลจาก Form
 ========================================================= */
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $title = trim($_POST['title'] ?? '');
-
-    $description = trim(
-        $_POST['description'] ?? ''
+    $title = trim(
+        $_POST['title'] ?? ''
     );
 
     $degree = trim(
         $_POST['degree'] ?? ''
     );
 
-    $department = trim(
+    $selected_department = trim(
         $_POST['department'] ?? ''
     );
 
-    $authors = trim(
-        $_POST['authors'] ?? ''
+    $other_department = trim(
+        $_POST['other_department'] ?? ''
     );
 
     $advisor = trim(
@@ -169,332 +196,773 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
     /* =====================================================
+       สาขาวิชา
+    ===================================================== */
+
+    if ($selected_department === 'อื่นๆ') {
+
+        $project_department =
+            $other_department;
+
+    } else {
+
+        $project_department =
+            $selected_department;
+    }
+
+
+    /* =====================================================
        ตรวจสอบข้อมูล
     ===================================================== */
 
     if ($title === '') {
 
-        $error = 'กรุณากรอกชื่อโปรเจกต์';
+        $error =
+            'กรุณากรอกชื่อโปรเจกต์';
 
     } elseif ($degree === '') {
 
-        $error = 'กรุณาเลือกระดับการศึกษา';
+        $error =
+            'กรุณาเลือกระดับการศึกษา';
 
-    } elseif ($department === '') {
+    } elseif ($project_department === '') {
 
-        $error = 'กรุณากรอกสาขา / ภาควิชา';
+        $error =
+            'กรุณาเลือกสาขาวิชา';
 
-    } elseif ($authors === '') {
-
-        $error = 'กรุณากรอกชื่อสมาชิกกลุ่ม';
-
-    } elseif ($advisor === '') {
-
-        $error = 'กรุณาเลือกอาจารย์ที่ปรึกษา';
-
-    }
-
-
-    /* =====================================================
-       ตรวจสอบอาจารย์ที่เลือก
-    ===================================================== */
-
-    if ($error === '') {
-
-        $advisor_found = false;
-
-        foreach ($teachers as $teacher) {
-
-            if ($teacher['name'] === $advisor) {
-
-                $advisor_found = true;
-                break;
-            }
-        }
-
-        if (!$advisor_found) {
-            $error = 'อาจารย์ที่ปรึกษาที่เลือกไม่ถูกต้อง';
-        }
-    }
-
-
-    /* =====================================================
-       ตรวจสอบ GitHub
-    ===================================================== */
-
-    if (
-        $error === '' &&
-        $github_url !== ''
+    } elseif (
+        $selected_department === 'อื่นๆ'
+        &&
+        $other_department === ''
     ) {
 
-        if (!filter_var($github_url, FILTER_VALIDATE_URL)) {
+        $error =
+            'กรุณากรอกชื่อสาขาวิชา';
 
-            $error = 'ลิงก์ GitHub ไม่ถูกต้อง';
-
-        } else {
-
-            $github_host = strtolower(
-                parse_url($github_url, PHP_URL_HOST) ?? ''
-            );
-
-            if (
-                $github_host !== 'github.com' &&
-                $github_host !== 'www.github.com'
-            ) {
-
-                $error = 'กรุณาใส่ลิงก์จาก GitHub เท่านั้น';
-            }
-        }
-    }
-
-
-    /* =====================================================
-       PDF
-    ===================================================== */
-
-    $pdf_file = '';
-
-    if (
-        $error === '' &&
-        isset($_FILES['pdf_file']) &&
-        $_FILES['pdf_file']['error'] !== UPLOAD_ERR_NO_FILE
+    } elseif (
+        !empty($github_url)
+        &&
+        !filter_var(
+            $github_url,
+            FILTER_VALIDATE_URL
+        )
     ) {
 
-        if ($_FILES['pdf_file']['error'] !== UPLOAD_ERR_OK) {
+        $error =
+            'ลิงก์ GitHub ไม่ถูกต้อง';
 
-            $error = 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์ PDF';
+    } elseif (
+        !isset($_FILES['pdf_file'])
+    ) {
 
-        } else {
+        $error =
+            'กรุณาเลือกไฟล์ PDF';
 
-            $file_name = $_FILES['pdf_file']['name'];
-            $file_tmp  = $_FILES['pdf_file']['tmp_name'];
-            $file_size = $_FILES['pdf_file']['size'];
+    } elseif (
+        $_FILES['pdf_file']['error']
+        !== UPLOAD_ERR_OK
+    ) {
 
-            $extension = strtolower(
-                pathinfo($file_name, PATHINFO_EXTENSION)
+        $error =
+            'ไม่สามารถอัปโหลดไฟล์ได้';
+
+    } else {
+
+
+        /* =================================================
+           FILE
+        ================================================= */
+
+        $file =
+            $_FILES['pdf_file'];
+
+        $file_name =
+            $file['name'];
+
+        $file_tmp =
+            $file['tmp_name'];
+
+        $file_size =
+            $file['size'];
+
+
+        $extension =
+            strtolower(
+                pathinfo(
+                    $file_name,
+                    PATHINFO_EXTENSION
+                )
             );
 
 
-            /* จำกัด 10 MB */
+        /* =================================================
+           ตรวจสอบ PDF
+        ================================================= */
 
-            if ($file_size > 10 * 1024 * 1024) {
+        if ($extension !== 'pdf') {
 
-                $error = 'ไฟล์ PDF ต้องมีขนาดไม่เกิน 10 MB';
+            $error =
+                'อนุญาตเฉพาะไฟล์ PDF เท่านั้น';
 
-            } elseif ($extension !== 'pdf') {
+        } elseif (
+            $file_size >
+            20 * 1024 * 1024
+        ) {
 
-                $error = 'กรุณาอัปโหลดเฉพาะไฟล์ PDF เท่านั้น';
+            $error =
+                'ไฟล์ต้องมีขนาดไม่เกิน 20 MB';
+
+        } else {
+
+
+            /* =============================================
+               ตรวจสอบ MIME
+            ============================================= */
+
+            $finfo =
+                finfo_open(
+                    FILEINFO_MIME_TYPE
+                );
+
+            $mime =
+                finfo_file(
+                    $finfo,
+                    $file_tmp
+                );
+
+            finfo_close($finfo);
+
+
+            if ($mime !== 'application/pdf') {
+
+                $error =
+                    'ไฟล์ที่เลือกไม่ใช่ PDF ที่ถูกต้อง';
 
             } else {
 
-                $upload_dir = __DIR__ . "/uploads/";
 
-                if (!is_dir($upload_dir)) {
+                /* =========================================
+                   ตรวจสอบอาจารย์
+                ========================================= */
 
-                    mkdir(
-                        $upload_dir,
-                        0777,
-                        true
-                    );
+                $advisor_valid = true;
+
+                if ($advisor !== '') {
+
+                    $advisor_valid = false;
+
+                    foreach (
+                        $teachers
+                        as $teacher
+                    ) {
+
+                        $prefix =
+                            trim(
+                                $teacher['prefix']
+                                ?? ''
+                            );
+
+                        $teacher_first =
+                            trim(
+                                $teacher['first_name']
+                                ?? ''
+                            );
+
+                        $teacher_last =
+                            trim(
+                                $teacher['last_name']
+                                ?? ''
+                            );
+
+
+                        $teacher_fullname =
+                            trim(
+                                $prefix .
+                                ' ' .
+                                $teacher_first .
+                                ' ' .
+                                $teacher_last
+                            );
+
+
+                        $teacher_without_prefix =
+                            trim(
+                                $teacher_first .
+                                ' ' .
+                                $teacher_last
+                            );
+
+
+                        if (
+                            $advisor ===
+                            $teacher_fullname
+                            ||
+                            $advisor ===
+                            $teacher_without_prefix
+                        ) {
+
+                            $advisor_valid = true;
+
+                            break;
+                        }
+                    }
                 }
 
 
-                /* สร้างชื่อไฟล์ใหม่ */
+                if (!$advisor_valid) {
 
-                $new_file_name =
-                    'project_' .
-                    $user_id .
-                    '_' .
-                    time() .
-                    '_' .
-                    bin2hex(random_bytes(4)) .
-                    '.pdf';
-
-
-                $destination =
-                    $upload_dir .
-                    $new_file_name;
-
-
-                if (
-                    move_uploaded_file(
-                        $file_tmp,
-                        $destination
-                    )
-                ) {
-
-                    $pdf_file = $new_file_name;
+                    $error =
+                        'กรุณาเลือกอาจารย์ที่ปรึกษาจากรายการ';
 
                 } else {
 
-                    $error = 'ไม่สามารถบันทึกไฟล์ PDF ได้';
-                }
-            }
-        }
-    }
 
+                    /* =====================================
+                       สร้าง uploads
+                    ===================================== */
 
-    /* =====================================================
-       บันทึกข้อมูล
-    ===================================================== */
-
-    if ($error === '') {
-
-        /*
-            project_name
-            ใช้ชื่อเดียวกับ title เพื่อรองรับข้อมูลเดิม
-        */
-
-        $project_name = $title;
-
-
-        /*
-            project_type
-            ใช้ degree เพื่อรองรับโครงสร้างเดิม
-        */
-
-        $project_type = $degree;
-
-
-        /*
-            student_name
-            ใช้ชื่อสมาชิกกลุ่ม
-        */
-
-        $student_name = $authors;
-
-
-        $status = 'ส่งแล้ว';
-
-
-        $insert_sql = "
-            INSERT INTO projects
-            (
-                project_name,
-                project_type,
-                student_name,
-                title,
-                description,
-                degree,
-                department,
-                authors,
-                advisor,
-                pdf_file,
-                github_url,
-                status,
-                student_id
-            )
-            VALUES
-            (
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
-                ?
-            )
-        ";
-
-
-        $stmt = mysqli_prepare(
-            $conn,
-            $insert_sql
-        );
-
-
-        if (!$stmt) {
-
-            /*
-                ถ้า INSERT ไม่ผ่าน
-                และมี PDF ที่อัปโหลดไปแล้ว
-                ให้ลบ PDF ทิ้ง
-            */
-
-            if ($pdf_file !== '') {
-
-                $uploaded_file =
-                    __DIR__ .
-                    "/uploads/" .
-                    basename($pdf_file);
-
-                if (file_exists($uploaded_file)) {
-                    unlink($uploaded_file);
-                }
-            }
-
-            $error =
-                'เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' .
-                mysqli_error($conn);
-
-        } else {
-
-            mysqli_stmt_bind_param(
-                $stmt,
-                "ssssssssssssi",
-                $project_name,
-                $project_type,
-                $student_name,
-                $title,
-                $description,
-                $degree,
-                $department,
-                $authors,
-                $advisor,
-                $pdf_file,
-                $github_url,
-                $status,
-                $user_id
-            );
-
-
-            if (mysqli_stmt_execute($stmt)) {
-
-                $new_project_id =
-                    mysqli_insert_id($conn);
-
-                mysqli_stmt_close($stmt);
-
-
-                echo "
-                <script>
-                    alert('สร้างโปรเจกต์เรียบร้อยแล้ว');
-                    window.location.href =
-                        'project-detail.php?id={$new_project_id}';
-                </script>
-                ";
-
-                exit();
-
-            } else {
-
-                $error =
-                    'ไม่สามารถบันทึกโปรเจกต์ได้: ' .
-                    mysqli_stmt_error($stmt);
-
-                mysqli_stmt_close($stmt);
-
-
-                /*
-                    ถ้า INSERT ไม่สำเร็จ
-                    ลบ PDF ที่อัปโหลดไปแล้ว
-                */
-
-                if ($pdf_file !== '') {
-
-                    $uploaded_file =
+                    $upload_dir =
                         __DIR__ .
-                        "/uploads/" .
-                        basename($pdf_file);
+                        '/uploads/';
 
-                    if (file_exists($uploaded_file)) {
-                        unlink($uploaded_file);
+
+                    if (
+                        !is_dir(
+                            $upload_dir
+                        )
+                    ) {
+
+                        mkdir(
+                            $upload_dir,
+                            0777,
+                            true
+                        );
+                    }
+
+
+                    /* =====================================
+                       สร้างชื่อไฟล์ใหม่
+                    ===================================== */
+
+                    $new_file_name =
+                        'project_' .
+                        $user_id .
+                        '_' .
+                        time() .
+                        '_' .
+                        bin2hex(
+                            random_bytes(4)
+                        ) .
+                        '.pdf';
+
+
+                    $destination =
+                        $upload_dir .
+                        $new_file_name;
+
+
+                    /* =====================================
+                       ย้ายไฟล์
+                    ===================================== */
+
+                    if (
+                        move_uploaded_file(
+                            $file_tmp,
+                            $destination
+                        )
+                    ) {
+
+
+                        $pdf_file =
+                            $new_file_name;
+
+
+                        /* =================================
+                           INSERT COLUMNS
+                        ================================= */
+
+                        $insert_columns = [];
+
+                        $insert_values = [];
+
+
+                        /* ---------------------------------
+                           ชื่อโปรเจกต์
+                        --------------------------------- */
+
+                        if (
+                            in_array(
+                                'project_name',
+                                $project_columns
+                            )
+                        ) {
+
+                            $insert_columns[] =
+                                'project_name';
+
+                            $insert_values[] =
+                                $title;
+                        }
+
+
+                        /* ---------------------------------
+                           project_type
+                        --------------------------------- */
+
+                        if (
+                            in_array(
+                                'project_type',
+                                $project_columns
+                            )
+                        ) {
+
+                            $insert_columns[] =
+                                'project_type';
+
+                            $insert_values[] =
+                                $degree;
+                        }
+
+
+                        /* ---------------------------------
+                           student_name
+                        --------------------------------- */
+
+                        if (
+                            in_array(
+                                'student_name',
+                                $project_columns
+                            )
+                        ) {
+
+                            $insert_columns[] =
+                                'student_name';
+
+                            $insert_values[] =
+                                $student_name;
+                        }
+
+
+                        /* ---------------------------------
+                           title
+                        --------------------------------- */
+
+                        if (
+                            in_array(
+                                'title',
+                                $project_columns
+                            )
+                        ) {
+
+                            $insert_columns[] =
+                                'title';
+
+                            $insert_values[] =
+                                $title;
+                        }
+
+
+                        /* ---------------------------------
+                           description
+                        --------------------------------- */
+
+                        if (
+                            in_array(
+                                'description',
+                                $project_columns
+                            )
+                        ) {
+
+                            $insert_columns[] =
+                                'description';
+
+                            $insert_values[] =
+                                '';
+                        }
+
+
+                        /* ---------------------------------
+                           degree
+                        --------------------------------- */
+
+                        if (
+                            in_array(
+                                'degree',
+                                $project_columns
+                            )
+                        ) {
+
+                            $insert_columns[] =
+                                'degree';
+
+                            $insert_values[] =
+                                $degree;
+                        }
+
+
+                        /* ---------------------------------
+                           department
+                        --------------------------------- */
+
+                        if (
+                            in_array(
+                                'department',
+                                $project_columns
+                            )
+                        ) {
+
+                            $insert_columns[] =
+                                'department';
+
+                            $insert_values[] =
+                                $project_department;
+                        }
+
+
+                        /* ---------------------------------
+                           authors
+                        --------------------------------- */
+
+                        if (
+                            in_array(
+                                'authors',
+                                $project_columns
+                            )
+                        ) {
+
+                            $insert_columns[] =
+                                'authors';
+
+                            $insert_values[] =
+                                $student_name;
+                        }
+
+
+                        /* ---------------------------------
+                           advisor
+                        --------------------------------- */
+
+                        if (
+                            in_array(
+                                'advisor',
+                                $project_columns
+                            )
+                        ) {
+
+                            $insert_columns[] =
+                                'advisor';
+
+                            $insert_values[] =
+                                $advisor;
+                        }
+
+
+                        /* ---------------------------------
+                           PDF
+                        --------------------------------- */
+
+                        if (
+                            in_array(
+                                'pdf_file',
+                                $project_columns
+                            )
+                        ) {
+
+                            $insert_columns[] =
+                                'pdf_file';
+
+                            $insert_values[] =
+                                $pdf_file;
+                        }
+
+
+                        /* ---------------------------------
+                           GitHub
+                        --------------------------------- */
+
+                        if (
+                            in_array(
+                                'github_url',
+                                $project_columns
+                            )
+                        ) {
+
+                            $insert_columns[] =
+                                'github_url';
+
+                            $insert_values[] =
+                                $github_url;
+                        }
+
+
+                        /* ---------------------------------
+                           status
+                        --------------------------------- */
+
+                        if (
+                            in_array(
+                                'status',
+                                $project_columns
+                            )
+                        ) {
+
+                            $insert_columns[] =
+                                'status';
+
+                            $insert_values[] =
+                                'ส่งแล้ว';
+                        }
+
+
+                        /* ---------------------------------
+                           student_id
+                        --------------------------------- */
+
+                        if (
+                            in_array(
+                                'student_id',
+                                $project_columns
+                            )
+                        ) {
+
+                            $insert_columns[] =
+                                'student_id';
+
+                            $insert_values[] =
+                                $user_id;
+                        }
+
+
+                        /* ---------------------------------
+                           author_id
+                        --------------------------------- */
+
+                        if (
+                            in_array(
+                                'author_id',
+                                $project_columns
+                            )
+                            &&
+                            !in_array(
+                                'student_id',
+                                $project_columns
+                            )
+                        ) {
+
+                            $insert_columns[] =
+                                'author_id';
+
+                            $insert_values[] =
+                                $user_id;
+                        }
+
+
+                        /* ---------------------------------
+                           created_by
+                        --------------------------------- */
+
+                        if (
+                            in_array(
+                                'created_by',
+                                $project_columns
+                            )
+                            &&
+                            !in_array(
+                                'student_id',
+                                $project_columns
+                            )
+                            &&
+                            !in_array(
+                                'author_id',
+                                $project_columns
+                            )
+                        ) {
+
+                            $insert_columns[] =
+                                'created_by';
+
+                            $insert_values[] =
+                                $user_id;
+                        }
+
+
+                        /* =================================================
+                           สร้าง SQL
+                        ================================================= */
+
+                        if (
+                            count(
+                                $insert_columns
+                            ) === 0
+                        ) {
+
+                            if (
+                                file_exists(
+                                    $destination
+                                )
+                            ) {
+
+                                unlink(
+                                    $destination
+                                );
+                            }
+
+                            $error =
+                                'ไม่พบคอลัมน์ที่สามารถบันทึกข้อมูลได้';
+
+                        } else {
+
+
+                            $column_sql =
+                                implode(
+                                    ', ',
+                                    $insert_columns
+                                );
+
+
+                            $placeholders =
+                                implode(
+                                    ', ',
+                                    array_fill(
+                                        0,
+                                        count(
+                                            $insert_values
+                                        ),
+                                        '?'
+                                    )
+                                );
+
+
+                            $sql =
+                                "INSERT INTO projects
+                                ($column_sql)
+                                VALUES
+                                ($placeholders)";
+
+
+                            $stmt =
+                                mysqli_prepare(
+                                    $conn,
+                                    $sql
+                                );
+
+
+                            if (!$stmt) {
+
+                                if (
+                                    file_exists(
+                                        $destination
+                                    )
+                                ) {
+
+                                    unlink(
+                                        $destination
+                                    );
+                                }
+
+                                $error =
+                                    'ไม่สามารถเตรียมคำสั่ง SQL ได้: ' .
+                                    mysqli_error(
+                                        $conn
+                                    );
+
+                            } else {
+
+
+                                /* =====================================
+                                   bind_param
+                                ===================================== */
+
+                                $types = '';
+
+                                foreach (
+                                    $insert_columns
+                                    as $index => $column
+                                ) {
+
+                                    if (
+                                        in_array(
+                                            $column,
+                                            [
+                                                'student_id',
+                                                'author_id',
+                                                'created_by'
+                                            ]
+                                        )
+                                    ) {
+
+                                        $types .= 'i';
+
+                                    } else {
+
+                                        $types .= 's';
+                                    }
+                                }
+
+
+                                mysqli_stmt_bind_param(
+                                    $stmt,
+                                    $types,
+                                    ...$insert_values
+                                );
+
+
+                                /* =====================================
+                                   Execute
+                                ===================================== */
+
+                                if (
+                                    mysqli_stmt_execute(
+                                        $stmt
+                                    )
+                                ) {
+
+                                    mysqli_stmt_close(
+                                        $stmt
+                                    );
+
+
+                                    echo "
+                                    <script>
+                                        alert('ส่งโปรเจกต์เรียบร้อยแล้ว');
+                                        window.location.href='submit-project.php';
+                                    </script>
+                                    ";
+
+                                    exit();
+
+                                } else {
+
+
+                                    if (
+                                        file_exists(
+                                            $destination
+                                        )
+                                    ) {
+
+                                        unlink(
+                                            $destination
+                                        );
+                                    }
+
+
+                                    $error =
+                                        'ไม่สามารถบันทึกข้อมูลได้: ' .
+                                        mysqli_stmt_error(
+                                            $stmt
+                                        );
+
+
+                                    mysqli_stmt_close(
+                                        $stmt
+                                    );
+                                }
+                            }
+                        }
+                    } else {
+
+                        $error =
+                            'ไม่สามารถบันทึกไฟล์ลงโฟลเดอร์ uploads ได้';
                     }
                 }
             }
@@ -503,9 +971,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 ?>
-
 <!DOCTYPE html>
-
 <html lang="th">
 
 <head>
@@ -518,7 +984,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     >
 
     <title>
-        สร้างโปรเจกต์ - คลังโปรเจกต์ SDU
+        ส่งโปรเจกต์ - คลังโปรเจกต์ SDU
     </title>
 
 
@@ -538,6 +1004,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     >
 
 
+    <!-- Google Font -->
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
+
     <style>
 
         * {
@@ -549,63 +1023,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             margin: 0;
 
-            background:
-                linear-gradient(
-                    180deg,
-                    #f5f9fc 0%,
-                    #ffffff 45%
-                );
+            background: #f4f7f9;
+
+            color: #2c3e50;
 
             font-family:
+                'Sarabun',
                 'Segoe UI',
                 Tahoma,
-                Arial,
                 sans-serif;
 
-            color: #263238;
-
+            min-height: 100vh;
         }
 
 
-        /* =====================================================
+        /* ========================================
            HEADER
-        ===================================================== */
+        ======================================== */
 
         .custom-header {
+
+            width: 100%;
 
             height: 90px;
 
             background:
                 linear-gradient(
-                    135deg,
-                    #4aa4d6,
-                    #4297CD,
-                    #3287BB
+                    90deg,
+                    #4aa4d6 0%,
+                    #4297CD 50%,
+                    #3287BB 100%
                 );
 
-            box-shadow:
-                0 4px 18px
-                rgba(38, 119, 164, 0.20);
+            color: white;
 
+            display: flex;
+
+            align-items: center;
+
+            box-shadow:
+                0 2px 8px
+                rgba(0,0,0,0.16);
+
+            position: relative;
+
+            z-index: 100;
         }
 
 
         .header-inner {
 
+            width: 100%;
+
             max-width: 1280px;
 
-            height: 90px;
+            margin: 0 auto;
 
-            margin: auto;
-
-            padding: 0 25px;
+            padding: 0 20px;
 
             display: flex;
 
             align-items: center;
 
             justify-content: space-between;
-
         }
 
 
@@ -615,8 +1095,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             align-items: center;
 
-            gap: 20px;
-
+            gap: 14px;
         }
 
 
@@ -627,7 +1106,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             align-items: center;
 
             text-decoration: none;
-
         }
 
 
@@ -639,108 +1117,201 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             object-fit: contain;
 
-            background: white;
+            display: block;
 
-            border-radius: 50%;
-
-            padding: 3px;
-
-            box-shadow:
-                0 3px 10px
-                rgba(0,0,0,0.15);
-
+            transition: 0.3s;
         }
 
 
+        .logo-link:hover .sdu-logo {
+
+            transform: scale(1.06);
+
+            filter:
+                drop-shadow(
+                    0 4px 7px
+                    rgba(0,0,0,0.18)
+                );
+        }
+
+
+        /* ========================================
+           HOME
+        ======================================== */
+
         .home-link {
+
+            position: relative;
 
             display: flex;
 
             align-items: center;
 
-            gap: 9px;
+            gap: 8px;
 
-            color: white;
+            color: white !important;
 
             text-decoration: none;
 
-            font-size: 18px;
+            font-size: 17px;
 
             font-weight: 600;
 
+            padding: 10px 16px;
+
+            border-radius: 10px;
+
+            transition: 0.25s;
         }
 
 
         .home-link:hover {
 
-            color: white;
+            background:
+                rgba(255,255,255,0.16);
 
+            transform:
+                translateY(-2px);
         }
 
 
         .home-icon {
 
-            font-size: 22px;
-
+            font-size: 19px;
         }
 
+
+        /* ========================================
+           PROFILE
+        ======================================== */
 
         .header-right {
 
             display: flex;
 
             align-items: center;
-
-            gap: 10px;
-
         }
 
 
-        .profile-icon {
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: center;
+        .profile-image {
 
             width: 45px;
 
             height: 45px;
 
-            color: white;
-
-            font-size: 30px;
-
-            text-decoration: none;
-
             border-radius: 50%;
 
+            object-fit: cover;
+
+            border: 2px solid white;
+
+            cursor: pointer;
+
+            background: white;
+
+            transition: 0.25s;
         }
 
 
-        .profile-icon:hover {
+        .profile-image:hover {
+
+            opacity: 0.9;
+
+            transform:
+                scale(1.06);
+
+            box-shadow:
+                0 4px 12px
+                rgba(0,0,0,0.18);
+        }
+
+
+        /* ========================================
+           PROFILE DROPDOWN
+        ======================================== */
+
+        .custom-profile-menu {
+
+            background-color: #1a1b26;
+
+            border:
+                1px solid #2f334d;
+
+            border-radius: 12px;
+
+            box-shadow:
+                0 10px 25px
+                rgba(0,0,0,0.3);
+
+            min-width: 220px;
+
+            padding: 8px;
+        }
+
+
+        .custom-profile-menu
+        .dropdown-item {
+
+            color: #a9b1d6;
+
+            font-size: 0.95rem;
+
+            padding: 10px 14px;
+
+            border-radius: 8px;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+        }
+
+
+        .custom-profile-menu
+        .dropdown-item:hover {
+
+            background-color: #24283b;
 
             color: white;
-
-            background:
-                rgba(255,255,255,0.15);
-
         }
 
 
-        /* =====================================================
+        .custom-profile-menu
+        .logout-btn {
+
+            color: #f7768e;
+        }
+
+
+        .custom-profile-menu
+        .logout-btn:hover {
+
+            background:
+                rgba(247,118,142,0.15);
+
+            color: #ff6c6b;
+        }
+
+
+        .custom-profile-menu
+        .dropdown-divider {
+
+            border-color: #2f334d;
+        }
+
+
+        /* ========================================
            MAIN
-        ===================================================== */
+        ======================================== */
 
-        .page-container {
+        .main-container {
 
-            max-width: 1000px;
+            max-width: 850px;
 
-            margin: 45px auto;
+            margin: 40px auto;
 
             padding: 0 20px;
-
         }
 
 
@@ -748,140 +1319,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             background: white;
 
-            border: 1px solid #e2edf3;
+            border-radius: 14px;
 
-            border-radius: 18px;
+            border:
+                1px solid #e2e8f0;
 
             box-shadow:
-                0 8px 30px
-                rgba(48,105,139,0.10);
+                0 5px 25px
+                rgba(0,0,0,0.06);
 
             overflow: hidden;
-
         }
 
 
         .form-header {
 
-            padding: 28px 32px;
-
             background:
                 linear-gradient(
                     135deg,
-                    #f4fbff,
-                    #ffffff
+                    #4297CD,
+                    #55A7D7
                 );
 
-            border-bottom:
-                1px solid #e5eef3;
+            color: white;
 
+            padding: 28px 35px;
         }
 
 
         .form-header h1 {
 
-            margin: 0;
+            font-size: 1.5rem;
 
-            color: #174f70;
+            font-weight: 700;
 
-            font-size: 28px;
-
-            font-weight: 750;
-
+            margin-bottom: 5px;
         }
 
 
         .form-header p {
 
-            margin: 8px 0 0;
+            margin: 0;
 
-            color: #7a8d98;
-
-            font-size: 14px;
-
+            opacity: 0.9;
         }
 
 
         .form-body {
 
-            padding: 32px;
-
+            padding: 30px 35px;
         }
 
 
-        /* =====================================================
-           ALERT
-        ===================================================== */
-
-        .error-box {
-
-            padding: 14px 16px;
-
-            margin-bottom: 22px;
-
-            background: #fff1f1;
-
-            border:
-                1px solid #f2c5c5;
-
-            border-radius: 10px;
-
-            color: #b02a37;
-
-            font-size: 14px;
-
-        }
-
-
-        /* =====================================================
+        /* ========================================
            FORM
-        ===================================================== */
-
-        .form-group {
-
-            margin-bottom: 22px;
-
-        }
-
+        ======================================== */
 
         .form-label {
 
-            display: block;
+            font-weight: 600;
 
-            margin-bottom: 8px;
-
-            color: #245c7d;
-
-            font-size: 14px;
-
-            font-weight: 700;
-
-        }
-
-
-        .required {
-
-            color: #dc3545;
-
+            color: #334155;
         }
 
 
         .form-control,
         .form-select {
 
-            min-height: 48px;
+            border-color: #d8dee4;
 
-            border:
-                1px solid #cddfe9;
+            border-radius: 8px;
 
-            border-radius: 9px;
+            padding: 10px 12px;
 
-            padding: 10px 13px;
-
-            font-size: 14px;
-
-            color: #263238;
-
+            transition: 0.2s;
         }
 
 
@@ -891,256 +1402,211 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-color: #4297CD;
 
             box-shadow:
-                0 0 0 3px
-                rgba(66,151,205,0.12);
-
+                0 0 0 0.2rem
+                rgba(66,151,205,0.15);
         }
 
 
-        textarea.form-control {
+        .required {
 
-            min-height: 140px;
-
-            resize: vertical;
-
+            color: #dc3545;
         }
 
 
-        .form-help {
+        .help-text {
 
-            margin-top: 6px;
+            font-size: 0.82rem;
 
-            color: #8999a2;
+            color: #64748b;
 
-            font-size: 12px;
-
+            margin-top: 5px;
         }
 
 
-        /* =====================================================
-           ADVISOR SELECT
-        ===================================================== */
+        /* ========================================
+           GITHUB
+        ======================================== */
 
-        .advisor-box {
+        .github-box {
+
+            background:
+                #f8fafc;
+
+            border:
+                1px solid #e1e7ec;
+
+            border-radius: 10px;
 
             padding: 16px;
-
-            background: #f5faff;
-
-            border:
-                1px solid #dceef8;
-
-            border-radius: 11px;
-
         }
 
 
-        .advisor-icon {
-
-            color: #4297CD;
-
-            margin-right: 5px;
-
-        }
-
-
-        .no-teacher {
-
-            padding: 12px;
-
-            background: #fff8e8;
-
-            border:
-                1px solid #f3dfaa;
-
-            border-radius: 8px;
-
-            color: #80651e;
-
-            font-size: 13px;
-
-        }
-
-
-        /* =====================================================
-           MEMBERS
-        ===================================================== */
-
-        .member-box {
-
-            padding: 16px;
-
-            background: #fbfdfe;
-
-            border:
-                1px solid #e3edf3;
-
-            border-radius: 11px;
-
-        }
-
-
-        .member-title {
-
-            color: #245c7d;
-
-            font-weight: 700;
-
-            font-size: 14px;
-
-            margin-bottom: 8px;
-
-        }
-
-
-        /* =====================================================
-           FILE
-        ===================================================== */
-
-        .file-box {
-
-            padding: 18px;
-
-            background: #f8fbfd;
-
-            border:
-                1px dashed #b9d6e5;
-
-            border-radius: 11px;
-
-        }
-
-
-        .file-box input {
-
-            background: white;
-
-        }
-
-
-        /* =====================================================
-           BUTTON
-        ===================================================== */
-
-        .form-actions {
+        .github-label {
 
             display: flex;
 
-            gap: 10px;
-
-            justify-content: flex-end;
-
-            margin-top: 30px;
-
-            padding-top: 22px;
-
-            border-top:
-                1px solid #e7eef2;
-
-        }
-
-
-        .submit-button {
-
-            border: none;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #58b4df,
-                    #358abd
-                );
-
-            color: white;
-
-            padding: 12px 24px;
-
-            border-radius: 9px;
-
-            font-size: 14px;
-
-            font-weight: 700;
-
-        }
-
-
-        .submit-button:hover {
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #429fd0,
-                    #287cab
-                );
-
-            color: white;
-
-        }
-
-
-        .cancel-button {
-
-            display: inline-flex;
-
             align-items: center;
 
-            justify-content: center;
-
-            padding: 12px 20px;
-
-            border-radius: 9px;
-
-            border:
-                1px solid #ccdce5;
-
-            background: white;
-
-            color: #527184;
-
-            text-decoration: none;
-
-            font-size: 14px;
+            gap: 7px;
 
             font-weight: 600;
 
+            color: #334155;
+
+            margin-bottom: 8px;
         }
 
 
-        .cancel-button:hover {
+        .github-label i {
 
-            background: #f5f9fc;
+            font-size: 20px;
 
-            color: #245c7d;
-
+            color: #24292f;
         }
 
 
-        /* =====================================================
+        /* ========================================
+           PDF
+        ======================================== */
+
+        .file-box {
+
+            border:
+                2px dashed #b8d8ea;
+
+            background: #f7fbfe;
+
+            border-radius: 10px;
+
+            padding: 25px;
+
+            text-align: center;
+
+            transition: 0.25s;
+        }
+
+
+        .file-box:hover {
+
+            border-color: #4297CD;
+
+            background: #f0f9ff;
+
+            transform:
+                translateY(-2px);
+        }
+
+
+        .file-icon {
+
+            font-size: 42px;
+
+            color: #4297CD;
+
+            margin-bottom: 8px;
+        }
+
+
+        .file-text {
+
+            color: #64748b;
+
+            font-size: 0.9rem;
+
+            margin-bottom: 15px;
+        }
+
+
+        .file-input {
+
+            max-width: 500px;
+
+            margin: 0 auto;
+        }
+
+
+        /* ========================================
+           BUTTON
+        ======================================== */
+
+        .btn-save {
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #4297CD,
+                    #3586BA
+                );
+
+            border: none;
+
+            color: white;
+
+            padding: 11px 25px;
+
+            border-radius: 8px;
+
+            font-weight: 600;
+
+            transition: 0.25s;
+
+            box-shadow:
+                0 4px 10px
+                rgba(66,151,205,0.25);
+        }
+
+
+        .btn-save:hover {
+
+            color: white;
+
+            transform:
+                translateY(-2px);
+
+            box-shadow:
+                0 6px 15px
+                rgba(66,151,205,0.30);
+        }
+
+
+        .btn-cancel {
+
+            border:
+                1px solid #cbd5e1;
+
+            color: #475569;
+
+            background: white;
+
+            padding: 11px 25px;
+
+            border-radius: 8px;
+
+            text-decoration: none;
+
+            font-weight: 600;
+
+            transition: 0.2s;
+        }
+
+
+        .btn-cancel:hover {
+
+            background: #f1f5f9;
+
+            color: #334155;
+        }
+
+
+        /* ========================================
            MOBILE
-        ===================================================== */
+        ======================================== */
 
         @media (max-width: 768px) {
 
             .custom-header {
 
-                height: 75px;
-
-            }
-
-
-            .header-inner {
-
-                height: 75px;
-
-                padding: 0 15px;
-
-            }
-
-
-            .header-left-area {
-
-                gap: 12px;
-
+                height: 78px;
             }
 
 
@@ -1149,7 +1615,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 width: 48px;
 
                 height: 48px;
-
             }
 
 
@@ -1157,60 +1622,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 font-size: 15px;
 
+                padding: 9px 12px;
             }
 
 
-            .profile-icon {
+            .profile-image {
 
-                font-size: 27px;
+                width: 42px;
 
+                height: 42px;
             }
 
 
-            .page-container {
+            .main-container {
 
-                margin: 25px auto;
+                margin-top: 25px;
 
-                padding: 0 12px;
-
+                padding: 0 15px;
             }
 
 
             .form-header {
 
-                padding: 22px 18px;
-
-            }
-
-
-            .form-header h1 {
-
-                font-size: 24px;
-
+                padding: 22px;
             }
 
 
             .form-body {
 
-                padding: 18px;
-
+                padding: 22px;
             }
-
-
-            .form-actions {
-
-                flex-direction: column-reverse;
-
-            }
-
-
-            .submit-button,
-            .cancel-button {
-
-                width: 100%;
-
-            }
-
         }
 
     </style>
@@ -1221,15 +1662,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 
 
-<!-- =========================================================
+<!-- ========================================
      HEADER
-========================================================= -->
+======================================== -->
 
 <header class="custom-header">
 
     <div class="header-inner">
 
         <div class="header-left-area">
+
+
+            <!-- LOGO -->
 
             <a
                 href="index2.php"
@@ -1244,6 +1688,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             </a>
 
+
+            <!-- HOME -->
 
             <a
                 href="index2.php"
@@ -1261,17 +1707,132 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
 
+        <!-- PROFILE -->
+
         <div class="header-right">
 
-            <a
-                href="profile.php"
-                class="profile-icon"
-                title="ข้อมูลส่วนตัว"
-            >
+            <div class="dropdown">
 
-                <i class="bi bi-person-circle"></i>
+                <?php
 
-            </a>
+                $profile_image = '';
+
+                if (
+                    !empty(
+                        $user_data['profile_image']
+                    )
+                ) {
+
+                    $profile_image =
+                        'profile_uploads/' .
+                        basename(
+                            $user_data[
+                                'profile_image'
+                            ]
+                        );
+                }
+
+                $profile_file =
+                    __DIR__ .
+                    '/profile_uploads/' .
+                    basename(
+                        $user_data[
+                            'profile_image'
+                        ] ?? ''
+                    );
+
+                ?>
+
+
+                <a
+                    href="#"
+                    role="button"
+                    id="profileDropdown"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                >
+
+                    <?php if (
+                        !empty($profile_image)
+                        &&
+                        file_exists(
+                            $profile_file
+                        )
+                    ): ?>
+
+                        <img
+                            src="<?php
+                                echo htmlspecialchars(
+                                    $profile_image
+                                );
+                            ?>"
+                            alt="โปรไฟล์"
+                            class="profile-image"
+                        >
+
+                    <?php else: ?>
+
+                        <img
+                            src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+                            alt="โปรไฟล์"
+                            class="profile-image"
+                        >
+
+                    <?php endif; ?>
+
+                </a>
+
+
+                <ul
+                    class="dropdown-menu dropdown-menu-end custom-profile-menu mt-2"
+                    aria-labelledby="profileDropdown"
+                >
+
+                    <li>
+
+                        <a
+                            class="dropdown-item"
+                            href="profile.php"
+                        >
+
+                            <i class="bi bi-person-fill"></i>
+
+                            <span>
+                                ข้อมูลส่วนตัว
+                            </span>
+
+                        </a>
+
+                    </li>
+
+
+                    <li>
+
+                        <hr class="dropdown-divider">
+
+                    </li>
+
+
+                    <li>
+
+                        <a
+                            class="dropdown-item logout-btn"
+                            href="logout.php"
+                        >
+
+                            <i class="bi bi-box-arrow-right"></i>
+
+                            <span>
+                                ออกจากระบบ
+                            </span>
+
+                        </a>
+
+                    </li>
+
+                </ul>
+
+            </div>
 
         </div>
 
@@ -1280,11 +1841,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </header>
 
 
-<!-- =========================================================
+<!-- ========================================
      MAIN
-========================================================= -->
+======================================== -->
 
-<div class="page-container">
+<div class="main-container">
 
     <div class="form-card">
 
@@ -1295,33 +1856,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <h1>
 
-                <i class="bi bi-folder-plus"></i>
+                <i class="bi bi-cloud-arrow-up me-2"></i>
 
-                สร้างโปรเจกต์ใหม่
+                ส่งโปรเจกต์ใหม่
 
             </h1>
 
+
             <p>
 
-                กรุณากรอกข้อมูลโปรเจกต์ให้ครบถ้วนก่อนส่งข้อมูล
+                กรอกข้อมูลโครงงานและอัปโหลดไฟล์ PDF
 
             </p>
 
         </div>
 
 
-        <!-- BODY -->
+        <!-- FORM BODY -->
 
         <div class="form-body">
 
 
-            <?php if ($error !== ''): ?>
+            <!-- ERROR -->
 
-                <div class="error-box">
+            <?php if (
+                !empty($error)
+            ): ?>
 
-                    <i class="bi bi-exclamation-circle-fill"></i>
+                <div
+                    class="alert alert-danger"
+                    role="alert"
+                >
 
-                    <?php echo e($error); ?>
+                    <i
+                        class="bi bi-exclamation-circle me-2"
+                    ></i>
+
+                    <?php
+                    echo htmlspecialchars(
+                        $error
+                    );
+                    ?>
 
                 </div>
 
@@ -1329,17 +1904,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
             <form
-                action=""
                 method="POST"
                 enctype="multipart/form-data"
             >
 
 
-                <!-- =================================================
-                     PROJECT TITLE
-                ================================================== -->
+                <!-- =================================
+                     TITLE
+                ================================== -->
 
-                <div class="form-group">
+                <div class="mb-4">
 
                     <label
                         for="title"
@@ -1348,359 +1922,576 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         ชื่อโปรเจกต์
 
-                        <span class="required">*</span>
+                        <span class="required">
+                            *
+                        </span>
 
                     </label>
 
 
                     <input
                         type="text"
-                        id="title"
                         name="title"
+                        id="title"
                         class="form-control"
                         placeholder="กรอกชื่อโปรเจกต์"
-                        value="<?php echo e($title); ?>"
-                        maxlength="255"
+                        value="<?php
+                            echo htmlspecialchars(
+                                $title
+                            );
+                        ?>"
                         required
                     >
 
                 </div>
 
 
-                <!-- =================================================
-                     DESCRIPTION
-                ================================================== -->
+                <!-- =================================
+                     DEGREE + DEPARTMENT
+                ================================== -->
 
-                <div class="form-group">
+                <div class="row">
+
+
+                    <!-- DEGREE -->
+
+                    <div class="col-md-6 mb-4">
+
+                        <label
+                            for="degree"
+                            class="form-label"
+                        >
+
+                            ระดับการศึกษา
+
+                            <span class="required">
+                                *
+                            </span>
+
+                        </label>
+
+
+                        <select
+                            name="degree"
+                            id="degree"
+                            class="form-select"
+                            required
+                        >
+
+                            <option value="">
+                                -- เลือกระดับการศึกษา --
+                            </option>
+
+
+                            <option
+                                value="ปริญญาตรี"
+                                <?php
+                                echo
+                                    $degree ===
+                                    'ปริญญาตรี'
+                                    ? 'selected'
+                                    : '';
+                                ?>
+                            >
+                                ปริญญาตรี
+                            </option>
+
+
+                            <option
+                                value="ปริญญาโท"
+                                <?php
+                                echo
+                                    $degree ===
+                                    'ปริญญาโท'
+                                    ? 'selected'
+                                    : '';
+                                ?>
+                            >
+                                ปริญญาโท
+                            </option>
+
+
+                            <option
+                                value="ปริญญาเอก"
+                                <?php
+                                echo
+                                    $degree ===
+                                    'ปริญญาเอก'
+                                    ? 'selected'
+                                    : '';
+                                ?>
+                            >
+                                ปริญญาเอก
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- DEPARTMENT -->
+
+                    <div class="col-md-6 mb-4">
+
+                        <label
+                            for="department"
+                            class="form-label"
+                        >
+
+                            สาขาวิชา
+
+                            <span class="required">
+                                *
+                            </span>
+
+                        </label>
+
+
+                        <select
+                            name="department"
+                            id="department"
+                            class="form-select"
+                            required
+                        >
+
+                            <option value="">
+                                -- เลือกสาขาวิชา --
+                            </option>
+
+
+                            <option
+                                value="เทคโนโลยีสารสนเทศ"
+                                <?php
+                                echo
+                                    $selected_department ===
+                                    'เทคโนโลยีสารสนเทศ'
+                                    ? 'selected'
+                                    : '';
+                                ?>
+                            >
+                                เทคโนโลยีสารสนเทศ
+                            </option>
+
+
+                            <option
+                                value="วิทยาการคอมพิวเตอร์"
+                                <?php
+                                echo
+                                    $selected_department ===
+                                    'วิทยาการคอมพิวเตอร์'
+                                    ? 'selected'
+                                    : '';
+                                ?>
+                            >
+                                วิทยาการคอมพิวเตอร์
+                            </option>
+
+
+                            <option
+                                value="วิทยาศาสตร์สิ่งแวดล้อม"
+                                <?php
+                                echo
+                                    $selected_department ===
+                                    'วิทยาศาสตร์สิ่งแวดล้อม'
+                                    ? 'selected'
+                                    : '';
+                                ?>
+                            >
+                                วิทยาศาสตร์สิ่งแวดล้อม
+                            </option>
+
+
+                            <option
+                                value="เทคโนโลยีการประกอบอาหาร"
+                                <?php
+                                echo
+                                    $selected_department ===
+                                    'เทคโนโลยีการประกอบอาหาร'
+                                    ? 'selected'
+                                    : '';
+                                ?>
+                            >
+                                เทคโนโลยีการประกอบอาหาร
+                            </option>
+
+
+                            <option
+                                value="อื่นๆ"
+                                <?php
+                                echo
+                                    $selected_department ===
+                                    'อื่นๆ'
+                                    ? 'selected'
+                                    : '';
+                                ?>
+                            >
+                                อื่นๆ
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <!-- =================================
+                     OTHER DEPARTMENT
+                ================================== -->
+
+                <div
+                    class="mb-4"
+                    id="otherDepartmentBox"
+                    style="
+                        display:
+                        <?php
+                        echo
+                            $selected_department ===
+                            'อื่นๆ'
+                            ? 'block'
+                            : 'none';
+                        ?>;
+                    "
+                >
 
                     <label
-                        for="description"
+                        for="other_department"
                         class="form-label"
                     >
 
-                        คำอธิบาย / บทคัดย่อ
+                        ระบุชื่อสาขาวิชา
+
+                        <span class="required">
+                            *
+                        </span>
+
+                    </label>
+
+
+                    <input
+                        type="text"
+                        name="other_department"
+                        id="other_department"
+                        class="form-control"
+                        placeholder="กรอกชื่อสาขาวิชา"
+                        value="<?php
+                            echo htmlspecialchars(
+                                $other_department
+                            );
+                        ?>"
+                    >
+
+                </div>
+
+
+                <!-- =================================
+                     AUTHORS
+                ================================== -->
+
+                <div class="mb-4">
+
+                    <label class="form-label">
+
+                        <i class="bi bi-people me-1"></i>
+
+                        สมาชิกกลุ่ม
+
+                        <span class="required">
+                            *
+                        </span>
 
                     </label>
 
 
                     <textarea
-                        id="description"
-                        name="description"
+                        name="authors"
+                        id="authors"
                         class="form-control"
-                        placeholder="กรอกคำอธิบายหรือบทคัดย่อของโปรเจกต์"
-                    ><?php echo e($description); ?></textarea>
-
-                </div>
-
-
-                <!-- =================================================
-                     DEGREE + DEPARTMENT
-                ================================================== -->
-
-                <div class="row">
-
-                    <div class="col-md-6">
-
-                        <div class="form-group">
-
-                            <label
-                                for="degree"
-                                class="form-label"
-                            >
-
-                                ระดับการศึกษา
-
-                                <span class="required">*</span>
-
-                            </label>
+                        rows="4"
+                        placeholder="กรอกชื่อสมาชิกกลุ่ม เช่น&#10;นายสมชาย ใจดี&#10;นางสาวสมหญิง ใจดี"
+                        required
+                    ><?php
+                        echo htmlspecialchars(
+                            $_POST['authors']
+                            ??
+                            $student_name
+                        );
+                    ?></textarea>
 
 
-                            <select
-                                id="degree"
-                                name="degree"
-                                class="form-select"
-                                required
-                            >
+                    <div class="help-text">
 
-                                <option value="">
-                                    -- เลือกระดับการศึกษา --
-                                </option>
-
-                                <option
-                                    value="ปริญญาตรี"
-                                    <?php echo $degree === 'ปริญญาตรี' ? 'selected' : ''; ?>
-                                >
-                                    ปริญญาตรี
-                                </option>
-
-                                <option
-                                    value="ปริญญาโท"
-                                    <?php echo $degree === 'ปริญญาโท' ? 'selected' : ''; ?>
-                                >
-                                    ปริญญาโท
-                                </option>
-
-                                <option
-                                    value="ปริญญาเอก"
-                                    <?php echo $degree === 'ปริญญาเอก' ? 'selected' : ''; ?>
-                                >
-                                    ปริญญาเอก
-                                </option>
-
-                            </select>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="col-md-6">
-
-                        <div class="form-group">
-
-                            <label
-                                for="department"
-                                class="form-label"
-                            >
-
-                                สาขา / ภาควิชา
-
-                                <span class="required">*</span>
-
-                            </label>
-
-
-                            <input
-                                type="text"
-                                id="department"
-                                name="department"
-                                class="form-control"
-                                placeholder="เช่น เทคโนโลยีสารสนเทศ"
-                                value="<?php echo e($department); ?>"
-                                maxlength="255"
-                                required
-                            >
-
-                        </div>
+                        สามารถใส่สมาชิกหลายคนได้
+                        โดยแยกเป็นคนละบรรทัด
 
                     </div>
 
                 </div>
 
 
-                <!-- =================================================
-                     MEMBERS
-                ================================================== -->
-
-                <div class="form-group">
-
-                    <div class="member-box">
-
-                        <div class="member-title">
-
-                            <i class="bi bi-people-fill"></i>
-
-                            สมาชิกกลุ่ม
-
-                            <span class="required">*</span>
-
-                        </div>
-
-
-                        <textarea
-                            id="authors"
-                            name="authors"
-                            class="form-control"
-                            placeholder="กรอกชื่อสมาชิกกลุ่ม เช่น&#10;นายสมชาย ใจดี&#10;นางสาวสมหญิง รักเรียน&#10;นายกิตติ ตั้งใจเรียน"
-                            required
-                        ><?php echo e($authors); ?></textarea>
-
-
-                        <div class="form-help">
-
-                            สามารถใส่ชื่อสมาชิกหลายคนได้
-                            โดยแยกเป็นคนละบรรทัด
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- =================================================
+                <!-- =================================
                      ADVISOR
-                ================================================== -->
+                ================================== -->
 
-                <div class="form-group">
+                <div class="mb-4">
 
-                    <div class="advisor-box">
+                    <label
+                        for="advisor"
+                        class="form-label"
+                    >
 
-                        <label
-                            for="advisor"
-                            class="form-label"
-                        >
+                        <i class="bi bi-person-workspace me-1"></i>
 
-                            <i class="bi bi-person-workspace advisor-icon"></i>
+                        อาจารย์ที่ปรึกษา
 
-                            อาจารย์ที่ปรึกษา
-
-                            <span class="required">*</span>
-
-                        </label>
+                    </label>
 
 
-                        <?php if (count($teachers) > 0): ?>
+                    <select
+                        name="advisor"
+                        id="advisor"
+                        class="form-select"
+                    >
 
-                            <select
-                                id="advisor"
-                                name="advisor"
-                                class="form-select"
-                                required
+                        <option value="">
+                            -- เลือกอาจารย์ที่ปรึกษา --
+                        </option>
+
+
+                        <?php foreach (
+                            $teachers
+                            as $teacher
+                        ): ?>
+
+                            <?php
+
+                            $prefix =
+                                trim(
+                                    $teacher[
+                                        'prefix'
+                                    ] ?? ''
+                                );
+
+                            $teacher_first =
+                                trim(
+                                    $teacher[
+                                        'first_name'
+                                    ] ?? ''
+                                );
+
+                            $teacher_last =
+                                trim(
+                                    $teacher[
+                                        'last_name'
+                                    ] ?? ''
+                                );
+
+
+                            $teacher_fullname =
+                                trim(
+                                    $prefix .
+                                    ' ' .
+                                    $teacher_first .
+                                    ' ' .
+                                    $teacher_last
+                                );
+
+
+                            $selected =
+                                $advisor ===
+                                $teacher_fullname;
+
+                            ?>
+
+                            <option
+                                value="<?php
+                                    echo htmlspecialchars(
+                                        $teacher_fullname
+                                    );
+                                ?>"
+                                <?php
+                                echo
+                                    $selected
+                                    ? 'selected'
+                                    : '';
+                                ?>
                             >
 
-                                <option value="">
-                                    -- กรุณาเลือกอาจารย์ที่ปรึกษา --
-                                </option>
+                                <?php
+                                echo htmlspecialchars(
+                                    $teacher_fullname
+                                );
+                                ?>
+
+                            </option>
+
+                        <?php endforeach; ?>
+
+                    </select>
 
 
-                                <?php foreach ($teachers as $teacher): ?>
+                    <div class="help-text">
 
-                                    <option
-                                        value="<?php echo e($teacher['name']); ?>"
-                                        <?php echo $advisor === $teacher['name'] ? 'selected' : ''; ?>
-                                    >
-
-                                        <?php echo e($teacher['name']); ?>
-
-                                        <?php if ($teacher['department'] !== ''): ?>
-
-                                            —
-                                            <?php echo e($teacher['department']); ?>
-
-                                        <?php endif; ?>
-
-                                    </option>
-
-                                <?php endforeach; ?>
-
-                            </select>
-
-
-                            <div class="form-help">
-
-                                รายชื่ออาจารย์มาจากบัญชีผู้ใช้ที่มีสถานะเป็นอาจารย์
-
-                            </div>
-
-                        <?php else: ?>
-
-                            <div class="no-teacher">
-
-                                <i class="bi bi-exclamation-triangle-fill"></i>
-
-                                ยังไม่มีรายชื่ออาจารย์ในระบบ
-                                กรุณาให้ผู้ดูแลระบบเพิ่มบัญชีอาจารย์ก่อน
-
-                            </div>
-
-                        <?php endif; ?>
+                        เลือกอาจารย์จากรายชื่อในระบบ
 
                     </div>
 
                 </div>
 
 
-                <!-- =================================================
+                <!-- =================================
                      GITHUB
-                ================================================== -->
+                ================================== -->
 
-                <div class="form-group">
+                <div class="mb-4 github-box">
 
                     <label
                         for="github_url"
-                        class="form-label"
+                        class="github-label"
                     >
 
                         <i class="bi bi-github"></i>
 
-                        GitHub Repository
+                        <span>
+                            ลิงก์ GitHub
+                        </span>
 
                     </label>
 
 
                     <input
                         type="url"
-                        id="github_url"
                         name="github_url"
+                        id="github_url"
                         class="form-control"
                         placeholder="https://github.com/username/project"
-                        value="<?php echo e($github_url); ?>"
-                        maxlength="500"
+                        value="<?php
+                            echo htmlspecialchars(
+                                $github_url
+                            );
+                        ?>"
                     >
 
 
-                    <div class="form-help">
+                    <div class="help-text">
 
-                        หากไม่มี GitHub สามารถเว้นว่างได้
+                        ใส่ลิงก์ GitHub ของโปรเจกต์
+                        เช่น https://github.com/username/project
 
                     </div>
 
                 </div>
 
 
-                <!-- =================================================
-                     PDF
-                ================================================== -->
+                <!-- =================================
+                     STUDENT
+                ================================== -->
 
-                <div class="form-group">
+                <div class="mb-4">
 
-                    <label
-                        for="pdf_file"
-                        class="form-label"
+                    <label class="form-label">
+
+                        ผู้ส่งโปรเจกต์
+
+                    </label>
+
+
+                    <input
+                        type="text"
+                        class="form-control"
+                        value="<?php
+                            echo htmlspecialchars(
+                                $student_name
+                            );
+                        ?>"
+                        readonly
                     >
 
-                        <i class="bi bi-file-earmark-pdf"></i>
 
-                        ไฟล์ PDF
+                    <div class="help-text">
+
+                        ระบบจะบันทึกชื่อจากบัญชีที่กำลังเข้าสู่ระบบอัตโนมัติ
+
+                    </div>
+
+                </div>
+
+
+                <!-- =================================
+                     PDF
+                ================================== -->
+
+                <div class="mb-4">
+
+                    <label class="form-label">
+
+                        ไฟล์โปรเจกต์ PDF
+
+                        <span class="required">
+                            *
+                        </span>
 
                     </label>
 
 
                     <div class="file-box">
 
-                        <input
-                            type="file"
-                            id="pdf_file"
-                            name="pdf_file"
-                            class="form-control"
-                            accept=".pdf,application/pdf"
-                        >
 
+                        <div class="file-icon">
 
-                        <div class="form-help">
-
-                            รองรับเฉพาะไฟล์ PDF ขนาดไม่เกิน 10 MB
+                            <i
+                                class="bi bi-file-earmark-pdf"
+                            ></i>
 
                         </div>
+
+
+                        <div class="file-text">
+
+                            เลือกไฟล์โปรเจกต์ที่ต้องการส่ง
+
+                            <br>
+
+                            รองรับเฉพาะ PDF
+                            ขนาดไม่เกิน 20 MB
+
+                        </div>
+
+
+                        <input
+                            type="file"
+                            name="pdf_file"
+                            id="pdf_file"
+                            class="form-control file-input"
+                            accept=".pdf,application/pdf"
+                            required
+                        >
 
                     </div>
 
                 </div>
 
 
-                <!-- =================================================
-                     BUTTON
-                ================================================== -->
+                <!-- =================================
+                     BUTTONS
+                ================================== -->
 
-                <div class="form-actions">
+                <div
+                    class="d-flex
+                           justify-content-end
+                           gap-2
+                           mt-4"
+                >
+
 
                     <a
-                        href="index2.php"
-                        class="cancel-button"
+                        href="submit-project.php"
+                        class="btn-cancel"
                     >
 
-                        <i class="bi bi-arrow-left"></i>
+                        <i
+                            class="bi bi-arrow-left me-1"
+                        ></i>
 
                         ยกเลิก
 
@@ -1709,12 +2500,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <button
                         type="submit"
-                        class="submit-button"
+                        class="btn-save"
                     >
 
-                        <i class="bi bi-cloud-arrow-up-fill"></i>
+                        <i
+                            class="bi bi-cloud-arrow-up me-1"
+                        ></i>
 
-                        สร้างโปรเจกต์
+                        ส่งโปรเจกต์
 
                     </button>
 
@@ -1728,6 +2521,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
 </div>
+
+
+<!-- ========================================
+     JAVASCRIPT
+======================================== -->
+
+<script>
+
+    const department =
+        document.getElementById(
+            'department'
+        );
+
+    const otherDepartmentBox =
+        document.getElementById(
+            'otherDepartmentBox'
+        );
+
+    const otherDepartment =
+        document.getElementById(
+            'other_department'
+        );
+
+
+    department.addEventListener(
+        'change',
+        function () {
+
+            if (
+                this.value === 'อื่นๆ'
+            ) {
+
+                otherDepartmentBox.style.display =
+                    'block';
+
+                otherDepartment.required =
+                    true;
+
+            } else {
+
+                otherDepartmentBox.style.display =
+                    'none';
+
+                otherDepartment.required =
+                    false;
+
+                otherDepartment.value =
+                    '';
+            }
+
+        }
+    );
+
+</script>
 
 
 <script
