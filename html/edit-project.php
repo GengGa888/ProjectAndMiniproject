@@ -35,7 +35,6 @@ $project_id = isset($_GET['id'])
     ? (int)$_GET['id']
     : 0;
 
-
 if ($project_id <= 0) {
 
     echo "<script>
@@ -104,6 +103,32 @@ function formatAuthors($authors)
 
 
 /* =========================================================
+   ตัวเลือกระดับการศึกษา
+========================================================= */
+
+$degree_options = [
+    'ปริญญาตรี',
+    'ปริญญาโท',
+    'ปริญญาเอก'
+];
+
+
+/* =========================================================
+   ตัวเลือกสาขา
+========================================================= */
+
+$department_options = [
+    'เทคโนโลยีสารสนเทศ',
+    'วิทยาการคอมพิวเตอร์',
+    'เทคโนโลยีดิจิทัล',
+    'คอมพิวเตอร์ธุรกิจ',
+    'มัลติมีเดีย',
+    'วิทยาศาสตร์สิ่งแวดล้อม',
+    'เทคโนโลยีการประกอบอาหาร'
+];
+
+
+/* =========================================================
    ดึงรายชื่ออาจารย์
 ========================================================= */
 
@@ -124,14 +149,9 @@ if ($teacher_stmt) {
 
     $teacher_stmt->execute();
 
-    $teacher_result =
-        $teacher_stmt->get_result();
+    $teacher_result = $teacher_stmt->get_result();
 
-    while (
-        $teacher =
-        $teacher_result->fetch_assoc()
-    ) {
-
+    while ($teacher = $teacher_result->fetch_assoc()) {
         $teachers[] = $teacher;
     }
 
@@ -141,13 +161,10 @@ if ($teacher_stmt) {
 
 /* =========================================================
    ดึงข้อมูล Project
-   สำคัญ:
    นักศึกษาดึงได้เฉพาะ student_id ของตัวเอง
 ========================================================= */
 
-$current_user_id =
-    (int)$_SESSION['user_id'];
-
+$current_user_id = (int)$_SESSION['user_id'];
 
 $stmt = $conn->prepare("
     SELECT
@@ -171,7 +188,6 @@ $stmt = $conn->prepare("
     LIMIT 1
 ");
 
-
 if (!$stmt) {
 
     die(
@@ -179,7 +195,6 @@ if (!$stmt) {
         . $conn->error
     );
 }
-
 
 $stmt->bind_param(
     "ii",
@@ -189,11 +204,9 @@ $stmt->bind_param(
 
 $stmt->execute();
 
-$result =
-    $stmt->get_result();
+$result = $stmt->get_result();
 
-$project =
-    $result->fetch_assoc();
+$project = $result->fetch_assoc();
 
 $stmt->close();
 
@@ -213,30 +226,98 @@ if (!$project) {
 }
 
 
-$error = "";
-
-
 /* =========================================================
    เตรียมผู้จัดทำ
 ========================================================= */
 
 $authors_source =
     !empty($project['authors'])
-    ? $project['authors']
-    : ($project['student_name'] ?? '');
+        ? $project['authors']
+        : ($project['student_name'] ?? '');
 
-$authors_display =
-    formatAuthors($authors_source);
+$authors_display = formatAuthors($authors_source);
 
 
 /* =========================================================
    Advisor ปัจจุบัน
 ========================================================= */
 
-$current_advisor =
-    trim(
-        $project['advisor'] ?? ''
-    );
+$current_advisor = trim(
+    $project['advisor'] ?? ''
+);
+
+
+/* =========================================================
+   เตรียมระดับการศึกษา
+========================================================= */
+
+$saved_degree = trim(
+    $project['degree']
+    ?: $project['project_type']
+    ?: ''
+);
+
+if (
+    $saved_degree !== ''
+    && in_array(
+        $saved_degree,
+        $degree_options,
+        true
+    )
+) {
+
+    $degree_select = $saved_degree;
+    $other_degree = '';
+
+} else {
+
+    if ($saved_degree !== '') {
+        $degree_select = 'อื่นๆ';
+        $other_degree = $saved_degree;
+    } else {
+        $degree_select = '';
+        $other_degree = '';
+    }
+}
+
+
+/* =========================================================
+   เตรียมสาขา
+========================================================= */
+
+$saved_department = trim(
+    $project['department'] ?? ''
+);
+
+if (
+    $saved_department !== ''
+    && in_array(
+        $saved_department,
+        $department_options,
+        true
+    )
+) {
+
+    $department_select = $saved_department;
+    $other_department = '';
+
+} else {
+
+    if ($saved_department !== '') {
+        $department_select = 'อื่นๆ';
+        $other_department = $saved_department;
+    } else {
+        $department_select = '';
+        $other_department = '';
+    }
+}
+
+
+/* =========================================================
+   Error
+========================================================= */
+
+$error = "";
 
 
 /* =========================================================
@@ -245,59 +326,90 @@ $current_advisor =
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-
     /* =====================================================
        รับข้อมูล
     ===================================================== */
 
-    $title =
-        trim(
-            $_POST['title'] ?? ''
-        );
+    $title = trim(
+        $_POST['title'] ?? ''
+    );
+
+    $description = trim(
+        $_POST['description'] ?? ''
+    );
 
 
-    $description =
-        trim(
-            $_POST['description'] ?? ''
-        );
+    /* =====================================================
+       ระดับการศึกษา
+    ===================================================== */
+
+    $degree_select = trim(
+        $_POST['degree'] ?? ''
+    );
+
+    $other_degree = trim(
+        $_POST['other_degree'] ?? ''
+    );
+
+    if ($degree_select === 'อื่นๆ') {
+
+        $degree = $other_degree;
+
+    } else {
+
+        $degree = $degree_select;
+    }
 
 
-    $degree =
-        trim(
-            $_POST['degree'] ?? ''
-        );
+    /* =====================================================
+       สาขา
+    ===================================================== */
+
+    $department_select = trim(
+        $_POST['department'] ?? ''
+    );
+
+    $other_department = trim(
+        $_POST['other_department'] ?? ''
+    );
+
+    if ($department_select === 'อื่นๆ') {
+
+        $department = $other_department;
+
+    } else {
+
+        $department = $department_select;
+    }
 
 
-    $department =
-        trim(
-            $_POST['department'] ?? ''
-        );
+    /* =====================================================
+       ผู้จัดทำ
+    ===================================================== */
+
+    $authors = trim(
+        $_POST['authors'] ?? ''
+    );
+
+    $authors = formatAuthors($authors);
 
 
-    $authors =
-        trim(
-            $_POST['authors'] ?? ''
-        );
+    /* =====================================================
+       อาจารย์ที่ปรึกษา
+    ===================================================== */
+
+    $advisor = trim(
+        $_POST['advisor'] ?? ''
+    );
 
 
-    $advisor =
-        trim(
-            $_POST['advisor'] ?? ''
-        );
+    /* =====================================================
+       GitHub
+    ===================================================== */
 
-
-    $github_url =
-        trim(
-            $_POST['github_url'] ?? ''
-        );
-
-
-    /*
-     * จัดชื่อผู้จัดทำ
-     */
-
-    $authors =
-        formatAuthors($authors);
+    $github_url = trim(
+        $_POST['github_url'] ?? ''
+    );
 
 
     /* =====================================================
@@ -306,8 +418,27 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     if ($title === '') {
 
-        $error =
-            'กรุณากรอกชื่อโปรเจกต์';
+        $error = 'กรุณากรอกชื่อโปรเจกต์';
+    }
+
+
+    /* =====================================================
+       ตรวจสอบระดับการศึกษา
+    ===================================================== */
+
+    elseif ($degree === '') {
+
+        $error = 'กรุณาเลือกระดับการศึกษา';
+    }
+
+
+    /* =====================================================
+       ตรวจสอบสาขา
+    ===================================================== */
+
+    elseif ($department === '') {
+
+        $error = 'กรุณาเลือกสาขา';
     }
 
 
@@ -324,8 +455,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         )
     ) {
 
-        $error =
-            'รูปแบบ GitHub URL ไม่ถูกต้อง';
+        $error = 'รูปแบบ GitHub URL ไม่ถูกต้อง';
     }
 
 
@@ -341,43 +471,35 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         $advisor_valid = false;
 
-
         foreach ($teachers as $teacher) {
 
-            $prefix =
-                trim(
-                    $teacher['prefix'] ?? ''
-                );
+            $prefix = trim(
+                $teacher['prefix'] ?? ''
+            );
+
+            $first_name = trim(
+                $teacher['first_name'] ?? ''
+            );
+
+            $last_name = trim(
+                $teacher['last_name'] ?? ''
+            );
 
 
-            $first_name =
-                trim(
-                    $teacher['first_name'] ?? ''
-                );
+            $teacher_fullname = trim(
+                $prefix
+                . ' '
+                . $first_name
+                . ' '
+                . $last_name
+            );
 
 
-            $last_name =
-                trim(
-                    $teacher['last_name'] ?? ''
-                );
-
-
-            $teacher_fullname =
-                trim(
-                    $prefix
-                    . ' '
-                    . $first_name
-                    . ' '
-                    . $last_name
-                );
-
-
-            $teacher_name_without_prefix =
-                trim(
-                    $first_name
-                    . ' '
-                    . $last_name
-                );
+            $teacher_name_without_prefix = trim(
+                $first_name
+                . ' '
+                . $last_name
+            );
 
 
             if (
@@ -386,12 +508,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $advisor === $teacher_name_without_prefix
             ) {
 
-                /*
-                 * บันทึกเป็นชื่อเต็ม
-                 */
+                /* บันทึกเป็นชื่อเต็มพร้อมคำนำหน้า */
 
-                $advisor =
-                    $teacher_fullname;
+                $advisor = $teacher_fullname;
 
                 $advisor_valid = true;
 
@@ -414,23 +533,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     if ($error === '') {
 
+        /* =================================================
+           ข้อมูล Legacy
+        ================================================= */
 
-        /*
-         * ข้อมูล Legacy
-         */
+        $project_name = $title;
 
-        $project_name =
-            $title;
-
-
-        $project_type =
-            $degree;
-
+        $project_type = $degree;
 
         $student_name =
             $authors !== ''
-            ? $authors
-            : ($project['student_name'] ?? '');
+                ? $authors
+                : ($project['student_name'] ?? '');
 
 
         /* =================================================
@@ -440,13 +554,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $old_pdf_file =
             $project['pdf_file'] ?? '';
 
-
         $new_pdf_file =
             $old_pdf_file;
 
-
-        $uploaded_new_pdf =
-            false;
+        $uploaded_new_pdf = false;
 
 
         /* =================================================
@@ -460,8 +571,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             !== UPLOAD_ERR_NO_FILE
         ) {
 
-            $file =
-                $_FILES['pdf_file'];
+            $file = $_FILES['pdf_file'];
 
 
             /* ---------------------------------------------
@@ -498,16 +608,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             else {
 
-                $finfo =
-                    new finfo(
-                        FILEINFO_MIME_TYPE
-                    );
+                $finfo = new finfo(
+                    FILEINFO_MIME_TYPE
+                );
 
-
-                $mime_type =
-                    $finfo->file(
-                        $file['tmp_name']
-                    );
+                $mime_type = $finfo->file(
+                    $file['tmp_name']
+                );
 
 
                 if (
@@ -589,8 +696,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 } else {
 
-                    $uploaded_new_pdf =
-                        true;
+                    $uploaded_new_pdf = true;
                 }
             }
         }
@@ -750,11 +856,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
         /* =================================================
-           แสดงข้อมูลล่าสุด
+           แสดงข้อมูลล่าสุดบนหน้า
         ================================================= */
 
-        $project['title'] =
-            $title;
+        $project['title'] = $title;
 
         $project['project_name'] =
             $project_name;
@@ -803,535 +908,565 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 <head>
 
-<meta charset="UTF-8">
+    <meta charset="UTF-8">
 
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-<title>แก้ไขโปรเจกต์</title>
+    <title>แก้ไขโปรเจกต์</title>
 
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    >
 
-<link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
->
+    <style>
 
+        * {
+            box-sizing: border-box;
+        }
 
-<style>
 
-* {
-    box-sizing: border-box;
-}
+        body {
 
+            margin: 0;
 
-body {
+            font-family:
+                Arial,
+                "Sarabun",
+                sans-serif;
 
-    margin: 0;
+            background: #f4f8fb;
 
-    font-family:
-        Arial,
-        "Sarabun",
-        sans-serif;
+            color: #333;
+        }
 
-    background: #f4f8fb;
 
-    color: #333;
-}
+        /* =====================================================
+           HEADER
+        ===================================================== */
 
+        .header {
 
-/* =========================================================
-   HEADER
-========================================================= */
+            background:
+                linear-gradient(
+                    90deg,
+                    #4aa4d6,
+                    #4297cd,
+                    #3287bb
+                );
 
-.header {
+            color: white;
 
-    background:
-        linear-gradient(
-            90deg,
-            #4aa4d6,
-            #4297cd,
-            #3287bb
-        );
+            padding:
+                18px 40px;
 
-    color: white;
+            display: flex;
 
-    padding:
-        18px 40px;
+            align-items: center;
 
-    display: flex;
+            justify-content: space-between;
 
-    align-items: center;
+            box-shadow:
+                0 3px 10px
+                rgba(0,0,0,.12);
+        }
 
-    justify-content: space-between;
 
-    box-shadow:
-        0 3px 10px
-        rgba(0,0,0,.12);
-}
+        .header h2 {
 
+            margin: 0;
 
-.header h2 {
+            font-size: 22px;
+        }
 
-    margin: 0;
 
-    font-size: 22px;
-}
+        .header a {
 
+            color: white;
 
-.header a {
+            text-decoration: none;
 
-    color: white;
+            background:
+                rgba(255,255,255,.18);
 
-    text-decoration: none;
+            padding:
+                10px 15px;
 
-    background:
-        rgba(255,255,255,.18);
+            border-radius: 8px;
 
-    padding:
-        10px 15px;
+            transition: .2s;
+        }
 
-    border-radius: 8px;
 
-    transition: .2s;
-}
+        .header a:hover {
 
+            background:
+                rgba(255,255,255,.28);
+        }
 
-.header a:hover {
 
-    background:
-        rgba(255,255,255,.28);
-}
+        /* =====================================================
+           CONTAINER
+        ===================================================== */
 
+        .container {
 
-/* =========================================================
-   CONTAINER
-========================================================= */
+            max-width: 850px;
 
-.container {
+            margin:
+                40px auto;
 
-    max-width: 850px;
+            padding:
+                0 20px;
+        }
 
-    margin:
-        40px auto;
 
-    padding:
-        0 20px;
-}
+        /* =====================================================
+           BOX
+        ===================================================== */
 
+        .box {
 
-/* =========================================================
-   BOX
-========================================================= */
+            background: white;
 
-.box {
+            border-radius: 15px;
 
-    background: white;
+            padding: 30px;
 
-    border-radius: 15px;
+            box-shadow:
+                0 4px 15px
+                rgba(0,0,0,.08);
+        }
 
-    padding: 30px;
 
-    box-shadow:
-        0 4px 15px
-        rgba(0,0,0,.08);
-}
+        .box h1 {
 
+            margin-top: 0;
 
-.box h1 {
+            color: #287cab;
 
-    margin-top: 0;
+            font-size: 25px;
 
-    color: #287cab;
+            margin-bottom: 25px;
+        }
 
-    font-size: 25px;
 
-    margin-bottom: 25px;
-}
+        /* =====================================================
+           PROJECT ID
+        ===================================================== */
 
+        .project-id {
 
-/* =========================================================
-   PROJECT ID
-========================================================= */
+            background: #eef8fd;
 
-.project-id {
+            color: #287cab;
 
-    background: #eef8fd;
+            padding:
+                12px 15px;
 
-    color: #287cab;
+            border-radius: 8px;
 
-    padding:
-        12px 15px;
+            margin-bottom: 25px;
 
-    border-radius: 8px;
+            font-size: 14px;
 
-    margin-bottom: 25px;
+            border-left:
+                4px solid #4297cd;
+        }
 
-    font-size: 14px;
 
-    border-left:
-        4px solid #4297cd;
-}
+        /* =====================================================
+           FORM
+        ===================================================== */
 
+        .form-group {
 
-/* =========================================================
-   FORM
-========================================================= */
+            margin-bottom: 20px;
+        }
 
-.form-group {
 
-    margin-bottom: 20px;
-}
+        label {
 
+            display: block;
 
-label {
+            margin-bottom: 8px;
 
-    display: block;
+            font-weight: bold;
 
-    margin-bottom: 8px;
+            color: #444;
+        }
 
-    font-weight: bold;
 
-    color: #444;
-}
+        input,
+        textarea,
+        select {
 
+            width: 100%;
 
-input,
-textarea,
-select {
+            padding:
+                12px 14px;
 
-    width: 100%;
+            border:
+                1px solid #d8e0e5;
 
-    padding:
-        12px 14px;
+            border-radius: 8px;
 
-    border:
-        1px solid #d8e0e5;
+            font-size: 15px;
 
-    border-radius: 8px;
+            font-family: inherit;
 
-    font-size: 15px;
+            outline: none;
 
-    font-family: inherit;
+            background: white;
 
-    outline: none;
+            transition: .2s;
+        }
 
-    background: white;
 
-    transition: .2s;
-}
+        input:focus,
+        textarea:focus,
+        select:focus {
 
+            border-color: #4297cd;
 
-input:focus,
-textarea:focus,
-select:focus {
+            box-shadow:
+                0 0 0 3px
+                rgba(66,151,205,.12);
+        }
 
-    border-color: #4297cd;
 
-    box-shadow:
-        0 0 0 3px
-        rgba(66,151,205,.12);
-}
+        select {
 
+            cursor: pointer;
+        }
 
-textarea {
 
-    min-height: 150px;
+        textarea {
 
-    resize: vertical;
+            min-height: 150px;
 
-    line-height: 1.8;
-}
+            resize: vertical;
 
+            line-height: 1.8;
+        }
 
-/* =========================================================
-   AUTHORS
-========================================================= */
 
-.authors-input {
+        /* =====================================================
+           AUTHORS
+        ===================================================== */
 
-    min-height: 150px;
+        .authors-input {
 
-    background: #fbfdff;
+            min-height: 150px;
 
-    line-height: 1.9;
-}
+            background: #fbfdff;
 
+            line-height: 1.9;
+        }
 
-.authors-input::placeholder {
 
-    color: #aaa;
-}
+        .authors-input::placeholder {
 
+            color: #aaa;
+        }
 
-.authors-tip {
 
-    margin-top: 8px;
+        .authors-tip {
 
-    padding:
-        10px 12px;
+            margin-top: 8px;
 
-    background: #f1f8fc;
+            padding:
+                10px 12px;
 
-    border-radius: 7px;
+            background: #f1f8fc;
 
-    color: #6b7c87;
+            border-radius: 7px;
 
-    font-size: 13px;
+            color: #6b7c87;
 
-    line-height: 1.7;
-}
+            font-size: 13px;
 
+            line-height: 1.7;
+        }
 
-.authors-tip i {
 
-    color: #4297cd;
-}
+        .authors-tip i {
 
+            color: #4297cd;
+        }
 
-/* =========================================================
-   GRID
-========================================================= */
 
-.grid {
+        /* =====================================================
+           GRID
+        ===================================================== */
 
-    display: grid;
+        .grid {
 
-    grid-template-columns:
-        1fr 1fr;
+            display: grid;
 
-    gap: 18px;
-}
+            grid-template-columns:
+                1fr 1fr;
 
+            gap: 18px;
+        }
 
-/* =========================================================
-   HELP
-========================================================= */
 
-.help {
+        /* =====================================================
+           HELP
+        ===================================================== */
 
-    color: #777;
+        .help {
 
-    font-size: 13px;
+            color: #777;
 
-    margin-top: 6px;
+            font-size: 13px;
 
-    line-height: 1.5;
-}
+            margin-top: 6px;
 
+            line-height: 1.5;
+        }
 
-/* =========================================================
-   ERROR
-========================================================= */
 
-.error {
+        /* =====================================================
+           ERROR
+        ===================================================== */
 
-    background: #ffe6e6;
+        .error {
 
-    color: #b00000;
+            background: #ffe6e6;
 
-    padding:
-        12px 15px;
+            color: #b00000;
 
-    border-radius: 8px;
+            padding:
+                12px 15px;
 
-    margin-bottom: 20px;
+            border-radius: 8px;
 
-    border-left:
-        4px solid #dc3545;
-}
+            margin-bottom: 20px;
 
+            border-left:
+                4px solid #dc3545;
+        }
 
-/* =========================================================
-   PDF
-========================================================= */
 
-.current-pdf {
+        /* =====================================================
+           PDF
+        ===================================================== */
 
-    margin-top: 8px;
+        .current-pdf {
 
-    background: #f4f8fb;
+            margin-top: 8px;
 
-    padding:
-        12px;
+            background: #f4f8fb;
 
-    border-radius: 7px;
+            padding:
+                12px;
 
-    font-size: 13px;
+            border-radius: 7px;
 
-    border:
-        1px solid #e4edf2;
-}
+            font-size: 13px;
 
+            border:
+                1px solid #e4edf2;
+        }
 
-.current-pdf a {
 
-    color: #287cab;
+        .current-pdf a {
 
-    text-decoration: none;
+            color: #287cab;
 
-    font-weight: bold;
+            text-decoration: none;
 
-    margin-left: 5px;
-}
+            font-weight: bold;
 
+            margin-left: 5px;
+        }
 
-.current-pdf a:hover {
 
-    text-decoration: underline;
-}
+        .current-pdf a:hover {
 
+            text-decoration: underline;
+        }
 
-/* =========================================================
-   FILE
-========================================================= */
 
-input[type="file"] {
+        /* =====================================================
+           FILE
+        ===================================================== */
 
-    padding: 9px;
+        input[type="file"] {
 
-    background: #fafcfd;
+            padding: 9px;
 
-    cursor: pointer;
-}
+            background: #fafcfd;
 
+            cursor: pointer;
+        }
 
-input[type="file"]::file-selector-button {
 
-    border: none;
+        input[type="file"]::file-selector-button {
 
-    background: #4297cd;
+            border: none;
 
-    color: white;
+            background: #4297cd;
 
-    padding:
-        8px 12px;
+            color: white;
 
-    border-radius: 6px;
+            padding:
+                8px 12px;
 
-    margin-right: 10px;
+            border-radius: 6px;
 
-    cursor: pointer;
-}
+            margin-right: 10px;
 
+            cursor: pointer;
+        }
 
-/* =========================================================
-   BUTTON
-========================================================= */
 
-.buttons {
+        /* =====================================================
+           OTHER INPUT
+        ===================================================== */
 
-    display: flex;
+        .other-input {
 
-    gap: 10px;
+            margin-top: 10px;
 
-    margin-top: 30px;
-}
+            background: #fffdf5;
 
+            border-color: #e5c76b;
+        }
 
-.btn {
 
-    flex: 1;
+        .other-input:focus {
 
-    border: none;
+            border-color: #d5a900;
 
-    padding:
-        13px;
+            box-shadow:
+                0 0 0 3px
+                rgba(213,169,0,.12);
+        }
 
-    border-radius: 8px;
 
-    text-decoration: none;
+        /* =====================================================
+           BUTTON
+        ===================================================== */
 
-    text-align: center;
+        .buttons {
 
-    cursor: pointer;
+            display: flex;
 
-    font-size: 15px;
+            gap: 10px;
 
-    font-family: inherit;
+            margin-top: 30px;
+        }
 
-    transition: .2s;
-}
 
+        .btn {
 
-.btn-save {
+            flex: 1;
 
-    background: #198754;
+            border: none;
 
-    color: white;
-}
+            padding:
+                13px;
 
+            border-radius: 8px;
 
-.btn-cancel {
+            text-decoration: none;
 
-    background: #6c757d;
+            text-align: center;
 
-    color: white;
-}
+            cursor: pointer;
 
+            font-size: 15px;
 
-.btn:hover {
+            font-family: inherit;
 
-    opacity: .88;
+            transition: .2s;
+        }
 
-    transform:
-        translateY(-1px);
-}
 
+        .btn-save {
 
-/* =========================================================
-   RESPONSIVE
-========================================================= */
+            background: #198754;
 
-@media (max-width: 650px) {
+            color: white;
+        }
 
-    .grid {
 
-        grid-template-columns: 1fr;
-    }
+        .btn-cancel {
 
+            background: #6c757d;
 
-    .header {
+            color: white;
+        }
 
-        padding:
-            15px 20px;
-    }
 
+        .btn:hover {
 
-    .header h2 {
+            opacity: .88;
 
-        font-size: 18px;
-    }
+            transform:
+                translateY(-1px);
+        }
 
 
-    .header a {
+        /* =====================================================
+           RESPONSIVE
+        ===================================================== */
 
-        padding:
-            8px 10px;
+        @media (max-width: 650px) {
 
-        font-size: 13px;
-    }
+            .grid {
 
+                grid-template-columns: 1fr;
+            }
 
-    .box {
 
-        padding: 20px;
-    }
+            .header {
 
+                padding:
+                    15px 20px;
+            }
 
-    .container {
 
-        margin-top: 25px;
-    }
+            .header h2 {
 
+                font-size: 18px;
+            }
 
-    .buttons {
 
-        flex-direction: column;
-    }
+            .header a {
 
-}
+                padding:
+                    8px 10px;
 
-</style>
+                font-size: 13px;
+            }
+
+
+            .box {
+
+                padding: 20px;
+            }
+
+
+            .container {
+
+                margin-top: 25px;
+            }
+
+
+            .buttons {
+
+                flex-direction: column;
+            }
+
+        }
+
+    </style>
 
 </head>
 
@@ -1427,7 +1562,7 @@ input[type="file"]::file-selector-button {
 
             <div class="form-group">
 
-                <label>
+                <label for="title">
 
                     <i class="bi bi-folder-fill"></i>
 
@@ -1440,13 +1575,15 @@ input[type="file"]::file-selector-button {
 
                 <input
                     type="text"
+                    id="title"
                     name="title"
                     value="<?= e(
                         $project['title']
                         ?: $project['project_name']
                     ) ?>"
                     placeholder="กรอกชื่อโปรเจกต์"
-                    required>
+                    required
+                >
 
             </div>
 
@@ -1457,7 +1594,7 @@ input[type="file"]::file-selector-button {
 
             <div class="form-group">
 
-                <label>
+                <label for="description">
 
                     <i class="bi bi-card-text"></i>
 
@@ -1467,10 +1604,12 @@ input[type="file"]::file-selector-button {
 
 
                 <textarea
+                    id="description"
                     name="description"
-                    placeholder="รายละเอียดของโปรเจกต์"><?= e(
-                        $project['description'] ?? ''
-                    ) ?></textarea>
+                    placeholder="รายละเอียดของโปรเจกต์"
+                ><?= e(
+                    $project['description'] ?? ''
+                ) ?></textarea>
 
             </div>
 
@@ -1482,9 +1621,13 @@ input[type="file"]::file-selector-button {
             <div class="grid">
 
 
+                <!-- =================================================
+                     ระดับการศึกษา
+                ================================================= -->
+
                 <div class="form-group">
 
-                    <label>
+                    <label for="degree">
 
                         <i class="bi bi-mortarboard-fill"></i>
 
@@ -1493,21 +1636,72 @@ input[type="file"]::file-selector-button {
                     </label>
 
 
+                    <select
+                        name="degree"
+                        id="degree"
+                        onchange="toggleOtherDegree()"
+                        required
+                    >
+
+                        <option value="">
+                            -- เลือกระดับการศึกษา --
+                        </option>
+
+
+                        <?php foreach (
+                            $degree_options
+                            as $option
+                        ): ?>
+
+                            <option
+                                value="<?= e($option) ?>"
+                                <?= $degree_select === $option
+                                    ? 'selected'
+                                    : '' ?>
+                            >
+
+                                <?= e($option) ?>
+
+                            </option>
+
+                        <?php endforeach; ?>
+
+
+                        <option
+                            value="อื่นๆ"
+                            <?= $degree_select === 'อื่นๆ'
+                                ? 'selected'
+                                : '' ?>
+                        >
+
+                            อื่นๆ
+
+                        </option>
+
+                    </select>
+
+
+                    <!-- ช่องพิมพ์เอง -->
+
                     <input
                         type="text"
-                        name="degree"
-                        value="<?= e(
-                            $project['degree']
-                            ?: $project['project_type']
-                        ) ?>"
-                        placeholder="เช่น ปริญญาตรี">
+                        name="other_degree"
+                        id="other_degree"
+                        class="other-input"
+                        value="<?= e($other_degree) ?>"
+                        placeholder="กรุณาระบุระดับการศึกษา"
+                    >
 
                 </div>
 
 
+                <!-- =================================================
+                     สาขา
+                ================================================= -->
+
                 <div class="form-group">
 
-                    <label>
+                    <label for="department">
 
                         <i class="bi bi-building"></i>
 
@@ -1516,13 +1710,61 @@ input[type="file"]::file-selector-button {
                     </label>
 
 
+                    <select
+                        name="department"
+                        id="department"
+                        onchange="toggleOtherDepartment()"
+                        required
+                    >
+
+                        <option value="">
+                            -- เลือกสาขา --
+                        </option>
+
+
+                        <?php foreach (
+                            $department_options
+                            as $option
+                        ): ?>
+
+                            <option
+                                value="<?= e($option) ?>"
+                                <?= $department_select === $option
+                                    ? 'selected'
+                                    : '' ?>
+                            >
+
+                                <?= e($option) ?>
+
+                            </option>
+
+                        <?php endforeach; ?>
+
+
+                        <option
+                            value="อื่นๆ"
+                            <?= $department_select === 'อื่นๆ'
+                                ? 'selected'
+                                : '' ?>
+                        >
+
+                            อื่นๆ
+
+                        </option>
+
+                    </select>
+
+
+                    <!-- ช่องพิมพ์เอง -->
+
                     <input
                         type="text"
-                        name="department"
-                        value="<?= e(
-                            $project['department'] ?? ''
-                        ) ?>"
-                        placeholder="เช่น เทคโนโลยีสารสนเทศ">
+                        name="other_department"
+                        id="other_department"
+                        class="other-input"
+                        value="<?= e($other_department) ?>"
+                        placeholder="กรุณาระบุสาขา"
+                    >
 
                 </div>
 
@@ -1536,7 +1778,7 @@ input[type="file"]::file-selector-button {
 
             <div class="form-group">
 
-                <label>
+                <label for="authors">
 
                     <i class="bi bi-people-fill"></i>
 
@@ -1547,10 +1789,12 @@ input[type="file"]::file-selector-button {
 
                 <textarea
                     name="authors"
+                    id="authors"
                     class="authors-input"
-                    placeholder="กรอกชื่อสมาชิก คนละ 1 บรรทัด"><?= e(
-                        $authors_display
-                    ) ?></textarea>
+                    placeholder="กรอกชื่อสมาชิก คนละ 1 บรรทัด"
+                ><?= e(
+                    $authors_display
+                ) ?></textarea>
 
 
                 <div class="authors-tip">
@@ -1583,7 +1827,7 @@ input[type="file"]::file-selector-button {
 
             <div class="form-group">
 
-                <label>
+                <label for="advisor">
 
                     <i class="bi bi-person-workspace"></i>
 
@@ -1592,7 +1836,10 @@ input[type="file"]::file-selector-button {
                 </label>
 
 
-                <select name="advisor">
+                <select
+                    name="advisor"
+                    id="advisor"
+                >
 
                     <option value="">
 
@@ -1601,7 +1848,10 @@ input[type="file"]::file-selector-button {
                     </option>
 
 
-                    <?php foreach ($teachers as $teacher): ?>
+                    <?php foreach (
+                        $teachers
+                        as $teacher
+                    ): ?>
 
                         <?php
 
@@ -1689,7 +1939,7 @@ input[type="file"]::file-selector-button {
 
             <div class="form-group">
 
-                <label>
+                <label for="github_url">
 
                     <i class="bi bi-github"></i>
 
@@ -1700,11 +1950,13 @@ input[type="file"]::file-selector-button {
 
                 <input
                     type="url"
+                    id="github_url"
                     name="github_url"
                     value="<?= e(
                         $project['github_url'] ?? ''
                     ) ?>"
-                    placeholder="https://github.com/username/project">
+                    placeholder="https://github.com/username/project"
+                >
 
 
                 <div class="help">
@@ -1733,7 +1985,9 @@ input[type="file"]::file-selector-button {
                 </label>
 
 
-                <?php if (!empty($project['pdf_file'])): ?>
+                <?php if (
+                    !empty($project['pdf_file'])
+                ): ?>
 
                     <div class="current-pdf">
 
@@ -1781,7 +2035,7 @@ input[type="file"]::file-selector-button {
 
             <div class="form-group">
 
-                <label>
+                <label for="pdf_file">
 
                     <i class="bi bi-upload"></i>
 
@@ -1792,8 +2046,10 @@ input[type="file"]::file-selector-button {
 
                 <input
                     type="file"
+                    id="pdf_file"
                     name="pdf_file"
-                    accept=".pdf,application/pdf">
+                    accept=".pdf,application/pdf"
+                >
 
 
                 <div class="help">
@@ -1852,6 +2108,88 @@ input[type="file"]::file-selector-button {
     </div>
 
 </div>
+
+
+<!-- =====================================================
+     JAVASCRIPT
+===================================================== -->
+
+<script>
+
+/* =========================================================
+   ระดับการศึกษา
+========================================================= */
+
+function toggleOtherDegree() {
+
+    const degree =
+        document.getElementById('degree');
+
+    const otherDegree =
+        document.getElementById('other_degree');
+
+
+    if (degree.value === 'อื่นๆ') {
+
+        otherDegree.style.display = 'block';
+
+        otherDegree.required = true;
+
+    } else {
+
+        otherDegree.style.display = 'none';
+
+        otherDegree.required = false;
+
+    }
+}
+
+
+/* =========================================================
+   สาขา
+========================================================= */
+
+function toggleOtherDepartment() {
+
+    const department =
+        document.getElementById('department');
+
+    const otherDepartment =
+        document.getElementById('other_department');
+
+
+    if (department.value === 'อื่นๆ') {
+
+        otherDepartment.style.display = 'block';
+
+        otherDepartment.required = true;
+
+    } else {
+
+        otherDepartment.style.display = 'none';
+
+        otherDepartment.required = false;
+
+    }
+}
+
+
+/* =========================================================
+   ตอนเปิดหน้า
+========================================================= */
+
+document.addEventListener(
+    'DOMContentLoaded',
+    function () {
+
+        toggleOtherDegree();
+
+        toggleOtherDepartment();
+
+    }
+);
+
+</script>
 
 
 </body>
