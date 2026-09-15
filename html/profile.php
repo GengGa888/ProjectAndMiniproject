@@ -1,28 +1,42 @@
 <?php
+
 session_start();
 include 'db_connect.php';
 
-/* ================= CHECK LOGIN ================= */
+
+/* =========================================================
+   CHECK LOGIN
+========================================================= */
 
 if (!isset($_SESSION['user_id'])) {
+
     echo "<script>
             alert('กรุณาเข้าสู่ระบบก่อน!');
             window.location.href='login.php';
           </script>";
+
     exit();
 }
+
 
 $user_id = intval($_SESSION['user_id']);
 $role = $_SESSION['role'] ?? 'student';
 
 
-/* ================= UPLOAD PROFILE IMAGE ================= */
+/* =========================================================
+   UPLOAD PROFILE IMAGE
+========================================================= */
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_image'])) {
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST' &&
+    isset($_FILES['profile_image'])
+) {
 
     $file = $_FILES['profile_image'];
 
+
     if ($file['error'] === UPLOAD_ERR_OK) {
+
 
         $allowed_types = [
             'image/jpeg',
@@ -31,29 +45,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_image'])) {
             'image/webp'
         ];
 
+
         if (!in_array($file['type'], $allowed_types)) {
+
             echo "<script>
                     alert('กรุณาเลือกไฟล์ JPG, PNG, GIF หรือ WEBP เท่านั้น');
                     window.location.href='profile.php';
                   </script>";
+
             exit();
         }
+
 
         /* จำกัดขนาด 5 MB */
 
         if ($file['size'] > 5 * 1024 * 1024) {
+
             echo "<script>
                     alert('รูปภาพต้องมีขนาดไม่เกิน 5 MB');
                     window.location.href='profile.php';
                   </script>";
+
             exit();
         }
+
 
         /* สร้างชื่อไฟล์ใหม่ */
 
         $extension = strtolower(
-            pathinfo($file['name'], PATHINFO_EXTENSION)
+            pathinfo(
+                $file['name'],
+                PATHINFO_EXTENSION
+            )
         );
+
 
         $new_filename =
             'profile_' .
@@ -63,34 +88,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_image'])) {
             '.' .
             $extension;
 
-        $upload_dir = __DIR__ . '/profile_uploads/';
-        $upload_path = $upload_dir . $new_filename;
+
+        $upload_dir =
+            __DIR__ . '/profile_uploads/';
+
+
+        $upload_path =
+            $upload_dir . $new_filename;
+
 
         /* สร้างโฟลเดอร์ถ้ายังไม่มี */
 
         if (!is_dir($upload_dir)) {
-            mkdir($upload_dir, 0777, true);
+
+            mkdir(
+                $upload_dir,
+                0777,
+                true
+            );
         }
+
 
         /* ย้ายไฟล์ */
 
-        if (move_uploaded_file($file['tmp_name'], $upload_path)) {
+        if (
+            move_uploaded_file(
+                $file['tmp_name'],
+                $upload_path
+            )
+        ) {
+
 
             /* ดึงรูปเก่า */
 
             $old_stmt = $conn->prepare(
-                "SELECT profile_image FROM users WHERE id = ? LIMIT 1"
+                "SELECT profile_image
+                 FROM users
+                 WHERE id = ?
+                 LIMIT 1"
             );
 
-            $old_stmt->bind_param("i", $user_id);
+
+            $old_stmt->bind_param(
+                "i",
+                $user_id
+            );
+
+
             $old_stmt->execute();
 
-            $old_result = $old_stmt->get_result();
-            $old_data = $old_result->fetch_assoc();
+
+            $old_result =
+                $old_stmt->get_result();
+
+
+            $old_data =
+                $old_result->fetch_assoc();
+
 
             $old_stmt->close();
 
-            $old_image = $old_data['profile_image'] ?? '';
+
+            $old_image =
+                $old_data['profile_image'] ?? '';
+
 
             /* บันทึกชื่อไฟล์ใหม่ */
 
@@ -100,15 +161,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_image'])) {
                  WHERE id = ?"
             );
 
+
             $update_stmt->bind_param(
                 "si",
                 $new_filename,
                 $user_id
             );
 
-            $update = $update_stmt->execute();
+
+            $update =
+                $update_stmt->execute();
+
 
             $update_stmt->close();
+
 
             /* ลบรูปเก่า */
 
@@ -119,12 +185,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_image'])) {
             ) {
 
                 $old_path =
-                    $upload_dir . basename($old_image);
+                    $upload_dir .
+                    basename($old_image);
+
 
                 if (file_exists($old_path)) {
+
                     unlink($old_path);
                 }
             }
+
 
             if ($update) {
 
@@ -132,22 +202,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_image'])) {
                         alert('เปลี่ยนรูปโปรไฟล์เรียบร้อยแล้ว');
                         window.location.href='profile.php';
                       </script>";
+
                 exit();
 
             } else {
 
-                /* ถ้าบันทึก DB ไม่สำเร็จ ลบไฟล์ใหม่ทิ้ง */
+                /* ถ้าบันทึก DB ไม่สำเร็จ ลบไฟล์ใหม่ */
 
                 if (file_exists($upload_path)) {
+
                     unlink($upload_path);
                 }
+
 
                 echo "<script>
                         alert('ไม่สามารถบันทึกรูปโปรไฟล์ลงฐานข้อมูลได้');
                         window.location.href='profile.php';
                       </script>";
+
                 exit();
             }
+
 
         } else {
 
@@ -155,8 +230,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_image'])) {
                     alert('ไม่สามารถอัปโหลดรูปได้');
                     window.location.href='profile.php';
                   </script>";
+
             exit();
         }
+
 
     } else {
 
@@ -164,12 +241,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_image'])) {
                 alert('กรุณาเลือกรูปภาพ');
                 window.location.href='profile.php';
               </script>";
+
         exit();
     }
 }
 
 
-/* ================= GET USER ================= */
+/* =========================================================
+   GET USER
+========================================================= */
 
 $user_stmt = $conn->prepare(
     "SELECT *
@@ -178,11 +258,23 @@ $user_stmt = $conn->prepare(
      LIMIT 1"
 );
 
-$user_stmt->bind_param("i", $user_id);
+
+$user_stmt->bind_param(
+    "i",
+    $user_id
+);
+
+
 $user_stmt->execute();
 
-$user_result = $user_stmt->get_result();
-$user_data = $user_result->fetch_assoc();
+
+$user_result =
+    $user_stmt->get_result();
+
+
+$user_data =
+    $user_result->fetch_assoc();
+
 
 $user_stmt->close();
 
@@ -195,28 +287,40 @@ if (!$user_data) {
             alert('ไม่พบข้อมูลผู้ใช้งาน');
             window.location.href='login.php';
           </script>";
+
     exit();
 }
 
 
-/* ================= USER DATA ================= */
-/*
-   ใช้ชื่อคอลัมน์ให้ตรงกับ DB:
-   first_name
-   last_name
-*/
+/* =========================================================
+   USER DATA
+========================================================= */
 
-$firstname = $user_data['first_name'] ?? '';
-$lastname = $user_data['last_name'] ?? '';
+$firstname =
+    $user_data['first_name'] ?? '';
 
-$username = $user_data['username'] ?? '-';
-$email = $user_data['email'] ?? '-';
-$role = $user_data['role'] ?? 'student';
-$department = $user_data['department'] ?? '-';
-$profile_image = $user_data['profile_image'] ?? '';
+$lastname =
+    $user_data['last_name'] ?? '';
+
+$username =
+    $user_data['username'] ?? '-';
+
+$email =
+    $user_data['email'] ?? '-';
+
+$role =
+    $user_data['role'] ?? 'student';
+
+$department =
+    $user_data['department'] ?? '-';
+
+$profile_image =
+    $user_data['profile_image'] ?? '';
 
 
-/* ================= ROLE ================= */
+/* =========================================================
+   ROLE
+========================================================= */
 
 if ($role === 'teacher') {
 
@@ -235,13 +339,17 @@ if ($role === 'teacher') {
 }
 
 
-/* ================= PROFILE IMAGE ================= */
+/* =========================================================
+   PROFILE IMAGE
+========================================================= */
 
 if (!empty($profile_image)) {
 
     $profile_image_url =
         'profile_uploads/' .
-        rawurlencode(basename($profile_image));
+        rawurlencode(
+            basename($profile_image)
+        );
 
 } else {
 
@@ -250,18 +358,18 @@ if (!empty($profile_image)) {
 }
 
 
-/* =====================================================
+/* =========================================================
    PROJECTS
-   ===================================================== */
+========================================================= */
 
 /*
    นักศึกษา:
-   แสดงเฉพาะโปรเจกต์ที่ student_id ตรงกับ user_id
+   แสดงเฉพาะโปรเจกต์ของตัวเอง
 
    อาจารย์:
    แสดงโปรเจกต์ทั้งหมด
 
-   admin:
+   Admin:
    แสดงโปรเจกต์ทั้งหมด
 */
 
@@ -274,7 +382,11 @@ if ($role === 'student') {
          ORDER BY id DESC"
     );
 
-    $projects_stmt->bind_param("i", $user_id);
+
+    $projects_stmt->bind_param(
+        "i",
+        $user_id
+    );
 
 } else {
 
@@ -285,13 +397,17 @@ if ($role === 'student') {
     );
 }
 
+
 $projects_stmt->execute();
 
-$projects_query = $projects_stmt->get_result();
+
+$projects_query =
+    $projects_stmt->get_result();
 
 ?>
 
 <!DOCTYPE html>
+
 <html lang="th">
 
 <head>
@@ -300,27 +416,36 @@ $projects_query = $projects_stmt->get_result();
 
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0">
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    <title>โปรไฟล์ - คลังโปรเจกต์ SDU</title>
+    <title>
+        โปรไฟล์ - คลังโปรเจกต์ SDU
+    </title>
+
 
     <!-- Bootstrap -->
 
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-        rel="stylesheet">
+        rel="stylesheet"
+    >
+
 
     <!-- Bootstrap Icons -->
 
     <link
         rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    >
+
 
     <style>
 
         * {
             box-sizing: border-box;
         }
+
 
         body {
 
@@ -375,7 +500,7 @@ $projects_query = $projects_stmt->get_result();
 
             align-items: center;
 
-            justify-content: space-between;
+            justify-content: flex-start;
         }
 
 
@@ -449,7 +574,8 @@ $projects_query = $projects_stmt->get_result();
             background:
                 rgba(255,255,255,0.15);
 
-            transform: translateY(-1px);
+            transform:
+                translateY(-1px);
         }
 
 
@@ -469,28 +595,10 @@ $projects_query = $projects_stmt->get_result();
         }
 
 
-        .header-right {
-
-            display: flex;
-
-            align-items: center;
-        }
-
-
-        .profile-header {
-
-            width: 46px;
-
-            height: 46px;
-
-            border-radius: 50%;
-
-            object-fit: cover;
-
-            border: 3px solid rgba(255,255,255,0.9);
-
-            background: white;
-        }
+        /*
+           ไม่มี .header-right
+           ไม่มีรูปโปรไฟล์มุมขวาบน
+        */
 
 
         /* =====================================================
@@ -657,7 +765,8 @@ $projects_query = $projects_stmt->get_result();
 
             background: #f1f8fc;
 
-            transform: translateY(-2px);
+            transform:
+                translateY(-2px);
         }
 
 
@@ -866,7 +975,8 @@ $projects_query = $projects_stmt->get_result();
 
         .project-card:hover {
 
-            transform: translateY(-3px);
+            transform:
+                translateY(-3px);
 
             box-shadow:
                 0 8px 22px rgba(0,0,0,0.09);
@@ -983,7 +1093,8 @@ $projects_query = $projects_stmt->get_result();
 
             color: white;
 
-            transform: translateY(-1px);
+            transform:
+                translateY(-1px);
         }
 
 
@@ -1057,14 +1168,6 @@ $projects_query = $projects_stmt->get_result();
                 font-size: 14px;
 
                 padding: 8px 10px;
-            }
-
-
-            .profile-header {
-
-                width: 40px;
-
-                height: 40px;
             }
 
 
@@ -1172,6 +1275,9 @@ $projects_query = $projects_stmt->get_result();
 
         <div class="header-left-area">
 
+
+            <!-- SDU LOGO -->
+
             <a
                 href="index2.php"
                 class="logo-link"
@@ -1186,12 +1292,16 @@ $projects_query = $projects_stmt->get_result();
             </a>
 
 
+            <!-- TITLE -->
+
             <div class="header-title">
 
                 คลังโปรเจกต์ SDU
 
             </div>
 
+
+            <!-- HOME -->
 
             <a
                 href="index2.php"
@@ -1204,23 +1314,16 @@ $projects_query = $projects_stmt->get_result();
 
             </a>
 
-        </div>
-
-
-        <div class="header-right">
-
-            <img
-                src="<?php echo htmlspecialchars($profile_image_url); ?>"
-                class="profile-header"
-                alt="Profile"
-            >
 
         </div>
+
+        <!--
+            ไม่มีรูปโปรไฟล์มุมขวาบน
+        -->
 
     </div>
 
 </header>
-
 
 
 <!-- =====================================================
@@ -1230,7 +1333,9 @@ $projects_query = $projects_stmt->get_result();
 <div class="container-main">
 
 
-    <!-- PAGE HEADING -->
+    <!-- =================================================
+         PAGE HEADING
+    ================================================= -->
 
     <div class="page-heading">
 
@@ -1242,12 +1347,14 @@ $projects_query = $projects_stmt->get_result();
 
         </h1>
 
+
         <p>
+
             ข้อมูลบัญชีและโปรเจกต์ของผู้ใช้งาน
+
         </p>
 
     </div>
-
 
 
     <!-- =================================================
@@ -1256,6 +1363,8 @@ $projects_query = $projects_stmt->get_result();
 
     <div class="profile-card">
 
+
+        <!-- COVER -->
 
         <div class="profile-cover">
 
@@ -1303,14 +1412,18 @@ $projects_query = $projects_stmt->get_result();
 
             </form>
 
+
         </div>
 
 
-
-        <!-- PROFILE BODY -->
+        <!-- =================================================
+             PROFILE BODY
+        ================================================= -->
 
         <div class="profile-body">
 
+
+            <!-- NAME -->
 
             <div class="profile-name">
 
@@ -1326,6 +1439,8 @@ $projects_query = $projects_stmt->get_result();
 
             </div>
 
+
+            <!-- USERNAME -->
 
             <div class="profile-username">
 
@@ -1345,8 +1460,9 @@ $projects_query = $projects_stmt->get_result();
             </div>
 
 
-
-            <!-- ACCOUNT -->
+            <!-- =================================================
+                 ACCOUNT INFORMATION
+            ================================================= -->
 
             <div class="info-title">
 
@@ -1365,8 +1481,11 @@ $projects_query = $projects_stmt->get_result();
                 <div class="info-box">
 
                     <div class="info-label">
+
                         อีเมล
+
                     </div>
+
 
                     <div class="info-value">
 
@@ -1382,8 +1501,11 @@ $projects_query = $projects_stmt->get_result();
                 <div class="info-box">
 
                     <div class="info-label">
+
                         ประเภทผู้ใช้งาน
+
                     </div>
+
 
                     <div class="info-value">
 
@@ -1401,8 +1523,11 @@ $projects_query = $projects_stmt->get_result();
                 <div class="info-box">
 
                     <div class="info-label">
+
                         สาขา / ภาควิชา
+
                     </div>
+
 
                     <div class="info-value">
 
@@ -1418,8 +1543,11 @@ $projects_query = $projects_stmt->get_result();
                 <div class="info-box">
 
                     <div class="info-label">
+
                         ชื่อผู้ใช้งาน
+
                     </div>
+
 
                     <div class="info-value">
 
@@ -1437,12 +1565,12 @@ $projects_query = $projects_stmt->get_result();
     </div>
 
 
-
     <!-- =================================================
          PROJECTS
     ================================================= -->
 
     <div class="section-header">
+
 
         <h2 class="section-title">
 
@@ -1461,8 +1589,8 @@ $projects_query = $projects_stmt->get_result();
 
         </div>
 
-    </div>
 
+    </div>
 
 
     <?php if ($projects_query->num_rows > 0): ?>
@@ -1485,6 +1613,7 @@ $projects_query = $projects_stmt->get_result();
 
                         <i class="bi bi-file-earmark-text"></i>
 
+
                         <?php
 
                         $display_title =
@@ -1496,7 +1625,10 @@ $projects_query = $projects_stmt->get_result();
                                 : 'ไม่มีชื่อโปรเจกต์'
                             );
 
-                        echo htmlspecialchars($display_title);
+
+                        echo htmlspecialchars(
+                            $display_title
+                        );
 
                         ?>
 
@@ -1517,12 +1649,18 @@ $projects_query = $projects_stmt->get_result();
 
                     </strong>
 
+
                     <?php
 
                     echo htmlspecialchars(
+
                         !empty($row['degree'])
                         ? $row['degree']
-                        : ($row['project_type'] ?? '-')
+                        : (
+                            $row['project_type']
+                            ?? '-'
+                        )
+
                     );
 
                     ?>
@@ -1541,6 +1679,7 @@ $projects_query = $projects_stmt->get_result();
                         สาขา:
 
                     </strong>
+
 
                     <?php
 
@@ -1565,12 +1704,18 @@ $projects_query = $projects_stmt->get_result();
 
                     </strong>
 
+
                     <?php
 
                     echo htmlspecialchars(
+
                         !empty($row['authors'])
                         ? $row['authors']
-                        : ($row['student_name'] ?? '-')
+                        : (
+                            $row['student_name']
+                            ?? '-'
+                        )
+
                     );
 
                     ?>
@@ -1587,15 +1732,19 @@ $projects_query = $projects_stmt->get_result();
 
                     <?php if (!empty($row['pdf_file'])): ?>
 
+
                         <?php
 
                         $pdf_file =
                             'uploads/' .
                             rawurlencode(
-                                basename($row['pdf_file'])
+                                basename(
+                                    $row['pdf_file']
+                                )
                             );
 
                         ?>
+
 
                         <a
                             href="<?php echo htmlspecialchars($pdf_file); ?>"
@@ -1609,15 +1758,16 @@ $projects_query = $projects_stmt->get_result();
 
                         </a>
 
+
                     <?php endif; ?>
 
 
                     <!-- DELETE -->
 
                     <?php
+
                     /*
                        นักศึกษาลบได้เฉพาะโปรเจกต์ของตัวเอง
-                       อาจารย์/แอดมินไม่ต้องมีปุ่มนี้ในหน้าโปรไฟล์
                     */
 
                     if (
@@ -1625,12 +1775,14 @@ $projects_query = $projects_stmt->get_result();
                         isset($row['student_id']) &&
                         intval($row['student_id']) === $user_id
                     ):
+
                     ?>
+
 
                         <a
                             href="delete-project.php?id=<?php echo intval($row['id']); ?>"
                             class="btn-delete"
-                            onclick="return confirm('ต้องการลบโปรเจกต์นี้ใช่หรือไม่?\\n\\nเมื่อลบแล้วจะไม่สามารถกู้คืนได้');"
+                            onclick="return confirm('ต้องการลบโปรเจกต์นี้ใช่หรือไม่?\n\nเมื่อลบแล้วจะไม่สามารถกู้คืนได้');"
                         >
 
                             <i class="bi bi-trash-fill"></i>
@@ -1638,6 +1790,7 @@ $projects_query = $projects_stmt->get_result();
                             ลบโปรเจกต์
 
                         </a>
+
 
                     <?php endif; ?>
 
@@ -1656,6 +1809,7 @@ $projects_query = $projects_stmt->get_result();
 
         <div class="no-project">
 
+
             <i
                 class="bi bi-folder-x"
                 style="font-size:48px;"
@@ -1668,6 +1822,7 @@ $projects_query = $projects_stmt->get_result();
 
             </p>
 
+
         </div>
 
 
@@ -1677,17 +1832,20 @@ $projects_query = $projects_stmt->get_result();
 </div>
 
 
-
 <!-- Bootstrap JS -->
 
 <script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js">
-</script>
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+></script>
 
 
 </body>
+
 </html>
 
+
 <?php
+
 $projects_stmt->close();
+
 ?>

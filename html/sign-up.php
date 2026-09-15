@@ -57,7 +57,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lastname         = trim($_POST['lastname'] ?? '');
     $email            = trim($_POST['email'] ?? '');
     $role             = trim($_POST['role'] ?? '');
-    $department       = trim($_POST['department'] ?? '');
+
+    /* สาขาที่เลือก */
+    $department_select = trim($_POST['department_select'] ?? '');
+
+    /* สาขาที่พิมพ์เอง */
+    $other_department = trim($_POST['other_department'] ?? '');
+
+    /* ถ้าเลือกอื่นๆ ให้ใช้ค่าที่พิมพ์เอง */
+    if ($department_select === 'อื่นๆ') {
+        $department = $other_department;
+    } else {
+        $department = $department_select;
+    }
+
     $password         = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
     $admin_code       = trim($_POST['admin_code'] ?? '');
@@ -103,6 +116,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($password !== $confirm_password) {
 
         $error = "รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน";
+    }
+
+
+    /* =====================================================
+       ตรวจสอบกรณีเลือก "อื่นๆ"
+       ===================================================== */
+
+    if (
+        $error === '' &&
+        $department_select === 'อื่นๆ' &&
+        $other_department === ''
+    ) {
+
+        $error = "กรุณาระบุชื่อสาขา / ภาควิชา";
     }
 
 
@@ -721,6 +748,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
         /* =====================================================
+           OTHER DEPARTMENT
+           ===================================================== */
+
+        .other-department-box {
+
+            display: none;
+
+            margin-top: 10px;
+        }
+
+
+        .other-department-box.show {
+
+            display: block;
+        }
+
+
+        /* =====================================================
            ALERT
            ===================================================== */
 
@@ -1191,6 +1236,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     name="admin_code"
                     id="admin_code"
                     placeholder="กรอกรหัสสมัครแอดมิน"
+                    value="<?php echo e($_POST['admin_code'] ?? ''); ?>"
                 >
 
             </div>
@@ -1212,7 +1258,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="input-wrapper">
 
                 <select
-                    name="department"
+                    name="department_select"
+                    id="department_select"
                     required
                 >
 
@@ -1226,7 +1273,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <?php
                         echo (
-                            ($_POST['department'] ?? '') ===
+                            ($_POST['department_select'] ?? '') ===
                             'เทคโนโลยีสารสนเทศ'
                         )
                         ? 'selected'
@@ -1242,7 +1289,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <?php
                         echo (
-                            ($_POST['department'] ?? '') ===
+                            ($_POST['department_select'] ?? '') ===
                             'วิทยาการคอมพิวเตอร์'
                         )
                         ? 'selected'
@@ -1258,7 +1305,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <?php
                         echo (
-                            ($_POST['department'] ?? '') ===
+                            ($_POST['department_select'] ?? '') ===
                             'เทคโนโลยีดิจิทัล'
                         )
                         ? 'selected'
@@ -1274,7 +1321,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <?php
                         echo (
-                            ($_POST['department'] ?? '') ===
+                            ($_POST['department_select'] ?? '') ===
                             'คอมพิวเตอร์ธุรกิจ'
                         )
                         ? 'selected'
@@ -1290,7 +1337,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <?php
                         echo (
-                            ($_POST['department'] ?? '') ===
+                            ($_POST['department_select'] ?? '') ===
                             'มัลติมีเดีย'
                         )
                         ? 'selected'
@@ -1306,7 +1353,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <?php
                         echo (
-                            ($_POST['department'] ?? '') ===
+                            ($_POST['department_select'] ?? '') ===
                             'อื่นๆ'
                         )
                         ? 'selected'
@@ -1318,8 +1365,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 </select>
 
-
                 <i class="bi bi-building"></i>
+
+            </div>
+
+
+            <!-- =================================================
+                 OTHER DEPARTMENT INPUT
+                 ================================================= -->
+
+            <div
+                id="otherDepartmentBox"
+                class="other-department-box"
+            >
+
+                <div class="input-wrapper">
+
+                    <input
+                        type="text"
+                        name="other_department"
+                        id="other_department"
+                        placeholder="พิมพ์ชื่อสาขา / ภาควิชา"
+                        maxlength="255"
+                        value="<?php echo e($_POST['other_department'] ?? ''); ?>"
+                    >
+
+                    <i class="bi bi-pencil"></i>
+
+                </div>
 
             </div>
 
@@ -1417,9 +1490,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!-- =========================================================
      JAVASCRIPT
-========================================================= -->
+     ========================================================= -->
 
 <script>
+
+
+    /* =====================================================
+       ADMIN CODE
+       ===================================================== */
 
     const studentRadio =
         document.getElementById('student');
@@ -1452,8 +1530,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             adminCodeInput.required = false;
 
-            adminCodeInput.value = '';
-
         }
 
     }
@@ -1478,6 +1554,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 
     checkAdmin();
+
+
+    /* =====================================================
+       OTHER DEPARTMENT
+       ===================================================== */
+
+    const departmentSelect =
+        document.getElementById('department_select');
+
+    const otherDepartmentBox =
+        document.getElementById('otherDepartmentBox');
+
+    const otherDepartmentInput =
+        document.getElementById('other_department');
+
+
+    function checkDepartment()
+    {
+
+        if (departmentSelect.value === 'อื่นๆ') {
+
+            otherDepartmentBox.classList.add('show');
+
+            otherDepartmentInput.required = true;
+
+        } else {
+
+            otherDepartmentBox.classList.remove('show');
+
+            otherDepartmentInput.required = false;
+
+        }
+
+    }
+
+
+    departmentSelect.addEventListener(
+        'change',
+        checkDepartment
+    );
+
+
+    checkDepartment();
 
 </script>
 
