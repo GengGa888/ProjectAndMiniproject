@@ -12,6 +12,55 @@ function e($value)
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+/*
+ * ลบคำนำหน้าออกจากชื่อ เพื่อใช้ตรวจสอบว่า
+ * เป็นคนเดียวกับอาจารย์ที่ปรึกษาหรือไม่
+ */
+function normalize_teacher_name($name)
+{
+    $name = trim($name);
+
+    // จัดช่องว่าง
+    $name = preg_replace('/\s+/u', ' ', $name);
+
+    // คำนำหน้าที่ระบบรองรับ
+    $prefixes = [
+        'ศาสตราจารย์ ดร.',
+        'รองศาสตราจารย์ ดร.',
+        'ผู้ช่วยศาสตราจารย์ ดร.',
+        'ศ.ดร.',
+        'รศ.ดร.',
+        'ผศ.ดร.',
+        'ศ.',
+        'รศ.',
+        'ผศ.',
+        'อ.',
+        'ดร.',
+        'นาย',
+        'นางสาว',
+        'นาง'
+    ];
+
+    foreach ($prefixes as $prefix) {
+
+        if (mb_strpos($name, $prefix, 0, 'UTF-8') === 0) {
+
+            $name = mb_substr(
+                $name,
+                mb_strlen($prefix, 'UTF-8'),
+                null,
+                'UTF-8'
+            );
+
+            $name = trim($name);
+
+            break;
+        }
+    }
+
+    return mb_strtolower($name, 'UTF-8');
+}
+
 
 /* =========================================================
    LOGIN
@@ -27,10 +76,6 @@ $user_role = $_SESSION['role'] ?? '';
 
 $session_first_name = trim($_SESSION['first_name'] ?? '');
 $session_last_name  = trim($_SESSION['last_name'] ?? '');
-
-$teacher_fullname = trim(
-    $session_first_name . ' ' . $session_last_name
-);
 
 
 /* =========================================================
@@ -64,7 +109,6 @@ $sql = "
         degree,
         department,
         authors,
-        pages,
         pdf_file,
         status,
         student_id,
@@ -174,11 +218,6 @@ if ($status === '') {
 }
 
 
-$pages = isset($row['pages']) && $row['pages'] !== null
-    ? (int)$row['pages']
-    : 0;
-
-
 /* =========================================================
    GITHUB
 ========================================================= */
@@ -258,6 +297,72 @@ if ($logged_in) {
 
 
 /* =========================================================
+   GET CURRENT USER
+   ใช้ตรวจสอบอาจารย์ที่ปรึกษาโดยตรง
+========================================================= */
+
+$current_user_prefix = '';
+$current_user_first_name = $session_first_name;
+$current_user_last_name = $session_last_name;
+
+if ($logged_in && $user_id > 0) {
+
+    $user_sql = "
+        SELECT
+            prefix,
+            first_name,
+            last_name,
+            role
+        FROM users
+        WHERE id = ?
+        LIMIT 1
+    ";
+
+    $user_stmt = mysqli_prepare($conn, $user_sql);
+
+    if ($user_stmt) {
+
+        mysqli_stmt_bind_param(
+            $user_stmt,
+            "i",
+            $user_id
+        );
+
+        mysqli_stmt_execute($user_stmt);
+
+        $user_result = mysqli_stmt_get_result($user_stmt);
+
+        if ($user_result && mysqli_num_rows($user_result) > 0) {
+
+            $current_user = mysqli_fetch_assoc($user_result);
+
+            $current_user_prefix =
+                trim($current_user['prefix'] ?? '');
+
+            $current_user_first_name =
+                trim($current_user['first_name'] ?? '');
+
+            $current_user_last_name =
+                trim($current_user['last_name'] ?? '');
+        }
+
+        mysqli_stmt_close($user_stmt);
+    }
+}
+
+
+/* =========================================================
+   CURRENT TEACHER FULL NAME
+========================================================= */
+
+$current_teacher_fullname = trim(
+    $current_user_prefix . ' ' .
+    $current_user_first_name . ' ' .
+    $current_user_last_name
+);
+
+
+/* =========================================================
    TEACHER COMMENT PERMISSION
 ========================================================= */
 
@@ -268,24 +373,30 @@ if (
     $user_role === 'teacher'
 ) {
 
-    $advisor_normalized = preg_replace(
-        '/\s+/u',
-        ' ',
-        trim($advisor)
-    );
+    /*
+     * เปรียบเทียบชื่อโดยตัดคำนำหน้าออก
+     *
+     * เช่น
+     * โปรเจกต์ = ผศ.ดร.สมชาย ใจดี
+     * ผู้ล็อกอิน = ผศ.ดร.สมชาย ใจดี
+     *
+     * หรือ
+     * โปรเจกต์ = สมชาย ใจดี
+     * ผู้ล็อกอิน = อ.สมชาย ใจดี
+     *
+     * จะถือว่าเป็นคนเดียวกัน
+     */
 
-    $teacher_normalized = preg_replace(
-        '/\s+/u',
-        ' ',
-        trim($teacher_fullname)
-    );
+    $advisor_normalized =
+        normalize_teacher_name($advisor);
+
+    $teacher_normalized =
+        normalize_teacher_name($current_teacher_fullname);
 
     if (
         $advisor_normalized !== '' &&
         $teacher_normalized !== '' &&
-        mb_strtolower($advisor_normalized, 'UTF-8')
-        ===
-        mb_strtolower($teacher_normalized, 'UTF-8')
+        $advisor_normalized === $teacher_normalized
     ) {
 
         $can_comment = true;
@@ -319,6 +430,7 @@ $comment_sql = "
         pc.teacher_id,
         pc.comment,
         pc.created_at,
+        u.prefix,
         u.first_name,
         u.last_name
     FROM project_comments pc
@@ -990,7 +1102,7 @@ if ($comment_stmt) {
 
             color: #245c7d;
 
-            margin-bottom: 18px;
+            margin-bottom: 8px;
         }
 
 
@@ -998,6 +1110,30 @@ if ($comment_stmt) {
             color: #4297CD;
         }
 
+
+        /* ADVISOR NAME */
+
+        .advisor-comment-name {
+            display: flex;
+            align-items: center;
+
+            gap: 7px;
+
+            color: #4297CD;
+
+            font-size: 14px;
+            font-weight: 600;
+
+            margin-bottom: 18px;
+
+            padding-bottom: 14px;
+
+            border-bottom:
+                1px solid #e7eef2;
+        }
+
+
+        /* COMMENT FORM */
 
         .teacher-comment-form {
             background: #f5faff;
@@ -1065,6 +1201,8 @@ if ($comment_stmt) {
             background: #3287BB;
         }
 
+
+        /* COMMENT ITEM */
 
         .comment-item {
             padding: 16px 0;
@@ -1520,27 +1658,7 @@ if ($comment_stmt) {
                         </div>
 
 
-                        <?php if ($pages > 0): ?>
-
-                            <div class="info-item">
-
-                                <div class="info-label">
-
-                                    <i class="bi bi-file-text"></i>
-
-                                    จำนวนหน้า
-
-                                </div>
-
-                                <div class="info-value">
-
-                                    <?php echo $pages; ?> หน้า
-
-                                </div>
-
-                            </div>
-
-                        <?php endif; ?>
+                        <!-- จำนวนหน้าเอาออกแล้ว -->
 
 
                         <div class="github-card">
@@ -1661,7 +1779,22 @@ if ($comment_stmt) {
 
                                 <i class="bi bi-chat-left-text-fill"></i>
 
-                                ความคิดเห็นจากอาจารย์
+                                ความคิดเห็นจากอาจารย์ที่ปรึกษา
+
+                            </div>
+
+
+                            <!-- ADVISOR -->
+
+                            <div class="advisor-comment-name">
+
+                                <i class="bi bi-person-workspace"></i>
+
+                                อาจารย์ที่ปรึกษา:
+
+                                <strong>
+                                    <?php echo e($advisor); ?>
+                                </strong>
 
                             </div>
 
@@ -1722,6 +1855,7 @@ if ($comment_stmt) {
 
                                 </div>
 
+
                             <?php elseif (
                                 $logged_in &&
                                 $user_role === 'teacher'
@@ -1731,8 +1865,14 @@ if ($comment_stmt) {
 
                                     <i class="bi bi-info-circle"></i>
 
-                                    โปรเจกต์นี้ไม่ได้อยู่ในความดูแลของอาจารย์
-                                    จึงไม่สามารถแสดงความคิดเห็นได้
+                                    โปรเจกต์นี้อยู่ในความดูแลของ
+
+                                    <strong>
+                                        <?php echo e($advisor); ?>
+                                    </strong>
+
+                                    จึงมีเฉพาะอาจารย์ที่ปรึกษาเท่านั้น
+                                    ที่สามารถแสดงความคิดเห็นได้
 
                                 </div>
 
@@ -1747,12 +1887,28 @@ if ($comment_stmt) {
 
                                     <?php
 
-                                    $comment_teacher =
+                                    $comment_prefix =
                                         trim(
-                                            ($comment['first_name'] ?? '') .
-                                            ' ' .
-                                            ($comment['last_name'] ?? '')
+                                            $comment['prefix'] ?? ''
                                         );
+
+                                    $comment_first_name =
+                                        trim(
+                                            $comment['first_name'] ?? ''
+                                        );
+
+                                    $comment_last_name =
+                                        trim(
+                                            $comment['last_name'] ?? ''
+                                        );
+
+
+                                    $comment_teacher = trim(
+                                        $comment_prefix . ' ' .
+                                        $comment_first_name . ' ' .
+                                        $comment_last_name
+                                    );
+
 
                                     if ($comment_teacher === '') {
                                         $comment_teacher = 'อาจารย์';
@@ -1788,10 +1944,12 @@ if ($comment_stmt) {
 
 
                                     /*
-                                       ลบได้เมื่อ:
-                                       - Admin ลบได้ทุกความคิดเห็น
-                                       - อาจารย์ลบความคิดเห็นของตัวเอง
-                                    */
+                                     * ลบได้เมื่อ
+                                     *
+                                     * Admin = ลบได้ทุกความคิดเห็น
+                                     *
+                                     * Teacher = ลบความคิดเห็นตัวเอง
+                                     */
 
                                     $can_delete_comment = (
                                         $logged_in &&
@@ -1853,11 +2011,13 @@ if ($comment_stmt) {
                                                     value="<?php echo (int)$comment['id']; ?>"
                                                 >
 
+
                                                 <input
                                                     type="hidden"
                                                     name="project_id"
                                                     value="<?php echo $project_id; ?>"
                                                 >
+
 
                                                 <button
                                                     type="submit"
@@ -1878,13 +2038,14 @@ if ($comment_stmt) {
 
                                 <?php endforeach; ?>
 
+
                             <?php else: ?>
 
                                 <div class="no-comments">
 
                                     <i class="bi bi-chat-square-text"></i>
 
-                                    ยังไม่มีความคิดเห็นจากอาจารย์
+                                    ยังไม่มีความคิดเห็นจากอาจารย์ที่ปรึกษา
 
                                 </div>
 
@@ -1943,7 +2104,7 @@ if ($comment_stmt) {
                                 <i class="bi bi-eye"></i>
 
                                 บุคคลทั่วไปสามารถดูรายละเอียดโปรเจกต์
-                                และอ่านความคิดเห็นจากอาจารย์ได้
+                                และอ่านความคิดเห็นจากอาจารย์ที่ปรึกษาได้
                                 แต่ไม่สามารถแสดงความคิดเห็นได้
 
                             </div>
@@ -1967,6 +2128,7 @@ if ($comment_stmt) {
 <script
     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
 ></script>
+
 
 </body>
 

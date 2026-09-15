@@ -4,19 +4,20 @@ session_start();
 require_once "db_connect.php";
 
 
-/* =========================
+/* =========================================================
    ตรวจสอบ Login
-========================= */
+========================================================= */
 
 if (!isset($_SESSION['user_id'])) {
+
     header("Location: login.php");
     exit;
 }
 
 
-/* =========================
+/* =========================================================
    ตรวจสอบ Admin
-========================= */
+========================================================= */
 
 if (($_SESSION['role'] ?? '') !== 'admin') {
 
@@ -29,29 +30,32 @@ if (($_SESSION['role'] ?? '') !== 'admin') {
 }
 
 
-/* =========================
+/* =========================================================
    รับ ID ผู้ใช้
-========================= */
+========================================================= */
 
 $user_id = isset($_GET['id'])
     ? (int)$_GET['id']
     : 0;
 
+
 if ($user_id <= 0) {
+
     header("Location: admin.php");
     exit;
 }
 
 
-/* =========================
+/* =========================================================
    ดึงข้อมูลผู้ใช้
-========================= */
+========================================================= */
 
 $stmt = $conn->prepare("
     SELECT
         id,
         username,
         user_code,
+        prefix,
         first_name,
         last_name,
         email,
@@ -64,7 +68,15 @@ $stmt = $conn->prepare("
 
 
 if (!$stmt) {
-    die("เกิดข้อผิดพลาดในการเตรียมคำสั่ง");
+
+    die(
+        "เกิดข้อผิดพลาด SQL: "
+        . htmlspecialchars(
+            $conn->error,
+            ENT_QUOTES,
+            'UTF-8'
+        )
+    );
 }
 
 
@@ -73,18 +85,22 @@ $stmt->bind_param(
     $user_id
 );
 
+
 $stmt->execute();
+
 
 $result = $stmt->get_result();
 
+
 $user = $result->fetch_assoc();
+
 
 $stmt->close();
 
 
-/* =========================
+/* =========================================================
    ไม่พบผู้ใช้
-========================= */
+========================================================= */
 
 if (!$user) {
 
@@ -100,59 +116,128 @@ if (!$user) {
 $error = "";
 
 
-/* =========================
+/* =========================================================
    เมื่อกดบันทึก
-========================= */
+========================================================= */
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-    $user_code  = trim($_POST["user_code"] ?? "");
 
-    $first_name = trim($_POST["first_name"] ?? "");
-    $last_name  = trim($_POST["last_name"] ?? "");
+    /* =====================================================
+       รับข้อมูล
+    ===================================================== */
 
-    $email      = trim($_POST["email"] ?? "");
-
-    $role       = trim($_POST["role"] ?? "");
-
-    $department = trim($_POST["department"] ?? "");
-
-    $password   = $_POST["password"] ?? "";
+    $user_code = trim(
+        $_POST["user_code"] ?? ""
+    );
 
 
-    /* =========================
-       ตรวจสอบข้อมูล
-    ========================= */
+    $prefix = trim(
+        $_POST["prefix"] ?? ""
+    );
 
-    if (
-        $user_code === "" ||
-        $first_name === "" ||
-        $last_name === "" ||
-        $email === ""
-    ) {
 
-        $error = "กรุณากรอกข้อมูลให้ครบ";
+    $other_prefix = trim(
+        $_POST["other_prefix"] ?? ""
+    );
 
-    } elseif (!filter_var(
-        $email,
-        FILTER_VALIDATE_EMAIL
-    )) {
 
-        $error = "รูปแบบ Email ไม่ถูกต้อง";
+    $first_name = trim(
+        $_POST["first_name"] ?? ""
+    );
 
-    } elseif (!in_array(
-        $role,
-        ["student", "teacher", "admin"],
-        true
-    )) {
 
-        $error = "Role ไม่ถูกต้อง";
+    $last_name = trim(
+        $_POST["last_name"] ?? ""
+    );
+
+
+    $email = trim(
+        $_POST["email"] ?? ""
+    );
+
+
+    $role = trim(
+        $_POST["role"] ?? ""
+    );
+
+
+    $department = trim(
+        $_POST["department"] ?? ""
+    );
+
+
+    $password = $_POST["password"] ?? "";
+
+
+    /* =====================================================
+       ถ้าเลือก "อื่น ๆ"
+       ใช้ค่าที่พิมพ์เอง
+    ===================================================== */
+
+    if ($prefix === "other") {
+
+        if ($other_prefix === "") {
+
+            $error =
+                "กรุณาระบุคำนำหน้า";
+
+        } else {
+
+            $prefix =
+                $other_prefix;
+        }
     }
 
 
-    /* =========================
+    /* =====================================================
+       ตรวจสอบข้อมูล
+    ===================================================== */
+
+    if ($error === "") {
+
+        if (
+            $user_code === "" ||
+            $prefix === "" ||
+            $first_name === "" ||
+            $last_name === "" ||
+            $email === ""
+        ) {
+
+            $error =
+                "กรุณากรอกข้อมูลให้ครบ";
+
+        } elseif (
+            !filter_var(
+                $email,
+                FILTER_VALIDATE_EMAIL
+            )
+        ) {
+
+            $error =
+                "รูปแบบ Email ไม่ถูกต้อง";
+
+        } elseif (
+            !in_array(
+                $role,
+                [
+                    "student",
+                    "teacher",
+                    "admin"
+                ],
+                true
+            )
+        ) {
+
+            $error =
+                "Role ไม่ถูกต้อง";
+        }
+    }
+
+
+    /* =====================================================
        ตรวจสอบ User Code ซ้ำ
-    ========================= */
+    ===================================================== */
 
     if ($error === "") {
 
@@ -168,7 +253,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         if (!$stmt) {
 
             $error =
-                "เกิดข้อผิดพลาดในการตรวจสอบรหัสประจำตัว";
+                "เกิดข้อผิดพลาดในการตรวจสอบรหัสประจำตัว: "
+                . $conn->error;
 
         } else {
 
@@ -178,27 +264,29 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $user_id
             );
 
+
             $stmt->execute();
+
 
             $result =
                 $stmt->get_result();
 
-            if (
-                $result->num_rows > 0
-            ) {
+
+            if ($result->num_rows > 0) {
 
                 $error =
                     "รหัสประจำตัวนี้ถูกใช้งานแล้ว";
             }
+
 
             $stmt->close();
         }
     }
 
 
-    /* =========================
+    /* =====================================================
        ตรวจสอบ Email ซ้ำ
-    ========================= */
+    ===================================================== */
 
     if ($error === "") {
 
@@ -214,7 +302,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         if (!$stmt) {
 
             $error =
-                "เกิดข้อผิดพลาดในการตรวจสอบ Email";
+                "เกิดข้อผิดพลาดในการตรวจสอบ Email: "
+                . $conn->error;
 
         } else {
 
@@ -224,27 +313,29 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $user_id
             );
 
+
             $stmt->execute();
+
 
             $result =
                 $stmt->get_result();
 
-            if (
-                $result->num_rows > 0
-            ) {
+
+            if ($result->num_rows > 0) {
 
                 $error =
                     "Email นี้ถูกใช้งานแล้ว";
             }
+
 
             $stmt->close();
         }
     }
 
 
-    /* =========================
+    /* =====================================================
        บันทึกข้อมูล
-    ========================= */
+    ===================================================== */
 
     $saved = false;
 
@@ -252,20 +343,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if ($error === "") {
 
 
-        /* =========================
-           เปลี่ยน Password
-        ========================= */
+        /* =================================================
+           ถ้าเปลี่ยน Password
+        ================================================= */
 
         if ($password !== "") {
 
-            if (
-                strlen($password) < 4
-            ) {
+
+            if (strlen($password) < 4) {
 
                 $error =
                     "Password ต้องมีอย่างน้อย 4 ตัวอักษร";
 
             } else {
+
 
                 $hashed_password =
                     password_hash(
@@ -278,6 +369,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     UPDATE users
                     SET
                         user_code = ?,
+                        prefix = ?,
                         first_name = ?,
                         last_name = ?,
                         email = ?,
@@ -291,13 +383,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 if (!$stmt) {
 
                     $error =
-                        "เกิดข้อผิดพลาดในการเตรียมคำสั่ง";
+                        "เกิดข้อผิดพลาดในการเตรียมคำสั่ง: "
+                        . $conn->error;
 
                 } else {
 
+
                     $stmt->bind_param(
-                        "sssssssi",
+                        "ssssssssi",
                         $user_code,
+                        $prefix,
                         $first_name,
                         $last_name,
                         $email,
@@ -315,7 +410,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     if (!$saved) {
 
                         $error =
-                            "เกิดข้อผิดพลาดในการบันทึกข้อมูล";
+                            "เกิดข้อผิดพลาดในการบันทึกข้อมูล: "
+                            . $stmt->error;
                     }
 
 
@@ -327,14 +423,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         } else {
 
 
-            /* =========================
+            /* =============================================
                ใช้ Password เดิม
-            ========================= */
+            ============================================= */
 
             $stmt = $conn->prepare("
                 UPDATE users
                 SET
                     user_code = ?,
+                    prefix = ?,
                     first_name = ?,
                     last_name = ?,
                     email = ?,
@@ -347,13 +444,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             if (!$stmt) {
 
                 $error =
-                    "เกิดข้อผิดพลาดในการเตรียมคำสั่ง";
+                    "เกิดข้อผิดพลาดในการเตรียมคำสั่ง: "
+                    . $conn->error;
 
             } else {
 
+
                 $stmt->bind_param(
-                    "ssssssi",
+                    "sssssssi",
                     $user_code,
+                    $prefix,
                     $first_name,
                     $last_name,
                     $email,
@@ -370,7 +470,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 if (!$saved) {
 
                     $error =
-                        "เกิดข้อผิดพลาดในการบันทึกข้อมูล";
+                        "เกิดข้อผิดพลาดในการบันทึกข้อมูล: "
+                        . $stmt->error;
                 }
 
 
@@ -380,9 +481,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
 
-    /* =========================
-       ถ้าบันทึกสำเร็จ
-    ========================= */
+    /* =====================================================
+       บันทึกสำเร็จ
+    ===================================================== */
 
     if (
         $error === "" &&
@@ -390,10 +491,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     ) {
 
 
-        /* =========================
+        /* =================================================
            ถ้าแก้บัญชีตัวเอง
-           ให้อัปเดต Session
-        ========================= */
+           อัปเดต Session
+        ================================================= */
 
         if (
             isset($_SESSION['user_id']) &&
@@ -403,17 +504,26 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $_SESSION['user_code'] =
                 $user_code;
 
+
+            $_SESSION['prefix'] =
+                $prefix;
+
+
             $_SESSION['role'] =
                 $role;
+
 
             $_SESSION['first_name'] =
                 $first_name;
 
+
             $_SESSION['last_name'] =
                 $last_name;
 
+
             $_SESSION['email'] =
                 $email;
+
 
             $_SESSION['department'] =
                 $department;
@@ -429,25 +539,34 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
 
-    /* =========================
-       ถ้าเกิด Error
-       แสดงข้อมูลที่กรอกล่าสุด
-    ========================= */
+    /* =====================================================
+       ถ้า Error
+       แสดงค่าที่กรอกล่าสุด
+    ===================================================== */
 
     $user['user_code'] =
         $user_code;
 
+
+    $user['prefix'] =
+        $prefix;
+
+
     $user['first_name'] =
         $first_name;
+
 
     $user['last_name'] =
         $last_name;
 
+
     $user['email'] =
         $email;
 
+
     $user['role'] =
         $role;
+
 
     $user['department'] =
         $department;
@@ -574,7 +693,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         .container {
 
-            max-width: 700px;
+            max-width: 850px;
 
             margin: 40px auto;
 
@@ -699,17 +818,54 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
         /* =========================
-           GRID
+           NAME GRID
         ========================= */
 
-        .grid {
+        .name-grid {
 
             display: grid;
 
             grid-template-columns:
-                1fr 1fr;
+                1fr 1.5fr 1.5fr;
 
             gap: 15px;
+        }
+
+
+        /* =========================
+           PREFIX NOTE
+        ========================= */
+
+        .prefix-note {
+
+            font-size: 13px;
+
+            color: #777;
+
+            margin-top: 6px;
+
+            line-height: 1.5;
+        }
+
+
+        /* =========================
+           OTHER PREFIX
+        ========================= */
+
+        #otherPrefixBox {
+
+            display: none;
+
+            background: #f8fbfd;
+
+            padding: 15px;
+
+            border-radius: 10px;
+
+            border-left:
+                4px solid #4297cd;
+
+            margin-top: -5px;
         }
 
 
@@ -825,9 +981,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
            RESPONSIVE
         ========================= */
 
-        @media (max-width: 600px) {
+        @media (max-width: 700px) {
 
-            .grid {
+            .name-grid {
 
                 grid-template-columns: 1fr;
             }
@@ -870,9 +1026,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <body>
 
 
-<!-- =========================
+<!-- =====================================================
      HEADER
-========================= -->
+===================================================== -->
 
 <div class="header">
 
@@ -896,9 +1052,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 </div>
 
 
-<!-- =========================
+<!-- =====================================================
      CONTENT
-========================= -->
+===================================================== -->
 
 <div class="container">
 
@@ -930,7 +1086,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <?php endif; ?>
 
 
-        <!-- USERNAME -->
+        <!-- =================================================
+             USERNAME
+        ================================================= -->
 
         <div class="username-box">
 
@@ -954,7 +1112,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <form method="POST">
 
 
-            <!-- USER CODE -->
+            <!-- =================================================
+                 USER CODE
+            ================================================= -->
 
             <div class="form-group">
 
@@ -981,9 +1141,50 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
 
-            <!-- NAME -->
+            <!-- =================================================
+                 PREFIX + NAME
+            ================================================= -->
 
-            <div class="grid">
+            <div class="name-grid">
+
+
+                <!-- PREFIX -->
+
+                <div class="form-group">
+
+                    <label>
+
+                        คำนำหน้า
+
+                        <span class="required">*</span>
+
+                    </label>
+
+
+                    <select
+                        name="prefix"
+                        id="prefix"
+                        required
+                    >
+
+                        <!-- JavaScript สร้างรายการ -->
+
+                    </select>
+
+
+                    <div class="prefix-note">
+
+                        <i class="bi bi-info-circle"></i>
+
+                        สำหรับอาจารย์ รายการจะแสดงชื่อเต็ม
+                        แต่ระบบจะบันทึกเป็นตัวย่อ
+
+                    </div>
+
+                </div>
+
+
+                <!-- FIRST NAME -->
 
                 <div class="form-group">
 
@@ -1008,6 +1209,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 </div>
 
+
+                <!-- LAST NAME -->
 
                 <div class="form-group">
 
@@ -1035,7 +1238,38 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
 
-            <!-- EMAIL -->
+            <!-- =================================================
+                 OTHER PREFIX
+            ================================================= -->
+
+            <div
+                class="form-group"
+                id="otherPrefixBox"
+            >
+
+                <label>
+
+                    ระบุคำนำหน้าเอง
+
+                    <span class="required">*</span>
+
+                </label>
+
+
+                <input
+                    type="text"
+                    name="other_prefix"
+                    id="other_prefix"
+                    placeholder="พิมพ์คำนำหน้าที่ต้องการ"
+                    maxlength="50"
+                >
+
+            </div>
+
+
+            <!-- =================================================
+                 EMAIL
+            ================================================= -->
 
             <div class="form-group">
 
@@ -1061,7 +1295,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
 
-            <!-- ROLE -->
+            <!-- =================================================
+                 ROLE
+            ================================================= -->
 
             <div class="form-group">
 
@@ -1075,6 +1311,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 <select
                     name="role"
+                    id="role"
                     required
                 >
 
@@ -1124,7 +1361,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
 
-            <!-- DEPARTMENT -->
+            <!-- =================================================
+                 DEPARTMENT
+            ================================================= -->
 
             <div class="form-group">
 
@@ -1146,7 +1385,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
 
-            <!-- PASSWORD -->
+            <!-- =================================================
+                 PASSWORD
+            ================================================= -->
 
             <div class="form-group">
 
@@ -1172,7 +1413,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </div>
 
 
-            <!-- BUTTONS -->
+            <!-- =================================================
+                 BUTTONS
+            ================================================= -->
 
             <div class="buttons">
 
@@ -1207,6 +1450,340 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </div>
 
 </div>
+
+
+<script>
+
+/* =========================================================
+   คำนำหน้าอาจารย์
+
+   label = สิ่งที่เห็นใน Dropdown
+   value = สิ่งที่ส่งไปบันทึก Database
+========================================================= */
+
+const teacherPrefixes = [
+
+    {
+        label: "อาจารย์",
+        value: "อ."
+    },
+
+    {
+        label: "ผู้ช่วยศาสตราจารย์",
+        value: "ผศ."
+    },
+
+    {
+        label: "ผู้ช่วยศาสตราจารย์ ดร.",
+        value: "ผศ.ดร."
+    },
+
+    {
+        label: "รองศาสตราจารย์",
+        value: "รศ."
+    },
+
+    {
+        label: "รองศาสตราจารย์ ดร.",
+        value: "รศ.ดร."
+    },
+
+    {
+        label: "ศาสตราจารย์",
+        value: "ศ."
+    },
+
+    {
+        label: "ศาสตราจารย์ ดร.",
+        value: "ศ.ดร."
+    },
+
+    {
+        label: "ดอกเตอร์",
+        value: "ดร."
+    },
+
+    {
+        label: "อื่น ๆ",
+        value: "other"
+    }
+
+];
+
+
+/* =========================================================
+   คำนำหน้าทั่วไป
+========================================================= */
+
+const normalPrefixes = [
+
+    {
+        label: "นาย",
+        value: "นาย"
+    },
+
+    {
+        label: "นาง",
+        value: "นาง"
+    },
+
+    {
+        label: "นางสาว",
+        value: "นางสาว"
+    },
+
+    {
+        label: "อื่น ๆ",
+        value: "other"
+    }
+
+];
+
+
+/* =========================================================
+   ตัวแปร
+========================================================= */
+
+const roleSelect =
+    document.getElementById("role");
+
+
+const prefixSelect =
+    document.getElementById("prefix");
+
+
+const otherPrefixBox =
+    document.getElementById("otherPrefixBox");
+
+
+const otherPrefixInput =
+    document.getElementById("other_prefix");
+
+
+/* =========================================================
+   Prefix เดิมจาก Database
+========================================================= */
+
+let currentPrefix =
+    <?= json_encode(
+        $user['prefix'] ?? '',
+        JSON_UNESCAPED_UNICODE
+    ) ?>;
+
+
+/* =========================================================
+   สร้างรายการคำนำหน้า
+========================================================= */
+
+function updatePrefixOptions() {
+
+
+    const role =
+        roleSelect.value;
+
+
+    const options =
+        role === "teacher"
+            ? teacherPrefixes
+            : normalPrefixes;
+
+
+    prefixSelect.innerHTML = "";
+
+
+    /* =====================================================
+       ตัวเลือกแรก
+    ===================================================== */
+
+    const defaultOption =
+        document.createElement("option");
+
+
+    defaultOption.value =
+        "";
+
+
+    defaultOption.textContent =
+        "-- เลือกคำนำหน้า --";
+
+
+    prefixSelect.appendChild(
+        defaultOption
+    );
+
+
+    /* =====================================================
+       สร้าง Options
+    ===================================================== */
+
+    options.forEach(
+        function(item) {
+
+
+            const option =
+                document.createElement("option");
+
+
+            option.value =
+                item.value;
+
+
+            option.textContent =
+                item.label;
+
+
+            prefixSelect.appendChild(
+                option
+            );
+
+        }
+    );
+
+
+    /* =====================================================
+       เช็ก Prefix เดิม
+    ===================================================== */
+
+    let found = false;
+
+
+    options.forEach(
+        function(item) {
+
+
+            if (
+                item.value === currentPrefix
+            ) {
+
+                prefixSelect.value =
+                    currentPrefix;
+
+
+                found = true;
+            }
+
+        }
+    );
+
+
+    /* =====================================================
+       ถ้าเป็น Prefix ที่พิมพ์เอง
+    ===================================================== */
+
+    if (
+        !found &&
+        currentPrefix !== ""
+    ) {
+
+        prefixSelect.value =
+            "other";
+
+
+        otherPrefixInput.value =
+            currentPrefix;
+    }
+
+
+    checkOtherPrefix();
+}
+
+
+/* =========================================================
+   ตรวจสอบ "อื่น ๆ"
+========================================================= */
+
+function checkOtherPrefix() {
+
+
+    if (
+        prefixSelect.value === "other"
+    ) {
+
+
+        /* แสดงช่อง */
+
+        otherPrefixBox.style.display =
+            "block";
+
+
+        /* บังคับกรอก */
+
+        otherPrefixInput.required =
+            true;
+
+
+        /* โฟกัสช่อง */
+
+        otherPrefixInput.focus();
+
+
+    } else {
+
+
+        /* ซ่อนช่อง */
+
+        otherPrefixBox.style.display =
+            "none";
+
+
+        /* ไม่บังคับ */
+
+        otherPrefixInput.required =
+            false;
+
+
+        /* ล้างค่า */
+
+        otherPrefixInput.value =
+            "";
+    }
+}
+
+
+/* =========================================================
+   เปลี่ยน Role
+========================================================= */
+
+roleSelect.addEventListener(
+    "change",
+    function() {
+
+
+        /*
+         * ถ้าเปลี่ยน Role
+         * ให้สร้างรายการ Prefix ใหม่
+         */
+
+        currentPrefix = "";
+
+
+        updatePrefixOptions();
+
+    }
+);
+
+
+/* =========================================================
+   เปลี่ยน Prefix
+========================================================= */
+
+prefixSelect.addEventListener(
+    "change",
+    function() {
+
+        checkOtherPrefix();
+
+    }
+);
+
+
+/* =========================================================
+   เริ่มต้นหน้า
+========================================================= */
+
+updatePrefixOptions();
+
+</script>
 
 
 </body>

@@ -41,6 +41,37 @@ if ($project_id <= 0) {
 
 
 /* =========================================================
+   ดึงรายชื่ออาจารย์
+========================================================= */
+
+$teachers = [];
+
+$teacher_stmt = $conn->prepare("
+    SELECT
+        id,
+        prefix,
+        first_name,
+        last_name
+    FROM users
+    WHERE role = 'teacher'
+    ORDER BY first_name ASC, last_name ASC
+");
+
+if ($teacher_stmt) {
+
+    $teacher_stmt->execute();
+
+    $teacher_result = $teacher_stmt->get_result();
+
+    while ($teacher = $teacher_result->fetch_assoc()) {
+        $teachers[] = $teacher;
+    }
+
+    $teacher_stmt->close();
+}
+
+
+/* =========================================================
    ดึงข้อมูล Project
 ========================================================= */
 
@@ -56,7 +87,6 @@ $stmt = $conn->prepare("
         degree,
         department,
         authors,
-        pages,
         pdf_file,
         status,
         github_url
@@ -66,13 +96,17 @@ $stmt = $conn->prepare("
 ");
 
 if (!$stmt) {
-    die("เกิดข้อผิดพลาดในการเตรียมคำสั่ง SQL: " . $conn->error);
+    die(
+        "เกิดข้อผิดพลาดในการเตรียมคำสั่ง SQL: "
+        . $conn->error
+    );
 }
 
 $stmt->bind_param("i", $project_id);
 $stmt->execute();
 
 $result = $stmt->get_result();
+
 $project = $result->fetch_assoc();
 
 $stmt->close();
@@ -83,10 +117,12 @@ $stmt->close();
 ========================================================= */
 
 if (!$project) {
+
     echo "<script>
         alert('ไม่พบโปรเจกต์');
         window.location.href='admin.php';
     </script>";
+
     exit;
 }
 
@@ -104,7 +140,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
        รับข้อมูล
     ===================================================== */
 
-    $title = trim($_POST["title"] ?? "");
+    $title = trim(
+        $_POST["title"] ?? ""
+    );
 
     $description = trim(
         $_POST["description"] ?? ""
@@ -126,10 +164,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $_POST["advisor"] ?? ""
     );
 
-    $pages = trim(
-        $_POST["pages"] ?? ""
-    );
-
     $github_url = trim(
         $_POST["github_url"] ?? ""
     );
@@ -146,20 +180,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if ($title === "") {
 
         $error = "กรุณากรอกชื่อโปรเจกต์";
-
-    } elseif (
-        $pages !== "" &&
-        !ctype_digit($pages)
-    ) {
-
-        $error = "จำนวนหน้าต้องเป็นตัวเลข";
-
-    } elseif (
-        $pages !== "" &&
-        (int)$pages < 1
-    ) {
-
-        $error = "จำนวนหน้าต้องมากกว่า 0";
 
     } elseif (
         $github_url !== "" &&
@@ -186,10 +206,85 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     if (
         $error === "" &&
-        !in_array($status, $allowed_status, true)
+        !in_array(
+            $status,
+            $allowed_status,
+            true
+        )
     ) {
 
         $error = "สถานะโปรเจกต์ไม่ถูกต้อง";
+    }
+
+
+    /* =====================================================
+       ตรวจสอบอาจารย์ที่ปรึกษา
+    ===================================================== */
+
+    if (
+        $error === "" &&
+        $advisor !== ""
+    ) {
+
+        $advisor_valid = false;
+
+        foreach ($teachers as $teacher) {
+
+            $prefix = trim(
+                $teacher['prefix'] ?? ''
+            );
+
+            $first_name = trim(
+                $teacher['first_name'] ?? ''
+            );
+
+            $last_name = trim(
+                $teacher['last_name'] ?? ''
+            );
+
+
+            /*
+             * ชื่อที่แสดงใน Dropdown
+             */
+
+            $teacher_fullname = trim(
+                $prefix
+                . ' '
+                . $first_name
+                . ' '
+                . $last_name
+            );
+
+
+            /*
+             * รองรับข้อมูลเก่า
+             * ที่อาจไม่มี prefix
+             */
+
+            $teacher_name_without_prefix = trim(
+                $first_name
+                . ' '
+                . $last_name
+            );
+
+
+            if (
+                $advisor === $teacher_fullname ||
+                $advisor === $teacher_name_without_prefix
+            ) {
+
+                $advisor_valid = true;
+
+                break;
+            }
+        }
+
+
+        if (!$advisor_valid) {
+
+            $error =
+                "กรุณาเลือกอาจารย์ที่ปรึกษาจากรายการ";
+        }
     }
 
 
@@ -200,8 +295,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if ($error === "") {
 
         /*
-         * projects มีทั้งข้อมูลชุดเก่าและชุดใหม่
-         * จึงเก็บข้อมูลให้ตรงกันทั้งสองชุด
+         * projects มีข้อมูลชุดเก่าและชุดใหม่
+         * จึงเก็บข้อมูลให้ตรงกัน
          */
 
         $project_name = $title;
@@ -215,22 +310,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
         /* =================================================
-           Pages
-        ================================================= */
-
-        if ($pages === "") {
-            $pages_value = null;
-        } else {
-            $pages_value = (int)$pages;
-        }
-
-
-        /* =================================================
            PDF
         ================================================= */
 
-        $old_pdf_file = $project['pdf_file'] ?? "";
-        $new_pdf_file = $old_pdf_file;
+        $old_pdf_file =
+            $project['pdf_file'] ?? "";
+
+        $new_pdf_file =
+            $old_pdf_file;
 
         $uploaded_new_pdf = false;
 
@@ -242,7 +329,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         if (
             $error === "" &&
             isset($_FILES["pdf_file"]) &&
-            $_FILES["pdf_file"]["error"] !== UPLOAD_ERR_NO_FILE
+            $_FILES["pdf_file"]["error"]
+                !== UPLOAD_ERR_NO_FILE
         ) {
 
             $file = $_FILES["pdf_file"];
@@ -252,10 +340,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                ตรวจสอบ Upload Error
             --------------------------------------------- */
 
-            if ($file["error"] !== UPLOAD_ERR_OK) {
+            if (
+                $file["error"]
+                !== UPLOAD_ERR_OK
+            ) {
 
-                $error = "อัปโหลดไฟล์ PDF ไม่สำเร็จ";
-
+                $error =
+                    "อัปโหลดไฟล์ PDF ไม่สำเร็จ";
             }
 
 
@@ -263,10 +354,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                ตรวจสอบขนาด
             --------------------------------------------- */
 
-            elseif ($file["size"] > 10 * 1024 * 1024) {
+            elseif (
+                $file["size"]
+                > 10 * 1024 * 1024
+            ) {
 
-                $error = "ไฟล์ PDF ต้องมีขนาดไม่เกิน 10 MB";
-
+                $error =
+                    "ไฟล์ PDF ต้องมีขนาดไม่เกิน 10 MB";
             }
 
 
@@ -276,12 +370,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             else {
 
-                $finfo = new finfo(FILEINFO_MIME_TYPE);
+                $finfo =
+                    new finfo(FILEINFO_MIME_TYPE);
 
                 $mime_type =
-                    $finfo->file($file["tmp_name"]);
+                    $finfo->file(
+                        $file["tmp_name"]
+                    );
 
-                if ($mime_type !== "application/pdf") {
+                if (
+                    $mime_type
+                    !== "application/pdf"
+                ) {
 
                     $error =
                         "อนุญาตเฉพาะไฟล์ PDF เท่านั้น";
@@ -290,21 +390,26 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
             /* ---------------------------------------------
-               บันทึก PDF ใหม่
+               สร้างโฟลเดอร์ uploads
             --------------------------------------------- */
 
             if ($error === "") {
 
                 $upload_dir =
-                    __DIR__ . DIRECTORY_SEPARATOR . "uploads";
+                    __DIR__
+                    . DIRECTORY_SEPARATOR
+                    . "uploads";
+
 
                 if (!is_dir($upload_dir)) {
 
-                    if (!mkdir(
-                        $upload_dir,
-                        0755,
-                        true
-                    )) {
+                    if (
+                        !mkdir(
+                            $upload_dir,
+                            0755,
+                            true
+                        )
+                    ) {
 
                         $error =
                             "ไม่สามารถสร้างโฟลเดอร์ uploads ได้";
@@ -319,17 +424,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             if ($error === "") {
 
-                $extension = "pdf";
-
                 $new_pdf_file =
                     "project_"
                     . $project_id
                     . "_"
                     . time()
                     . "_"
-                    . bin2hex(random_bytes(4))
-                    . "."
-                    . $extension;
+                    . bin2hex(
+                        random_bytes(4)
+                    )
+                    . ".pdf";
 
 
                 $destination =
@@ -338,10 +442,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     . $new_pdf_file;
 
 
-                if (!move_uploaded_file(
-                    $file["tmp_name"],
-                    $destination
-                )) {
+                if (
+                    !move_uploaded_file(
+                        $file["tmp_name"],
+                        $destination
+                    )
+                ) {
 
                     $error =
                         "ไม่สามารถบันทึกไฟล์ PDF ได้";
@@ -375,7 +481,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     department = ?,
                     authors = ?,
                     advisor = ?,
-                    pages = ?,
                     pdf_file = ?,
                     github_url = ?,
                     status = ?
@@ -391,18 +496,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             } else {
 
-                /*
-                 * 13 strings/values + project_id
-                 *
-                 * s = string
-                 * i = integer
-                 *
-                 * pages = integer
-                 * project_id = integer
-                 */
-
                 $stmt->bind_param(
-                    "sssssssssisssi",
+                    "ssssssssssssi",
                     $project_name,
                     $project_type,
                     $student_name,
@@ -412,7 +507,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     $department,
                     $authors,
                     $advisor,
-                    $pages_value,
                     $new_pdf_file,
                     $github_url,
                     $status,
@@ -433,7 +527,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         $uploaded_new_pdf &&
                         !empty($old_pdf_file) &&
                         basename($old_pdf_file)
-                            !== basename($new_pdf_file)
+                        !== basename($new_pdf_file)
                     ) {
 
                         $old_pdf_path =
@@ -441,11 +535,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             . DIRECTORY_SEPARATOR
                             . "uploads"
                             . DIRECTORY_SEPARATOR
-                            . basename($old_pdf_file);
+                            . basename(
+                                $old_pdf_file
+                            );
 
 
                         if (
-                            is_file($old_pdf_path)
+                            is_file(
+                                $old_pdf_path
+                            )
                         ) {
 
                             @unlink(
@@ -476,9 +574,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
                     /* =====================================
-                       ถ้า DB UPDATE ไม่สำเร็จ
-                       และอัปโหลด PDF ใหม่ไปแล้ว
-                       ให้ลบไฟล์ใหม่ออก
+                       ถ้า UPDATE ไม่สำเร็จ
+                       ลบ PDF ใหม่
                     ===================================== */
 
                     if (
@@ -491,11 +588,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             . DIRECTORY_SEPARATOR
                             . "uploads"
                             . DIRECTORY_SEPARATOR
-                            . basename($new_pdf_file);
+                            . basename(
+                                $new_pdf_file
+                            );
 
 
                         if (
-                            is_file($new_pdf_path)
+                            is_file(
+                                $new_pdf_path
+                            )
                         ) {
 
                             @unlink(
@@ -503,6 +604,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             );
                         }
                     }
+
 
                     $new_pdf_file =
                         $old_pdf_file;
@@ -542,9 +644,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $project['advisor'] =
             $advisor;
 
-        $project['pages'] =
-            $pages_value;
-
         $project['github_url'] =
             $github_url;
 
@@ -570,8 +669,17 @@ function e($value)
     );
 }
 
-?>
 
+/* =========================================================
+   อาจารย์ที่ปรึกษาปัจจุบัน
+========================================================= */
+
+$current_advisor =
+    trim(
+        $project['advisor'] ?? ''
+    );
+
+?>
 
 <!DOCTYPE html>
 <html lang="th">
@@ -586,8 +694,10 @@ function e($value)
 <title>แก้ไขโปรเจกต์ - Admin</title>
 
 
-<link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+>
 
 
 <style>
@@ -1031,16 +1141,19 @@ input[type="file"]::file-selector-button {
         grid-template-columns: 1fr;
     }
 
+
     .header {
 
         padding:
             15px 20px;
     }
 
+
     .header h2 {
 
         font-size: 18px;
     }
+
 
     .header a {
 
@@ -1050,15 +1163,18 @@ input[type="file"]::file-selector-button {
         font-size: 13px;
     }
 
+
     .box {
 
         padding: 20px;
     }
 
+
     .container {
 
         margin-top: 25px;
     }
+
 
     .buttons {
 
@@ -1167,6 +1283,7 @@ input[type="file"]::file-selector-button {
                 <label>
 
                     ชื่อโปรเจกต์
+
                     <span class="required">*</span>
 
                 </label>
@@ -1294,38 +1411,108 @@ input[type="file"]::file-selector-button {
 
                 </label>
 
-                <input
-                    type="text"
-                    name="advisor"
-                    value="<?= e(
-                        $project['advisor'] ?? ''
-                    ) ?>"
-                    placeholder="ชื่ออาจารย์ที่ปรึกษา">
 
-            </div>
+                <select name="advisor">
 
+                    <option value="">
+
+                        -- เลือกอาจารย์ที่ปรึกษา --
+
+                    </option>
 
 
-            <!-- =================================================
-                 PAGES
-            ================================================= -->
+                    <?php foreach ($teachers as $teacher): ?>
 
-            <div class="form-group">
+                        <?php
 
-                <label>
+                        $prefix =
+                            trim(
+                                $teacher['prefix'] ?? ''
+                            );
 
-                    จำนวนหน้า
+                        $first_name =
+                            trim(
+                                $teacher['first_name'] ?? ''
+                            );
 
-                </label>
+                        $last_name =
+                            trim(
+                                $teacher['last_name'] ?? ''
+                            );
 
-                <input
-                    type="number"
-                    name="pages"
-                    min="1"
-                    value="<?= e(
-                        $project['pages'] ?? ''
-                    ) ?>"
-                    placeholder="เช่น 50">
+
+                        /*
+                         * ชื่อที่แสดง
+                         */
+
+                        $teacher_fullname =
+                            trim(
+                                $prefix
+                                . ' '
+                                . $first_name
+                                . ' '
+                                . $last_name
+                            );
+
+
+                        /*
+                         * ชื่อแบบไม่มีคำนำหน้า
+                         */
+
+                        $teacher_name_without_prefix =
+                            trim(
+                                $first_name
+                                . ' '
+                                . $last_name
+                            );
+
+
+                        /*
+                         * ตรวจสอบว่าเป็นอาจารย์
+                         * ที่ถูกเลือกอยู่หรือไม่
+                         */
+
+                        $selected =
+                            (
+                                $current_advisor
+                                === $teacher_fullname
+                                ||
+                                $current_advisor
+                                === $teacher_name_without_prefix
+                            );
+
+                        ?>
+
+
+                        <option
+                            value="<?= e(
+                                $teacher_fullname
+                            ) ?>"
+                            <?= $selected
+                                ? 'selected'
+                                : '' ?>
+                        >
+
+                            <?= e(
+                                $teacher_fullname
+                            ) ?>
+
+                        </option>
+
+
+                    <?php endforeach; ?>
+
+
+                </select>
+
+
+                <div class="help">
+
+                    <i class="bi bi-info-circle"></i>
+
+                    เลือกอาจารย์จากรายชื่อที่ลงทะเบียนเป็นอาจารย์ในระบบ
+
+                </div>
 
             </div>
 
@@ -1351,6 +1538,7 @@ input[type="file"]::file-selector-button {
                     ) ?>"
                     placeholder="https://github.com/username/project">
 
+
                 <div class="help">
 
                     <i class="bi bi-info-circle"></i>
@@ -1375,7 +1563,9 @@ input[type="file"]::file-selector-button {
 
                 </label>
 
+
                 <select name="status">
+
 
                     <option
                         value="ส่งแล้ว"
@@ -1384,7 +1574,8 @@ input[type="file"]::file-selector-button {
                             === 'ส่งแล้ว'
                         )
                             ? 'selected'
-                            : '' ?>>
+                            : '' ?>
+                    >
 
                         ส่งแล้ว
 
@@ -1398,7 +1589,8 @@ input[type="file"]::file-selector-button {
                             === 'กำลังตรวจสอบ'
                         )
                             ? 'selected'
-                            : '' ?>>
+                            : '' ?>
+                    >
 
                         กำลังตรวจสอบ
 
@@ -1412,7 +1604,8 @@ input[type="file"]::file-selector-button {
                             === 'ผ่าน'
                         )
                             ? 'selected'
-                            : '' ?>>
+                            : '' ?>
+                    >
 
                         ผ่าน
 
@@ -1426,11 +1619,13 @@ input[type="file"]::file-selector-button {
                             === 'ไม่ผ่าน'
                         )
                             ? 'selected'
-                            : '' ?>>
+                            : '' ?>
+                    >
 
                         ไม่ผ่าน
 
                     </option>
+
 
                 </select>
 
@@ -1459,6 +1654,7 @@ input[type="file"]::file-selector-button {
 
                         มีไฟล์ PDF อยู่แล้ว
 
+
                         <a
                             href="uploads/<?= rawurlencode(
                                 basename(
@@ -1466,7 +1662,8 @@ input[type="file"]::file-selector-button {
                                 )
                             ) ?>"
                             target="_blank"
-                            rel="noopener noreferrer">
+                            rel="noopener noreferrer"
+                        >
 
                             <i class="bi bi-box-arrow-up-right"></i>
 
@@ -1476,7 +1673,9 @@ input[type="file"]::file-selector-button {
 
                     </div>
 
+
                 <?php else: ?>
+
 
                     <div class="current-pdf">
 
@@ -1485,6 +1684,7 @@ input[type="file"]::file-selector-button {
                         ยังไม่มีไฟล์ PDF
 
                     </div>
+
 
                 <?php endif; ?>
 
@@ -1504,10 +1704,12 @@ input[type="file"]::file-selector-button {
 
                 </label>
 
+
                 <input
                     type="file"
                     name="pdf_file"
                     accept=".pdf,application/pdf">
+
 
                 <div class="help">
 
@@ -1536,7 +1738,8 @@ input[type="file"]::file-selector-button {
 
                 <a
                     href="admin.php"
-                    class="btn btn-cancel">
+                    class="btn btn-cancel"
+                >
 
                     <i class="bi bi-x-circle"></i>
 
@@ -1547,7 +1750,8 @@ input[type="file"]::file-selector-button {
 
                 <button
                     type="submit"
-                    class="btn btn-save">
+                    class="btn btn-save"
+                >
 
                     <i class="bi bi-check-circle"></i>
 
