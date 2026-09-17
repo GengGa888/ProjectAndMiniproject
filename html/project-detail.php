@@ -43,26 +43,22 @@ function normalize_teacher_name_for_comment($name)
    LOGIN
 ========================================================= */
 
-$logged_in =
-    isset($_SESSION['user_id']);
+$logged_in = isset($_SESSION['user_id']);
 
-$user_id =
-    $logged_in
-        ? (int)$_SESSION['user_id']
-        : 0;
+$user_id = $logged_in
+    ? (int)$_SESSION['user_id']
+    : 0;
 
-$user_role =
-    $_SESSION['role'] ?? '';
+$user_role = $_SESSION['role'] ?? '';
 
 
 /* =========================================================
    PROJECT ID
 ========================================================= */
 
-$project_id =
-    isset($_GET['id'])
-        ? (int)$_GET['id']
-        : 0;
+$project_id = isset($_GET['id'])
+    ? (int)$_GET['id']
+    : 0;
 
 
 if ($project_id <= 0) {
@@ -101,11 +97,10 @@ $sql = "
 ";
 
 
-$stmt =
-    mysqli_prepare(
-        $conn,
-        $sql
-    );
+$stmt = mysqli_prepare(
+    $conn,
+    $sql
+);
 
 
 if (!$stmt) {
@@ -126,8 +121,7 @@ mysqli_stmt_bind_param(
 mysqli_stmt_execute($stmt);
 
 
-$result =
-    mysqli_stmt_get_result($stmt);
+$result = mysqli_stmt_get_result($stmt);
 
 
 if (
@@ -148,72 +142,47 @@ if (
 }
 
 
-$row =
-    mysqli_fetch_assoc($result);
+$row = mysqli_fetch_assoc($result);
 
 
 mysqli_stmt_close($stmt);
 
 
-/* =========================================================
-   COUNT PROJECT VIEWS
-========================================================= */
+/*
+=========================================================
+   สำคัญ
 
-$view_stmt =
-    mysqli_prepare(
-        $conn,
-        "
-        UPDATE projects
-        SET views = views + 1
-        WHERE id = ?
-        "
-    );
+   ไม่มีการเพิ่ม views ตรงนี้แล้ว
 
+   การเปิดหน้า project-detail.php
+   จะไม่เพิ่มยอดเข้าชม
 
-if ($view_stmt) {
-
-    mysqli_stmt_bind_param(
-        $view_stmt,
-        "i",
-        $project_id
-    );
-
-    mysqli_stmt_execute(
-        $view_stmt
-    );
-
-    mysqli_stmt_close(
-        $view_stmt
-    );
-
-    $row['views'] =
-        (int)($row['views'] ?? 0) + 1;
-}
+   views จะเพิ่มเมื่อกด "ดูไฟล์ PDF"
+   ผ่าน view-pdf.php เท่านั้น
+=========================================================
+*/
 
 
 /* =========================================================
    PROJECT TITLE
 ========================================================= */
 
-$title =
-    trim(
-        $row['title'] ?? ''
-    );
+$title = trim(
+    $row['title'] ?? ''
+);
 
 
 if ($title === '') {
 
-    $title =
-        trim(
-            $row['project_name'] ?? ''
-        );
+    $title = trim(
+        $row['project_name'] ?? ''
+    );
 }
 
 
 if ($title === '') {
 
-    $title =
-        'ไม่พบชื่อโปรเจกต์';
+    $title = 'ไม่พบชื่อโปรเจกต์';
 }
 
 
@@ -221,10 +190,9 @@ if ($title === '') {
    DESCRIPTION
 ========================================================= */
 
-$description =
-    trim(
-        $row['description'] ?? ''
-    );
+$description = trim(
+    $row['description'] ?? ''
+);
 
 
 if ($description === '') {
@@ -238,60 +206,48 @@ if ($description === '') {
    MEMBERS
 ========================================================= */
 
-$authors =
-    trim(
-        $row['authors'] ?? ''
-    );
+$authors = trim(
+    $row['authors'] ?? ''
+);
 
 
 if ($authors === '') {
 
-    $authors =
-        trim(
-            $row['student_name'] ?? ''
-        );
+    $authors = trim(
+        $row['student_name'] ?? ''
+    );
 }
 
 
 if ($authors === '') {
 
-    $authors =
-        'ไม่ระบุผู้แต่ง';
+    $authors = 'ไม่ระบุผู้แต่ง';
 }
 
 
-$member_list =
-    preg_split(
-        '/\r\n|\r|\n/',
-        $authors
-    );
+$member_list = preg_split(
+    '/\r\n|\r|\n/',
+    $authors
+);
 
 
 $members = [];
 
 
-foreach (
-    $member_list
-    as $member
-) {
+foreach ($member_list as $member) {
 
-    $member =
-        trim($member);
+    $member = trim($member);
 
     if ($member !== '') {
 
-        $members[] =
-            $member;
+        $members[] = $member;
     }
 }
 
 
-if (
-    count($members) === 0
-) {
+if (count($members) === 0) {
 
-    $members[] =
-        'ไม่ระบุสมาชิก';
+    $members[] = 'ไม่ระบุสมาชิก';
 }
 
 
@@ -320,11 +276,10 @@ if ($logged_in) {
     ";
 
 
-    $user_map_result =
-        mysqli_query(
-            $conn,
-            $user_map_sql
-        );
+    $user_map_result = mysqli_query(
+        $conn,
+        $user_map_sql
+    );
 
 
     if ($user_map_result) {
@@ -336,48 +291,40 @@ if ($logged_in) {
             )
         ) {
 
-            $db_prefix =
-                trim(
-                    $user_data['prefix'] ?? ''
-                );
+            $db_prefix = trim(
+                $user_data['prefix'] ?? ''
+            );
 
 
-            $db_first_name =
-                trim(
-                    $user_data['first_name'] ?? ''
-                );
+            $db_first_name = trim(
+                $user_data['first_name'] ?? ''
+            );
 
 
-            $db_last_name =
-                trim(
-                    $user_data['last_name'] ?? ''
-                );
+            $db_last_name = trim(
+                $user_data['last_name'] ?? ''
+            );
 
 
-            /*
-             * ชื่อแบบมีคำนำหน้า
-             */
-            $full_name =
-                trim(
-                    $db_prefix . ' ' .
-                    $db_first_name . ' ' .
-                    $db_last_name
-                );
+            /* ชื่อแบบมีคำนำหน้า */
+
+            $full_name = trim(
+                $db_prefix . ' ' .
+                $db_first_name . ' ' .
+                $db_last_name
+            );
 
 
-            /*
-             * ชื่อแบบไม่มีคำนำหน้า
-             */
-            $name_without_prefix =
-                trim(
-                    $db_first_name . ' ' .
-                    $db_last_name
-                );
+            /* ชื่อแบบไม่มีคำนำหน้า */
+
+            $name_without_prefix = trim(
+                $db_first_name . ' ' .
+                $db_last_name
+            );
 
 
-            /*
-             * Normalize
-             */
+            /* Normalize */
+
             $full_name_key =
                 normalize_teacher_name_for_comment(
                     $full_name
@@ -390,31 +337,25 @@ if ($logged_in) {
                 );
 
 
-            /*
-             * เก็บชื่อแบบมีคำนำหน้า
-             */
-            if (
-                $full_name_key !== ''
-            ) {
+            /* เก็บชื่อแบบมีคำนำหน้า */
+
+            if ($full_name_key !== '') {
 
                 $user_map[
                     $full_name_key
-                ] =
-                    $user_data;
+                ] = $user_data;
             }
 
 
-            /*
-             * เก็บชื่อแบบไม่มีคำนำหน้า
-             */
+            /* เก็บชื่อแบบไม่มีคำนำหน้า */
+
             if (
                 $name_without_prefix_key !== ''
             ) {
 
                 $user_map[
                     $name_without_prefix_key
-                ] =
-                    $user_data;
+                ] = $user_data;
             }
         }
     }
@@ -425,16 +366,14 @@ if ($logged_in) {
    ADVISOR
 ========================================================= */
 
-$advisor =
-    trim(
-        $row['advisor'] ?? ''
-    );
+$advisor = trim(
+    $row['advisor'] ?? ''
+);
 
 
 if ($advisor === '') {
 
-    $advisor =
-        'ไม่ระบุ';
+    $advisor = 'ไม่ระบุ';
 }
 
 
@@ -442,25 +381,22 @@ if ($advisor === '') {
    DEGREE
 ========================================================= */
 
-$degree =
-    trim(
-        $row['degree'] ?? ''
-    );
+$degree = trim(
+    $row['degree'] ?? ''
+);
 
 
 if ($degree === '') {
 
-    $degree =
-        trim(
-            $row['project_type'] ?? ''
-        );
+    $degree = trim(
+        $row['project_type'] ?? ''
+    );
 }
 
 
 if ($degree === '') {
 
-    $degree =
-        '-';
+    $degree = '-';
 }
 
 
@@ -468,16 +404,14 @@ if ($degree === '') {
    DEPARTMENT
 ========================================================= */
 
-$department =
-    trim(
-        $row['department'] ?? ''
-    );
+$department = trim(
+    $row['department'] ?? ''
+);
 
 
 if ($department === '') {
 
-    $department =
-        '-';
+    $department = '-';
 }
 
 
@@ -485,16 +419,14 @@ if ($department === '') {
    STATUS
 ========================================================= */
 
-$status =
-    trim(
-        $row['status'] ?? ''
-    );
+$status = trim(
+    $row['status'] ?? ''
+);
 
 
 if ($status === '') {
 
-    $status =
-        'ส่งแล้ว';
+    $status = 'ส่งแล้ว';
 }
 
 
@@ -502,30 +434,28 @@ if ($status === '') {
    GITHUB
 ========================================================= */
 
-$github_url =
-    trim(
-        $row['github_url'] ?? ''
-    );
+$github_url = trim(
+    $row['github_url'] ?? ''
+);
 
 
 /* =========================================================
    PDF
 ========================================================= */
 
-$pdf_file =
-    trim(
-        $row['pdf_file'] ?? ''
-    );
+$pdf_file = trim(
+    $row['pdf_file'] ?? ''
+);
 
 
 $has_pdf = false;
 
+$safe_pdf = '';
+
 
 if ($pdf_file !== '') {
 
-    $safe_pdf =
-        basename($pdf_file);
-
+    $safe_pdf = basename($pdf_file);
 
     if ($safe_pdf !== '') {
 
@@ -538,47 +468,36 @@ if ($pdf_file !== '') {
    VIEW / DOWNLOAD COUNT
 ========================================================= */
 
-$view_count =
-    (int)(
-        $row['views'] ?? 0
-    );
+$view_count = (int)(
+    $row['views'] ?? 0
+);
 
 
-$download_count =
-    (int)(
-        $row['downloads'] ?? 0
-    );
+$download_count = (int)(
+    $row['downloads'] ?? 0
+);
 
 
 /* =========================================================
    DATE
 ========================================================= */
 
-$created_at =
-    '-';
+$created_at = '-';
 
 
-if (
-    !empty(
+if (!empty($row['created_at'])) {
+
+    $timestamp = strtotime(
         $row['created_at']
-    )
-) {
+    );
 
-    $timestamp =
-        strtotime(
-            $row['created_at']
+
+    if ($timestamp !== false) {
+
+        $created_at = date(
+            'd/m/Y',
+            $timestamp
         );
-
-
-    if (
-        $timestamp !== false
-    ) {
-
-        $created_at =
-            date(
-                'd/m/Y',
-                $timestamp
-            );
     }
 }
 
@@ -587,10 +506,9 @@ if (
    OWNER
 ========================================================= */
 
-$student_id =
-    isset(
-        $row['student_id']
-    )
+$student_id = isset(
+    $row['student_id']
+)
     ? (int)$row['student_id']
     : 0;
 
@@ -607,19 +525,14 @@ $is_owner = (
    EDIT / DELETE
 ========================================================= */
 
-$can_edit =
-    false;
+$can_edit = false;
 
-
-$can_delete =
-    false;
+$can_delete = false;
 
 
 if ($logged_in) {
 
-    if (
-        $user_role === 'admin'
-    ) {
+    if ($user_role === 'admin') {
 
         $can_edit = true;
         $can_delete = true;
@@ -639,8 +552,7 @@ if ($logged_in) {
    TEACHER COMMENT PERMISSION
 ========================================================= */
 
-$can_comment =
-    false;
+$can_comment = false;
 
 
 if (
@@ -648,32 +560,26 @@ if (
     $user_role === 'teacher'
 ) {
 
-    $teacher_stmt =
-        mysqli_prepare(
-            $conn,
-            "
-            SELECT
-                prefix,
-                first_name,
-                last_name
-            FROM users
-            WHERE id = ?
-            AND role = 'teacher'
-            LIMIT 1
-            "
-        );
+    $teacher_stmt = mysqli_prepare(
+        $conn,
+        "
+        SELECT
+            prefix,
+            first_name,
+            last_name
+        FROM users
+        WHERE id = ?
+        AND role = 'teacher'
+        LIMIT 1
+        "
+    );
 
 
-    $teacher_prefix =
-        '';
+    $teacher_prefix = '';
 
+    $teacher_first_name = '';
 
-    $teacher_first_name =
-        '';
-
-
-    $teacher_last_name =
-        '';
+    $teacher_last_name = '';
 
 
     if ($teacher_stmt) {
@@ -735,22 +641,17 @@ if (
     }
 
 
-    $teacher_with_prefix =
-        trim(
-            $teacher_prefix .
-            ' ' .
-            $teacher_first_name .
-            ' ' .
-            $teacher_last_name
-        );
+    $teacher_with_prefix = trim(
+        $teacher_prefix . ' ' .
+        $teacher_first_name . ' ' .
+        $teacher_last_name
+    );
 
 
-    $teacher_without_prefix =
-        trim(
-            $teacher_first_name .
-            ' ' .
-            $teacher_last_name
-        );
+    $teacher_without_prefix = trim(
+        $teacher_first_name . ' ' .
+        $teacher_last_name
+    );
 
 
     $advisor_normalized =
@@ -793,15 +694,12 @@ if (
    PROJECT TYPE
 ========================================================= */
 
-$project_type_label =
-    trim(
-        $row['project_type'] ?? ''
-    );
+$project_type_label = trim(
+    $row['project_type'] ?? ''
+);
 
 
-if (
-    $project_type_label === ''
-) {
+if ($project_type_label === '') {
 
     $project_type_label =
         'โปรเจกต์นักศึกษา';
@@ -833,11 +731,10 @@ $comment_sql = "
 ";
 
 
-$comment_stmt =
-    mysqli_prepare(
-        $conn,
-        $comment_sql
-    );
+$comment_stmt = mysqli_prepare(
+    $conn,
+    $comment_sql
+);
 
 
 if ($comment_stmt) {
@@ -937,10 +834,13 @@ if ($comment_stmt) {
                 Arial,
                 sans-serif;
 
-            color:
-                #263238;
+            color: #263238;
         }
 
+
+        /* =====================================================
+           HEADER
+        ===================================================== */
 
         .custom-header {
 
@@ -1058,6 +958,10 @@ if ($comment_stmt) {
         }
 
 
+        /* =====================================================
+           CONTAINER
+        ===================================================== */
+
         .detail-container {
 
             max-width: 1200px;
@@ -1095,6 +999,10 @@ if ($comment_stmt) {
         }
 
 
+        /* =====================================================
+           SIDE PANEL
+        ===================================================== */
+
         .side-panel {
 
             height: 100%;
@@ -1126,6 +1034,10 @@ if ($comment_stmt) {
         }
 
 
+        /* =====================================================
+           PDF BUTTON
+        ===================================================== */
+
         .pdf-button {
 
             width: 100%;
@@ -1140,13 +1052,6 @@ if ($comment_stmt) {
 
             padding: 13px 15px;
 
-            background:
-                linear-gradient(
-                    135deg,
-                    #58b4df,
-                    #358abd
-                );
-
             color: white;
 
             border-radius: 10px;
@@ -1155,7 +1060,7 @@ if ($comment_stmt) {
 
             font-weight: 700;
 
-            margin-bottom: 20px;
+            margin-bottom: 10px;
 
             transition: 0.2s;
         }
@@ -1174,6 +1079,62 @@ if ($comment_stmt) {
             font-size: 20px;
         }
 
+
+        /* =====================================================
+           ดูไฟล์ PDF
+        ===================================================== */
+
+        .pdf-view-button {
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #58b4df,
+                    #358abd
+                );
+        }
+
+
+        .pdf-view-button:hover {
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #4297CD,
+                    #2878a8
+                );
+        }
+
+
+        /* =====================================================
+           ดาวน์โหลด PDF
+        ===================================================== */
+
+        .pdf-download-button {
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #4caf7d,
+                    #27895d
+                );
+        }
+
+
+        .pdf-download-button:hover {
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #3d9d6d,
+                    #20764f
+                );
+        }
+
+
+        /* =====================================================
+           INFO
+        ===================================================== */
 
         .info-item {
 
@@ -1244,6 +1205,10 @@ if ($comment_stmt) {
             font-size: 18px;
         }
 
+
+        /* =====================================================
+           MEMBERS
+        ===================================================== */
 
         .member-list {
 
@@ -1335,6 +1300,10 @@ if ($comment_stmt) {
         }
 
 
+        /* =====================================================
+           ADVISOR
+        ===================================================== */
+
         .advisor-value {
 
             color: #245c7d;
@@ -1344,6 +1313,10 @@ if ($comment_stmt) {
             line-height: 1.7;
         }
 
+
+        /* =====================================================
+           GITHUB
+        ===================================================== */
 
         .github-card {
 
@@ -1435,6 +1408,10 @@ if ($comment_stmt) {
         }
 
 
+        /* =====================================================
+           PROJECT CONTENT
+        ===================================================== */
+
         .project-content {
 
             padding-left: 25px;
@@ -1503,6 +1480,10 @@ if ($comment_stmt) {
         }
 
 
+        /* =====================================================
+           DESCRIPTION
+        ===================================================== */
+
         .description-box {
 
             background: #fbfdfe;
@@ -1552,6 +1533,10 @@ if ($comment_stmt) {
             margin: 0;
         }
 
+
+        /* =====================================================
+           ADMIN ACTION
+        ===================================================== */
 
         .admin-actions {
 
@@ -1617,6 +1602,10 @@ if ($comment_stmt) {
             color: white;
         }
 
+
+        /* =====================================================
+           COMMENTS
+        ===================================================== */
 
         .comments-box {
 
@@ -1926,6 +1915,10 @@ if ($comment_stmt) {
         }
 
 
+        /* =====================================================
+           MOBILE
+        ===================================================== */
+
         @media (max-width: 768px) {
 
             .custom-header {
@@ -1995,6 +1988,12 @@ if ($comment_stmt) {
                 padding: 18px;
             }
 
+
+            .pdf-button {
+
+                padding: 12px;
+            }
+
         }
 
     </style>
@@ -2004,6 +2003,10 @@ if ($comment_stmt) {
 
 <body>
 
+
+<!-- =========================================================
+     HEADER
+========================================================= -->
 
 <header class="custom-header">
 
@@ -2047,6 +2050,9 @@ if ($comment_stmt) {
 </header>
 
 
+<!-- =========================================================
+     MAIN
+========================================================= -->
 
 <div class="detail-container">
 
@@ -2066,6 +2072,7 @@ if ($comment_stmt) {
 
                 <div class="col-md-4">
 
+
                     <div class="side-panel">
 
 
@@ -2078,24 +2085,56 @@ if ($comment_stmt) {
                         </div>
 
 
-                        <!-- PDF -->
+                        <!-- =================================================
+                             PDF
+                        ================================================== -->
 
                         <?php if ($has_pdf): ?>
 
+
+                            <!-- =================================================
+                                 ดูไฟล์ PDF
+
+                                 สำคัญ:
+                                 ใช้ view-pdf.php?id=...
+                                 เพื่อเพิ่ม views
+                            ================================================== -->
+
                             <a
-                                href="download-pdf.php?id=<?php echo $project_id; ?>"
-                                class="pdf-button"
+                                href="view-pdf.php?id=<?php echo $project_id; ?>"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="pdf-button pdf-view-button"
                             >
 
-                                <i
-                                    class="bi bi-file-earmark-pdf"
-                                ></i>
+                                <i class="bi bi-eye-fill"></i>
+
+                                ดูไฟล์ PDF
+
+                            </a>
+
+
+                            <!-- =================================================
+                                 ดาวน์โหลดไฟล์ PDF
+
+                                 ใช้ download-pdf.php?id=...
+                                 เพื่อเพิ่ม downloads
+                            ================================================== -->
+
+                            <a
+                                href="download-pdf.php?id=<?php echo $project_id; ?>"
+                                class="pdf-button pdf-download-button"
+                            >
+
+                                <i class="bi bi-download"></i>
 
                                 ดาวน์โหลดไฟล์ PDF
 
                             </a>
 
+
                         <?php else: ?>
+
 
                             <button
                                 type="button"
@@ -2103,18 +2142,19 @@ if ($comment_stmt) {
                                 disabled
                             >
 
-                                <i
-                                    class="bi bi-file-earmark-x"
-                                ></i>
+                                <i class="bi bi-file-earmark-x"></i>
 
                                 ไม่มีไฟล์ PDF
 
                             </button>
 
+
                         <?php endif; ?>
 
 
-                        <!-- DATE -->
+                        <!-- =================================================
+                             DATE
+                        ================================================== -->
 
                         <div class="info-item">
 
@@ -2129,16 +2169,16 @@ if ($comment_stmt) {
 
                             <div class="info-value">
 
-                                <?php
-                                echo e($created_at);
-                                ?>
+                                <?php echo e($created_at); ?>
 
                             </div>
 
                         </div>
 
 
-                        <!-- STATUS LOGIN ONLY -->
+                        <!-- =================================================
+                             STATUS LOGIN ONLY
+                        ================================================== -->
 
                         <?php if ($logged_in): ?>
 
@@ -2155,9 +2195,7 @@ if ($comment_stmt) {
 
                                 <div class="info-value">
 
-                                    <?php
-                                    echo e($status);
-                                    ?>
+                                    <?php echo e($status); ?>
 
                                 </div>
 
@@ -2166,12 +2204,15 @@ if ($comment_stmt) {
                         <?php endif; ?>
 
 
-                        <!-- ADMIN VIEW / DOWNLOAD -->
+                        <!-- =================================================
+                             ADMIN VIEW
+                        ================================================== -->
 
                         <?php if (
                             $logged_in &&
                             $user_role === 'admin'
                         ): ?>
+
 
                             <div class="info-item">
 
@@ -2179,7 +2220,7 @@ if ($comment_stmt) {
 
                                     <i class="bi bi-eye-fill"></i>
 
-                                    ยอดเข้าชม
+                                    ยอดเข้าชม PDF
 
                                 </div>
 
@@ -2211,7 +2252,7 @@ if ($comment_stmt) {
 
                                     <i class="bi bi-download"></i>
 
-                                    ยอดดาวน์โหลด
+                                    ยอดดาวน์โหลด PDF
 
                                 </div>
 
@@ -2236,12 +2277,16 @@ if ($comment_stmt) {
 
                             </div>
 
+
                         <?php endif; ?>
 
 
-                        <!-- DEGREE LOGIN ONLY -->
+                        <!-- =================================================
+                             DEGREE LOGIN ONLY
+                        ================================================== -->
 
                         <?php if ($logged_in): ?>
+
 
                             <div class="info-item">
 
@@ -2256,18 +2301,19 @@ if ($comment_stmt) {
 
                                 <div class="info-value">
 
-                                    <?php
-                                    echo e($degree);
-                                    ?>
+                                    <?php echo e($degree); ?>
 
                                 </div>
 
                             </div>
 
+
                         <?php endif; ?>
 
 
-                        <!-- DEPARTMENT -->
+                        <!-- =================================================
+                             DEPARTMENT
+                        ================================================== -->
 
                         <div class="info-item">
 
@@ -2282,16 +2328,16 @@ if ($comment_stmt) {
 
                             <div class="info-value">
 
-                                <?php
-                                echo e($department);
-                                ?>
+                                <?php echo e($department); ?>
 
                             </div>
 
                         </div>
 
 
-                        <!-- ADVISOR -->
+                        <!-- =================================================
+                             ADVISOR
+                        ================================================== -->
 
                         <div class="info-item">
 
@@ -2306,9 +2352,7 @@ if ($comment_stmt) {
 
                             <div class="info-value advisor-value">
 
-                                <?php
-                                echo e($advisor);
-                                ?>
+                                <?php echo e($advisor); ?>
 
                             </div>
 
@@ -2317,10 +2361,10 @@ if ($comment_stmt) {
 
                         <!-- =================================================
                              MEMBERS
-                             LOGIN ONLY
                         ================================================== -->
 
                         <?php if ($logged_in): ?>
+
 
                             <div class="info-item">
 
@@ -2350,9 +2394,6 @@ if ($comment_stmt) {
 
                                         <?php
 
-                                        /*
-                                         * หา user จากชื่อสมาชิก
-                                         */
                                         $member_key =
                                             normalize_teacher_name_for_comment(
                                                 $member
@@ -2460,12 +2501,16 @@ if ($comment_stmt) {
 
                             </div>
 
+
                         <?php endif; ?>
 
 
-                        <!-- GITHUB LOGIN ONLY -->
+                        <!-- =================================================
+                             GITHUB
+                        ================================================== -->
 
                         <?php if ($logged_in): ?>
+
 
                             <div class="github-card">
 
@@ -2482,6 +2527,7 @@ if ($comment_stmt) {
                                 <?php if (
                                     $github_url !== ''
                                 ): ?>
+
 
                                     <a
                                         href="<?php echo e($github_url); ?>"
@@ -2510,7 +2556,9 @@ if ($comment_stmt) {
 
                                     </a>
 
+
                                 <?php else: ?>
+
 
                                     <div
                                         class="text-muted"
@@ -2521,10 +2569,12 @@ if ($comment_stmt) {
 
                                     </div>
 
+
                                 <?php endif; ?>
 
 
                             </div>
+
 
                         <?php endif; ?>
 
@@ -2540,12 +2590,14 @@ if ($comment_stmt) {
 
                 <div class="col-md-8">
 
+
                     <div class="project-content">
 
 
                         <!-- PROJECT TYPE -->
 
                         <?php if ($logged_in): ?>
+
 
                             <div class="project-category">
 
@@ -2558,6 +2610,7 @@ if ($comment_stmt) {
                                 ?>
 
                             </div>
+
 
                         <?php endif; ?>
 
@@ -2588,6 +2641,7 @@ if ($comment_stmt) {
 
                         <div class="description-box">
 
+
                             <div class="description-title">
 
                                 <i class="bi bi-file-text"></i>
@@ -2609,15 +2663,16 @@ if ($comment_stmt) {
 
                             </p>
 
+
                         </div>
 
 
                         <!-- =================================================
                              COMMENTS
-                             LOGIN ONLY
                         ================================================== -->
 
                         <?php if ($logged_in): ?>
+
 
                             <div class="comments-box">
 
@@ -2654,13 +2709,17 @@ if ($comment_stmt) {
                                 </div>
 
 
-                                <!-- TEACHER FORM -->
+                                <!-- =================================================
+                                     TEACHER FORM
+                                ================================================== -->
 
                                 <?php if ($can_comment): ?>
+
 
                                     <div
                                         class="teacher-comment-form"
                                     >
+
 
                                         <div
                                             class="mb-2"
@@ -2684,6 +2743,7 @@ if ($comment_stmt) {
                                             action="add-comment.php"
                                             method="POST"
                                         >
+
 
                                             <input
                                                 type="hidden"
@@ -2714,7 +2774,9 @@ if ($comment_stmt) {
 
                                             </button>
 
+
                                         </form>
+
 
                                     </div>
 
@@ -2747,10 +2809,13 @@ if ($comment_stmt) {
 
                                     </div>
 
+
                                 <?php endif; ?>
 
 
-                                <!-- SHOW COMMENTS -->
+                                <!-- =================================================
+                                     SHOW COMMENTS
+                                ================================================== -->
 
                                 <?php if (
                                     count($comments) > 0
@@ -2805,8 +2870,7 @@ if ($comment_stmt) {
                                         }
 
 
-                                        $comment_date =
-                                            '-';
+                                        $comment_date = '-';
 
 
                                         if (
@@ -2892,6 +2956,7 @@ if ($comment_stmt) {
 
                                                 </span>
 
+
                                             </div>
 
 
@@ -2928,6 +2993,7 @@ if ($comment_stmt) {
                                                     "
                                                 >
 
+
                                                     <input
                                                         type="hidden"
                                                         name="comment_id"
@@ -2959,6 +3025,7 @@ if ($comment_stmt) {
                                                         ลบความคิดเห็น
 
                                                     </button>
+
 
                                                 </form>
 
@@ -2993,11 +3060,12 @@ if ($comment_stmt) {
 
                             </div>
 
+
                         <?php endif; ?>
 
 
                         <!-- =================================================
-                             ACTION
+                             ADMIN / OWNER ACTION
                         ================================================== -->
 
                         <?php if (
@@ -3010,6 +3078,7 @@ if ($comment_stmt) {
 
 
                                 <?php if ($can_edit): ?>
+
 
                                     <a
                                         href="admin_edit_project.php?id=<?php
@@ -3026,10 +3095,12 @@ if ($comment_stmt) {
 
                                     </a>
 
+
                                 <?php endif; ?>
 
 
                                 <?php if ($can_delete): ?>
+
 
                                     <a
                                         href="delete-project.php?id=<?php
@@ -3051,17 +3122,22 @@ if ($comment_stmt) {
 
                                     </a>
 
+
                                 <?php endif; ?>
 
 
                             </div>
 
+
                         <?php endif; ?>
 
 
-                        <!-- GUEST -->
+                        <!-- =================================================
+                             GUEST
+                        ================================================== -->
 
                         <?php if (!$logged_in): ?>
+
 
                             <div class="guest-notice">
 
@@ -3072,6 +3148,7 @@ if ($comment_stmt) {
                                 สาขา / ภาควิชา และคำอธิบายโปรเจกต์ได้
 
                             </div>
+
 
                         <?php endif; ?>
 

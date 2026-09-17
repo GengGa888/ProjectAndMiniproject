@@ -580,7 +580,7 @@ table {
 
     border-collapse: collapse;
 
-    min-width: 1250px;
+    min-width: 1450px;
 }
 
 th {
@@ -744,6 +744,28 @@ tbody tr:hover td {
     max-width: 280px;
 
     line-height: 1.5;
+}
+
+/* =====================================================
+   OWNER
+===================================================== */
+
+.owner-name {
+    min-width: 180px;
+
+    font-weight: 600;
+
+    line-height: 1.5;
+}
+
+/* =====================================================
+   MEMBERS
+===================================================== */
+
+.member-list {
+    min-width: 180px;
+
+    line-height: 1.6;
 }
 
 /* =====================================================
@@ -1330,7 +1352,8 @@ tbody tr:hover td {
 
                             <th>ID</th>
                             <th>ชื่อโปรเจกต์</th>
-                            <th>ผู้จัดทำ</th>
+                            <th>เจ้าของโปรเจกต์</th>
+                            <th>สมาชิกกลุ่ม</th>
                             <th>ระดับ</th>
                             <th>สาขา</th>
                             <th>อาจารย์ที่ปรึกษา</th>
@@ -1373,25 +1396,96 @@ tbody tr:hover td {
                         }
 
                         // =================================================
-                        // ผู้จัดทำ
+                        // เจ้าของโปรเจกต์
                         // =================================================
 
-                        $display_authors =
+                        $owner_name =
+                            trim(
+                                $row['student_name'] ?? ''
+                            );
+
+                        /*
+                         * ถ้า student_name มีหลายบรรทัด
+                         * ใช้บรรทัดแรกเป็นเจ้าของ
+                         */
+
+                        if ($owner_name !== '') {
+
+                            $owner_lines =
+                                preg_split(
+                                    '/\r\n|\r|\n/',
+                                    $owner_name
+                                );
+
+                            $owner_name =
+                                trim(
+                                    $owner_lines[0] ?? ''
+                                );
+                        }
+
+                        if ($owner_name === '') {
+                            $owner_name = '-';
+                        }
+
+                        // =================================================
+                        // สมาชิกกลุ่ม
+                        // =================================================
+
+                        $member_list = [];
+
+                        $authors_text =
                             trim(
                                 $row['authors'] ?? ''
                             );
 
-                        if ($display_authors === '') {
+                        if ($authors_text !== '') {
 
-                            $display_authors =
-                                trim(
-                                    $row['student_name'] ?? ''
+                            $author_list =
+                                preg_split(
+                                    '/\r\n|\r|\n/',
+                                    $authors_text
                                 );
 
-                        }
+                            foreach (
+                                $author_list
+                                as $author
+                            ) {
 
-                        if ($display_authors === '') {
-                            $display_authors = '-';
+                                $author =
+                                    trim($author);
+
+                                if ($author === '') {
+                                    continue;
+                                }
+
+                                /*
+                                 * ตัดเจ้าของออก
+                                 * เพื่อไม่ให้แสดงซ้ำ
+                                 */
+
+                                if (
+                                    $owner_name !== '-' &&
+                                    $author === $owner_name
+                                ) {
+                                    continue;
+                                }
+
+                                /*
+                                 * ป้องกันสมาชิกซ้ำ
+                                 */
+
+                                if (
+                                    !in_array(
+                                        $author,
+                                        $member_list,
+                                        true
+                                    )
+                                ) {
+
+                                    $member_list[] =
+                                        $author;
+                                }
+                            }
                         }
 
                         // =================================================
@@ -1421,14 +1515,18 @@ tbody tr:hover td {
                         // =================================================
 
                         $view_count =
-                            (int)($row['views'] ?? 0);
+                            (int)(
+                                $row['views'] ?? 0
+                            );
 
                         // =================================================
                         // Downloads
                         // =================================================
 
                         $download_count =
-                            (int)($row['downloads'] ?? 0);
+                            (int)(
+                                $row['downloads'] ?? 0
+                            );
 
                         // =================================================
                         // GitHub
@@ -1469,13 +1567,44 @@ tbody tr:hover td {
 
                             </td>
 
-                            <!-- AUTHORS -->
+                            <!-- OWNER -->
 
                             <td>
 
-                                <?= nl2br(
-                                    e($display_authors)
-                                ) ?>
+                                <div class="owner-name">
+
+                                    <?= e($owner_name) ?>
+
+                                </div>
+
+                            </td>
+
+                            <!-- MEMBERS -->
+
+                            <td>
+
+                                <div class="member-list">
+
+                                    <?php if (!empty($member_list)): ?>
+
+                                        <?php foreach (
+                                            $member_list
+                                            as $member
+                                        ): ?>
+
+                                            <div>
+                                                • <?= e($member) ?>
+                                            </div>
+
+                                        <?php endforeach; ?>
+
+                                    <?php else: ?>
+
+                                        -
+
+                                    <?php endif; ?>
+
+                                </div>
 
                             </td>
 
@@ -1497,7 +1626,11 @@ tbody tr:hover td {
 
                             <td>
                                 <?= e(
-                                    $row['advisor'] ?? '-'
+                                    trim(
+                                        $row['advisor'] ?? ''
+                                    ) !== ''
+                                        ? $row['advisor']
+                                        : '-'
                                 ) ?>
                             </td>
 
@@ -1508,7 +1641,9 @@ tbody tr:hover td {
                                 <span class="status">
 
                                     <?= e(
-                                        !empty($row['status'])
+                                        !empty(
+                                            $row['status']
+                                        )
                                             ? $row['status']
                                             : 'ส่งแล้ว'
                                     ) ?>
@@ -1525,7 +1660,9 @@ tbody tr:hover td {
 
                                     <i class="bi bi-eye-fill"></i>
 
-                                    <?= number_format($view_count) ?>
+                                    <?= number_format(
+                                        $view_count
+                                    ) ?>
 
                                     ครั้ง
 
@@ -1541,7 +1678,9 @@ tbody tr:hover td {
 
                                     <i class="bi bi-download"></i>
 
-                                    <?= number_format($download_count) ?>
+                                    <?= number_format(
+                                        $download_count
+                                    ) ?>
 
                                     ครั้ง
 
@@ -1554,17 +1693,36 @@ tbody tr:hover td {
                             <td>
 
                                 <?php if (
-                                    !empty($row['created_at'])
+                                    !empty(
+                                        $row['created_at']
+                                    )
                                 ): ?>
 
-                                    <?= e(
-                                        date(
-                                            'd/m/Y H:i',
-                                            strtotime(
-                                                $row['created_at']
+                                    <?php
+
+                                    $created_timestamp =
+                                        strtotime(
+                                            $row['created_at']
+                                        );
+
+                                    if (
+                                        $created_timestamp !== false
+                                    ):
+
+                                    ?>
+
+                                        <?= e(
+                                            date(
+                                                'd/m/Y H:i',
+                                                $created_timestamp
                                             )
-                                        )
-                                    ) ?>
+                                        ) ?>
+
+                                    <?php else: ?>
+
+                                        -
+
+                                    <?php endif; ?>
 
                                 <?php else: ?>
 
@@ -1609,7 +1767,9 @@ tbody tr:hover td {
                                     <!-- PDF -->
 
                                     <?php if (
-                                        !empty($row['pdf_file'])
+                                        !empty(
+                                            $row['pdf_file']
+                                        )
                                     ): ?>
 
                                         <a
@@ -1631,7 +1791,10 @@ tbody tr:hover td {
                                         $github_url !== '' &&
                                         in_array(
                                             $github_scheme,
-                                            ['http', 'https'],
+                                            [
+                                                'http',
+                                                'https'
+                                            ],
                                             true
                                         )
                                     ): ?>
@@ -1706,4 +1869,5 @@ tbody tr:hover td {
 </div>
 
 </body>
+
 </html>

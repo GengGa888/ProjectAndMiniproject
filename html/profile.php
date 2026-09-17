@@ -117,7 +117,6 @@ if (!empty($profile_image)) {
 
 /* =====================================================
    UPDATE PROFILE
-   แก้ได้เฉพาะเจ้าของโปรไฟล์
 ===================================================== */
 
 if (
@@ -141,10 +140,6 @@ if (
     $new_email = trim($_POST['email'] ?? '');
     $new_department = trim($_POST['department'] ?? '');
     $other_department = trim($_POST['other_department'] ?? '');
-
-    /* =================================================
-       OTHER DEPARTMENT
-    ================================================= */
 
     if ($new_department === 'อื่นๆ') {
         $new_department = $other_department;
@@ -435,10 +430,6 @@ if (
         exit();
     }
 
-    /* =================================================
-       CHECK MIME
-    ================================================= */
-
     $allowed_types = [
         'image/jpeg',
         'image/png',
@@ -447,10 +438,12 @@ if (
     ];
 
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
+
     $real_type = finfo_file(
         $finfo,
         $file['tmp_name']
     );
+
     finfo_close($finfo);
 
     if (!in_array($real_type, $allowed_types, true)) {
@@ -463,10 +456,6 @@ if (
         exit();
     }
 
-    /* =================================================
-       SIZE
-    ================================================= */
-
     if ($file['size'] > 5 * 1024 * 1024) {
 
         echo "<script>
@@ -476,10 +465,6 @@ if (
 
         exit();
     }
-
-    /* =================================================
-       EXTENSION
-    ================================================= */
 
     $extension_map = [
         'image/jpeg' => 'jpg',
@@ -517,10 +502,6 @@ if (
             exit();
         }
     }
-
-    /* =================================================
-       MOVE
-    ================================================= */
 
     if (!move_uploaded_file(
         $file['tmp_name'],
@@ -687,51 +668,161 @@ $other_department_value =
         ? ''
         : $department;
 
+
 /* =====================================================
-   PROJECTS
-   สำคัญ:
-   แสดงโปรเจกต์ของเจ้าของ
-   และโปรเจกต์ที่ชื่อของเจ้าของอยู่ใน authors
+   NORMALIZE NAME
+   ใช้สำหรับตรวจสมาชิกกลุ่มและอาจารย์ที่ปรึกษา
 ===================================================== */
 
-/*
-   ชื่อสำหรับค้นหาใน authors
-*/
+function normalize_person_name($name)
+{
+    $name = trim((string)$name);
+
+    if ($name === '') {
+        return '';
+    }
+
+    /* แปลงช่องว่างหลายช่องให้เหลือช่องเดียว */
+    $name = preg_replace(
+        '/\s+/u',
+        ' ',
+        $name
+    );
+
+    /*
+       ลบคำนำหน้าชื่อ
+       รองรับชื่อ เช่น
+
+       นาย สมชาย ใจดี
+       นางสาว สมหญิง ใจดี
+       ดร. สมชาย ใจดี
+       อ. สมชาย ใจดี
+       ผศ. สมชาย ใจดี
+       รศ. สมชาย ใจดี
+       ศ. สมชาย ใจดี
+       อาจารย์ สมชาย ใจดี
+    */
+
+    $prefix_pattern =
+        '/^(ผู้ช่วยศาสตราจารย์|รองศาสตราจารย์|ศาสตราจารย์|อาจารย์|ดอกเตอร์|นาย|นางสาว|นาง|ผศ\.|รศ\.|ศ\.|ดร\.|อ\.)\s*/u';
+
+    do {
+
+        $old_name = $name;
+
+        $name =
+            preg_replace(
+                $prefix_pattern,
+                '',
+                $name
+            );
+
+    } while ($old_name !== $name);
+
+    return mb_strtolower(
+        trim($name),
+        'UTF-8'
+    );
+}
+
+
+/* =====================================================
+   PROFILE NAME
+===================================================== */
+
 $full_name_no_prefix =
-    trim($firstname . ' ' . $lastname);
+    trim(
+        $firstname . ' ' . $lastname
+    );
 
 $full_name_with_prefix =
-    trim($prefix . ' ' . $firstname . ' ' . $lastname);
+    trim(
+        $prefix . ' ' .
+        $firstname . ' ' .
+        $lastname
+    );
 
-$authors_name_1 =
+$target_normalized_name =
+    normalize_person_name(
+        $full_name_no_prefix
+    );
+
+$target_normalized_name_with_prefix =
+    normalize_person_name(
+        $full_name_with_prefix
+    );
+
+
+/* =====================================================
+   SEARCH TERMS
+===================================================== */
+
+$search_name =
+    trim($firstname);
+
+if ($search_name === '') {
+    $search_name = trim($lastname);
+}
+
+if ($search_name === '') {
+    $search_name = trim($username);
+}
+
+$like_name =
+    '%' . $search_name . '%';
+
+$like_full_name =
     '%' . $full_name_no_prefix . '%';
 
-$authors_name_2 =
+$like_full_name_prefix =
     '%' . $full_name_with_prefix . '%';
 
-$authors_username =
+$like_username =
     '%' . $username . '%';
 
-/*
-   ใช้ student_id หรือ authors
-*/
+
+/* =====================================================
+   GET PROJECTS
+   ค้นทั้ง
+
+   1. เจ้าของโปรเจกต์ student_id
+   2. สมาชิกกลุ่ม authors
+   3. อาจารย์ที่ปรึกษา advisor
+===================================================== */
+
 $projects_sql = "
     SELECT *
     FROM projects
     WHERE
+
         student_id = ?
+
         OR (
+
             authors IS NOT NULL
             AND authors <> ''
+
             AND (
                 authors LIKE ?
                 OR authors LIKE ?
-                OR (
-                    ? <> ''
-                    AND authors LIKE ?
-                )
+                OR authors LIKE ?
+                OR authors LIKE ?
             )
         )
+
+        OR (
+
+            advisor IS NOT NULL
+            AND advisor <> ''
+
+            AND (
+                advisor LIKE ?
+                OR advisor LIKE ?
+                OR advisor LIKE ?
+                OR advisor LIKE ?
+            )
+        )
+
     ORDER BY id DESC
 ";
 
@@ -751,18 +842,194 @@ if (!$projects_stmt) {
 }
 
 $projects_stmt->bind_param(
-    "issss",
+    "issssssss",
     $profile_user_id,
-    $authors_name_1,
-    $authors_name_2,
-    $username,
-    $authors_username
+
+    $like_name,
+    $like_full_name,
+    $like_full_name_prefix,
+    $like_username,
+
+    $like_name,
+    $like_full_name,
+    $like_full_name_prefix,
+    $like_username
 );
 
 $projects_stmt->execute();
 
-$projects_query =
+$projects_result =
     $projects_stmt->get_result();
+
+
+/* =====================================================
+   FILTER PROJECTS
+===================================================== */
+
+$projects_list = [];
+
+while (
+    $project_row =
+    $projects_result->fetch_assoc()
+) {
+
+    $is_related = false;
+
+    $relation_type = '';
+
+
+    /* =================================================
+       1. เจ้าของโปรเจกต์
+    ================================================= */
+
+    if (
+        isset($project_row['student_id']) &&
+        (int)$project_row['student_id']
+        === $profile_user_id
+    ) {
+
+        $is_related = true;
+        $relation_type = 'owner';
+    }
+
+
+    /* =================================================
+       2. สมาชิกกลุ่ม
+    ================================================= */
+
+    if (!$is_related) {
+
+        $authors_text =
+            trim(
+                $project_row['authors'] ?? ''
+            );
+
+        if ($authors_text !== '') {
+
+            /*
+               รองรับ
+
+               นาย A
+               นาย B
+               นาย C
+
+               หรือ
+
+               นาย A, นาย B, นาย C
+            */
+
+            $author_names =
+                preg_split(
+                    '/[\r\n,;]+/u',
+                    $authors_text
+                );
+
+            foreach (
+                $author_names as $author_name
+            ) {
+
+                $author_normalized =
+                    normalize_person_name(
+                        $author_name
+                    );
+
+                if (
+                    $author_normalized !== '' &&
+                    (
+                        $author_normalized
+                        ===
+                        $target_normalized_name
+
+                        ||
+
+                        $author_normalized
+                        ===
+                        $target_normalized_name_with_prefix
+                    )
+                ) {
+
+                    $is_related = true;
+                    $relation_type = 'member';
+
+                    break;
+                }
+            }
+        }
+    }
+
+
+    /* =================================================
+       3. อาจารย์ที่ปรึกษา
+    ================================================= */
+
+    if (!$is_related) {
+
+        $advisor_text =
+            trim(
+                $project_row['advisor'] ?? ''
+            );
+
+        if ($advisor_text !== '') {
+
+            /*
+               รองรับกรณีมีอาจารย์ที่ปรึกษาหลายคน
+            */
+
+            $advisor_names =
+                preg_split(
+                    '/[\r\n,;]+/u',
+                    $advisor_text
+                );
+
+            foreach (
+                $advisor_names as $advisor_name
+            ) {
+
+                $advisor_normalized =
+                    normalize_person_name(
+                        $advisor_name
+                    );
+
+                if (
+                    $advisor_normalized !== '' &&
+                    (
+                        $advisor_normalized
+                        ===
+                        $target_normalized_name
+
+                        ||
+
+                        $advisor_normalized
+                        ===
+                        $target_normalized_name_with_prefix
+                    )
+                ) {
+
+                    $is_related = true;
+                    $relation_type = 'advisor';
+
+                    break;
+                }
+            }
+        }
+    }
+
+
+    /* =================================================
+       SAVE
+    ================================================= */
+
+    if ($is_related) {
+
+        $project_row['relation_type'] =
+            $relation_type;
+
+        $projects_list[] =
+            $project_row;
+    }
+}
+
+$projects_stmt->close();
 
 ?>
 
@@ -819,7 +1086,9 @@ $projects_query =
             color: #333;
         }
 
-        /* ================= HEADER ================= */
+        /* =================================================
+           HEADER
+        ================================================= */
 
         .custom-header {
             height: 90px;
@@ -895,7 +1164,9 @@ $projects_query =
             font-size: 20px;
         }
 
-        /* ================= MAIN ================= */
+        /* =================================================
+           MAIN
+        ================================================= */
 
         .container-main {
             max-width: 1150px;
@@ -920,7 +1191,9 @@ $projects_query =
             font-size: 15px;
         }
 
-        /* ================= NOTICE ================= */
+        /* =================================================
+           NOTICE
+        ================================================= */
 
         .view-only-notice {
             display: flex;
@@ -940,7 +1213,9 @@ $projects_query =
             font-size: 19px;
         }
 
-        /* ================= PROFILE ================= */
+        /* =================================================
+           PROFILE
+        ================================================= */
 
         .profile-card {
             background: white;
@@ -1024,7 +1299,9 @@ $projects_query =
             margin-bottom: 15px;
         }
 
-        /* ================= ROLE ================= */
+        /* =================================================
+           ROLE
+        ================================================= */
 
         .role-badge {
             display: inline-flex;
@@ -1038,7 +1315,9 @@ $projects_query =
             margin-bottom: 28px;
         }
 
-        /* ================= INFO ================= */
+        /* =================================================
+           INFO
+        ================================================= */
 
         .info-title {
             font-size: 21px;
@@ -1079,7 +1358,9 @@ $projects_query =
             word-break: break-word;
         }
 
-        /* ================= INPUT ================= */
+        /* =================================================
+           INPUT
+        ================================================= */
 
         .account-input,
         .account-select {
@@ -1110,7 +1391,9 @@ $projects_query =
             display: block;
         }
 
-        /* ================= SAVE ================= */
+        /* =================================================
+           SAVE
+        ================================================= */
 
         .save-profile-btn {
             display: inline-flex;
@@ -1134,7 +1417,9 @@ $projects_query =
             transform: translateY(-1px);
         }
 
-        /* ================= PROJECT ================= */
+        /* =================================================
+           PROJECT HEADER
+        ================================================= */
 
         .section-header {
             display: flex;
@@ -1163,7 +1448,9 @@ $projects_query =
             font-weight: 600;
         }
 
-        /* ================= PROJECT CARD ================= */
+        /* =================================================
+           PROJECT CARD
+        ================================================= */
 
         .project-card {
             background: white;
@@ -1202,6 +1489,40 @@ $projects_query =
 
         .project-title-link i {
             margin-right: 6px;
+        }
+
+        /* =================================================
+           PROJECT ROLE BADGE
+        ================================================= */
+
+        .project-role-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 11px;
+            margin-left: 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            vertical-align: middle;
+        }
+
+        .advisor-badge {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffe69c;
+        }
+
+        .member-badge {
+            background: #e8f4fc;
+            color: #287cab;
+            border: 1px solid #c7e5f5;
+        }
+
+        .owner-badge {
+            background: #e8f7ee;
+            color: #198754;
+            border: 1px solid #b8e5c8;
         }
 
         .project-info {
@@ -1265,7 +1586,9 @@ $projects_query =
             color: white;
         }
 
-        /* ================= NO PROJECT ================= */
+        /* =================================================
+           NO PROJECT
+        ================================================= */
 
         .no-project {
             background: white;
@@ -1285,7 +1608,9 @@ $projects_query =
             font-size: 16px;
         }
 
-        /* ================= RESPONSIVE ================= */
+        /* =================================================
+           RESPONSIVE
+        ================================================= */
 
         @media (max-width: 700px) {
 
@@ -1367,6 +1692,11 @@ $projects_query =
             .save-profile-btn {
                 width: 100%;
             }
+
+            .project-role-badge {
+                margin-left: 0;
+                margin-top: 6px;
+            }
         }
 
     </style>
@@ -1419,6 +1749,7 @@ $projects_query =
 
 </header>
 
+
 <!-- =====================================================
      MAIN
 ===================================================== -->
@@ -1459,7 +1790,10 @@ $projects_query =
 
     </div>
 
-    <!-- VIEW ONLY -->
+
+    <!-- =================================================
+         VIEW ONLY
+    ================================================== -->
 
     <?php if (!$is_own_profile): ?>
 
@@ -1473,6 +1807,7 @@ $projects_query =
         </div>
 
     <?php endif; ?>
+
 
     <!-- =================================================
          PROFILE CARD
@@ -1496,6 +1831,7 @@ $projects_query =
                 >
 
             </div>
+
 
             <!-- CHANGE PHOTO -->
 
@@ -1537,6 +1873,7 @@ $projects_query =
 
         </div>
 
+
         <div class="profile-body">
 
             <!-- NAME -->
@@ -1555,6 +1892,7 @@ $projects_query =
 
             </div>
 
+
             <!-- USERNAME -->
 
             <div class="profile-username">
@@ -1568,6 +1906,7 @@ $projects_query =
                 ?>
 
             </div>
+
 
             <!-- ROLE -->
 
@@ -1585,6 +1924,7 @@ $projects_query =
 
             </div>
 
+
             <!-- ACCOUNT -->
 
             <div class="info-title">
@@ -1594,6 +1934,7 @@ $projects_query =
                 ข้อมูลบัญชี
 
             </div>
+
 
             <!-- =================================================
                  OWN PROFILE
@@ -1637,6 +1978,7 @@ $projects_query =
 
                         </div>
 
+
                         <!-- LAST NAME -->
 
                         <div class="info-box">
@@ -1665,6 +2007,7 @@ $projects_query =
                             >
 
                         </div>
+
 
                         <!-- EMAIL -->
 
@@ -1695,6 +2038,7 @@ $projects_query =
 
                         </div>
 
+
                         <!-- ROLE -->
 
                         <div class="info-box">
@@ -1719,6 +2063,7 @@ $projects_query =
 
                         </div>
 
+
                         <!-- DEPARTMENT -->
 
                         <div class="info-box">
@@ -1741,11 +2086,6 @@ $projects_query =
                                 <option
                                     value=""
                                     disabled
-                                    <?php
-                                    echo $department_select_value === ''
-                                        ? 'selected'
-                                        : '';
-                                    ?>
                                 >
                                     -- เลือกสาขา / ภาควิชา --
                                 </option>
@@ -1797,6 +2137,7 @@ $projects_query =
 
                             </select>
 
+
                             <input
                                 type="text"
                                 name="other_department"
@@ -1823,6 +2164,7 @@ $projects_query =
                             >
 
                         </div>
+
 
                         <!-- USERNAME -->
 
@@ -1855,6 +2197,7 @@ $projects_query =
 
                     </div>
 
+
                     <button
                         type="submit"
                         name="update_profile"
@@ -1870,15 +2213,15 @@ $projects_query =
 
                 </form>
 
+
             <?php else: ?>
+
 
                 <!-- =================================================
                      OTHER USER - READ ONLY
                 ================================================== -->
 
                 <div class="info-grid">
-
-                    <!-- NAME -->
 
                     <div class="info-box">
 
@@ -1904,7 +2247,6 @@ $projects_query =
 
                     </div>
 
-                    <!-- LAST NAME -->
 
                     <div class="info-box">
 
@@ -1930,7 +2272,6 @@ $projects_query =
 
                     </div>
 
-                    <!-- EMAIL -->
 
                     <div class="info-box">
 
@@ -1956,7 +2297,6 @@ $projects_query =
 
                     </div>
 
-                    <!-- ROLE -->
 
                     <div class="info-box">
 
@@ -1980,7 +2320,6 @@ $projects_query =
 
                     </div>
 
-                    <!-- DEPARTMENT -->
 
                     <div class="info-box">
 
@@ -2006,7 +2345,6 @@ $projects_query =
 
                     </div>
 
-                    <!-- USERNAME -->
 
                     <div class="info-box">
 
@@ -2040,6 +2378,7 @@ $projects_query =
 
     </div>
 
+
     <!-- =================================================
          PROJECTS
     ================================================== -->
@@ -2062,10 +2401,11 @@ $projects_query =
 
         </h2>
 
+
         <div class="project-count">
 
             <?php
-            echo $projects_query->num_rows;
+            echo count($projects_list);
             ?>
 
             โปรเจกต์
@@ -2074,15 +2414,20 @@ $projects_query =
 
     </div>
 
-    <?php if ($projects_query->num_rows > 0): ?>
 
-        <?php while (
-            $row = $projects_query->fetch_assoc()
+    <?php if (count($projects_list) > 0): ?>
+
+
+        <?php foreach (
+            $projects_list as $row
         ): ?>
 
             <div class="project-card">
 
-                <!-- TITLE -->
+
+                <!-- =================================================
+                     TITLE
+                ================================================== -->
 
                 <div class="project-title">
 
@@ -2116,9 +2461,57 @@ $projects_query =
 
                     </a>
 
+
+                    <!-- =================================================
+                         RELATION BADGE
+                    ================================================== -->
+
+                    <?php if (
+                        ($row['relation_type'] ?? '') === 'advisor'
+                    ): ?>
+
+                        <span class="project-role-badge advisor-badge">
+
+                            <i class="bi bi-person-workspace"></i>
+
+                            อาจารย์ที่ปรึกษา
+
+                        </span>
+
+
+                    <?php elseif (
+                        ($row['relation_type'] ?? '') === 'member'
+                    ): ?>
+
+                        <span class="project-role-badge member-badge">
+
+                            <i class="bi bi-people-fill"></i>
+
+                            สมาชิกกลุ่ม
+
+                        </span>
+
+
+                    <?php elseif (
+                        ($row['relation_type'] ?? '') === 'owner'
+                    ): ?>
+
+                        <span class="project-role-badge owner-badge">
+
+                            <i class="bi bi-person-fill"></i>
+
+                            เจ้าของโปรเจกต์
+
+                        </span>
+
+                    <?php endif; ?>
+
                 </div>
 
-                <!-- DEGREE -->
+
+                <!-- =================================================
+                     DEGREE
+                ================================================== -->
 
                 <div class="project-info">
 
@@ -2147,7 +2540,10 @@ $projects_query =
 
                 </div>
 
-                <!-- DEPARTMENT -->
+
+                <!-- =================================================
+                     DEPARTMENT
+                ================================================== -->
 
                 <div class="project-info">
 
@@ -2171,7 +2567,39 @@ $projects_query =
 
                 </div>
 
-                <!-- AUTHORS -->
+
+                <!-- =================================================
+                     ADVISOR
+                ================================================== -->
+
+                <div class="project-info">
+
+                    <strong>
+
+                        <i class="bi bi-person-workspace"></i>
+
+                        อาจารย์ที่ปรึกษา:
+
+                    </strong>
+
+                    <?php
+
+                    echo nl2br(
+                        htmlspecialchars(
+                            $row['advisor'] ?? '-',
+                            ENT_QUOTES,
+                            'UTF-8'
+                        )
+                    );
+
+                    ?>
+
+                </div>
+
+
+                <!-- =================================================
+                     AUTHORS
+                ================================================== -->
 
                 <div class="project-info">
 
@@ -2209,9 +2637,13 @@ $projects_query =
 
                 </div>
 
-                <!-- BUTTONS -->
+
+                <!-- =================================================
+                     BUTTONS
+                ================================================== -->
 
                 <div class="project-buttons">
+
 
                     <!-- PDF -->
 
@@ -2232,13 +2664,17 @@ $projects_query =
 
                     <?php endif; ?>
 
-                    <!-- OWNER ACTIONS -->
+
+                    <!-- =================================================
+                         OWNER ACTIONS
+                    ================================================== -->
 
                     <?php if (
                         $is_own_profile &&
                         $role === 'student' &&
                         isset($row['student_id']) &&
-                        (int)$row['student_id'] === $login_user_id
+                        (int)$row['student_id']
+                        === $login_user_id
                     ): ?>
 
                         <a
@@ -2253,6 +2689,7 @@ $projects_query =
                             แก้ไขโปรเจกต์
 
                         </a>
+
 
                         <a
                             href="delete-project.php?id=<?php
@@ -2278,9 +2715,11 @@ $projects_query =
 
             </div>
 
-        <?php endwhile; ?>
+        <?php endforeach; ?>
+
 
     <?php else: ?>
+
 
         <div class="no-project">
 
@@ -2301,6 +2740,7 @@ $projects_query =
 
 </div>
 
+
 <!-- =====================================================
      JAVASCRIPT
 ===================================================== -->
@@ -2308,10 +2748,15 @@ $projects_query =
 <script>
 
 const departmentSelect =
-    document.getElementById('departmentSelect');
+    document.getElementById(
+        'departmentSelect'
+    );
 
 const otherDepartment =
-    document.getElementById('otherDepartment');
+    document.getElementById(
+        'otherDepartment'
+    );
+
 
 function updateDepartmentInput() {
 
@@ -2327,15 +2772,17 @@ function updateDepartmentInput() {
     ) {
 
         otherDepartment.classList.add('show');
+
         otherDepartment.required = true;
 
     } else {
 
         otherDepartment.classList.remove('show');
-        otherDepartment.required = false;
 
+        otherDepartment.required = false;
     }
 }
+
 
 if (departmentSelect) {
 
@@ -2349,15 +2796,11 @@ if (departmentSelect) {
 
 </script>
 
+
 <script
     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
 ></script>
 
 </body>
+
 </html>
-
-<?php
-
-$projects_stmt->close();
-
-?>
