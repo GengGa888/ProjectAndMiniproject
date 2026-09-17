@@ -3,13 +3,11 @@
 session_start();
 require_once 'db_connect.php';
 
-
 /* =========================================================
    รหัสสำหรับสมัคร Admin
    ========================================================= */
 
 $ADMIN_REGISTER_CODE = "SDUADMIN2026";
-
 
 /* =========================================================
    HELPER
@@ -19,7 +17,6 @@ function e($value)
 {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
-
 
 /* =========================================================
    ถ้า Login อยู่แล้ว
@@ -36,7 +33,6 @@ if (isset($_SESSION['user_id'])) {
     exit;
 }
 
-
 /* =========================================================
    ตัวแปร
    ========================================================= */
@@ -44,25 +40,25 @@ if (isset($_SESSION['user_id'])) {
 $error = '';
 $success = '';
 
-
 /* =========================================================
    REGISTER
    ========================================================= */
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $username         = trim($_POST['username'] ?? '');
-    $user_code        = trim($_POST['user_code'] ?? '');
-    $firstname        = trim($_POST['firstname'] ?? '');
-    $lastname         = trim($_POST['lastname'] ?? '');
-    $email            = trim($_POST['email'] ?? '');
-    $role             = trim($_POST['role'] ?? '');
+    $username          = trim($_POST['username'] ?? '');
+    $user_code         = trim($_POST['user_code'] ?? '');
+    $prefix            = trim($_POST['prefix'] ?? '');
+    $firstname         = trim($_POST['firstname'] ?? '');
+    $lastname          = trim($_POST['lastname'] ?? '');
+    $email             = trim($_POST['email'] ?? '');
+    $role              = trim($_POST['role'] ?? '');
 
     /* สาขาที่เลือก */
     $department_select = trim($_POST['department_select'] ?? '');
 
     /* สาขาที่พิมพ์เอง */
-    $other_department = trim($_POST['other_department'] ?? '');
+    $other_department  = trim($_POST['other_department'] ?? '');
 
     /* ถ้าเลือกอื่นๆ ให้ใช้ค่าที่พิมพ์เอง */
     if ($department_select === 'อื่นๆ') {
@@ -71,10 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $department = $department_select;
     }
 
-    $password         = $_POST['password'] ?? '';
-    $confirm_password = $_POST['confirm_password'] ?? '';
-    $admin_code       = trim($_POST['admin_code'] ?? '');
-
+    $password          = $_POST['password'] ?? '';
+    $confirm_password  = $_POST['confirm_password'] ?? '';
+    $admin_code        = trim($_POST['admin_code'] ?? '');
 
     /* =====================================================
        ตรวจสอบข้อมูลพื้นฐาน
@@ -83,6 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (
         $username === '' ||
         $user_code === '' ||
+        $prefix === '' ||
         $firstname === '' ||
         $lastname === '' ||
         $email === '' ||
@@ -118,6 +114,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน";
     }
 
+    /* =====================================================
+       ตรวจสอบคำนำหน้าให้ตรงกับประเภทบัญชี
+       ===================================================== */
+
+    if ($error === '') {
+
+        $student_prefixes = [
+            'นาย',
+            'นางสาว'
+        ];
+
+        $teacher_prefixes = [
+            'อ.',
+            'ผศ.',
+            'ผศ.ดร.',
+            'รศ.',
+            'รศ.ดร.',
+            'ศ.',
+            'ศ.ดร.',
+            'ดร.'
+        ];
+
+        $admin_prefixes = [
+            'นาย',
+            'นาง',
+            'นางสาว',
+            'ดร.'
+        ];
+
+        if ($role === 'student') {
+
+            if (!in_array($prefix, $student_prefixes, true)) {
+                $error = "คำนำหน้าไม่ถูกต้องสำหรับนักศึกษา";
+            }
+
+        } elseif ($role === 'teacher') {
+
+            if (!in_array($prefix, $teacher_prefixes, true)) {
+                $error = "คำนำหน้าไม่ถูกต้องสำหรับอาจารย์";
+            }
+
+        } elseif ($role === 'admin') {
+
+            if (!in_array($prefix, $admin_prefixes, true)) {
+                $error = "คำนำหน้าไม่ถูกต้องสำหรับแอดมิน";
+            }
+        }
+    }
 
     /* =====================================================
        ตรวจสอบกรณีเลือก "อื่นๆ"
@@ -131,7 +175,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $error = "กรุณาระบุชื่อสาขา / ภาควิชา";
     }
-
 
     /* =====================================================
        ตรวจสอบรหัสสมัคร Admin
@@ -152,7 +195,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-
     /* =====================================================
        ตรวจสอบ Username ซ้ำ
        ===================================================== */
@@ -166,10 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             LIMIT 1
         ";
 
-        $check_stmt = mysqli_prepare(
-            $conn,
-            $check_sql
-        );
+        $check_stmt = mysqli_prepare($conn, $check_sql);
 
         if (!$check_stmt) {
 
@@ -184,18 +223,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
 
             mysqli_stmt_execute($check_stmt);
-
             mysqli_stmt_store_result($check_stmt);
 
             if (mysqli_stmt_num_rows($check_stmt) > 0) {
-
                 $error = "Username นี้ถูกใช้งานแล้ว";
             }
 
             mysqli_stmt_close($check_stmt);
         }
     }
-
 
     /* =====================================================
        ตรวจสอบ User Code ซ้ำ
@@ -210,10 +246,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             LIMIT 1
         ";
 
-        $check_stmt = mysqli_prepare(
-            $conn,
-            $check_sql
-        );
+        $check_stmt = mysqli_prepare($conn, $check_sql);
 
         if (!$check_stmt) {
 
@@ -228,18 +261,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
 
             mysqli_stmt_execute($check_stmt);
-
             mysqli_stmt_store_result($check_stmt);
 
             if (mysqli_stmt_num_rows($check_stmt) > 0) {
-
                 $error = "รหัสประจำตัวนี้ถูกใช้งานแล้ว";
             }
 
             mysqli_stmt_close($check_stmt);
         }
     }
-
 
     /* =====================================================
        ตรวจสอบ Email ซ้ำ
@@ -254,10 +284,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             LIMIT 1
         ";
 
-        $check_stmt = mysqli_prepare(
-            $conn,
-            $check_sql
-        );
+        $check_stmt = mysqli_prepare($conn, $check_sql);
 
         if (!$check_stmt) {
 
@@ -272,18 +299,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
 
             mysqli_stmt_execute($check_stmt);
-
             mysqli_stmt_store_result($check_stmt);
 
             if (mysqli_stmt_num_rows($check_stmt) > 0) {
-
                 $error = "อีเมลนี้ถูกใช้งานแล้ว";
             }
 
             mysqli_stmt_close($check_stmt);
         }
     }
-
 
     /* =====================================================
        INSERT USER
@@ -296,12 +320,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             PASSWORD_DEFAULT
         );
 
-
         $insert_sql = "
             INSERT INTO users
             (
                 username,
                 user_code,
+                prefix,
                 first_name,
                 last_name,
                 email,
@@ -309,27 +333,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 department,
                 password
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ";
-
 
         $insert_stmt = mysqli_prepare(
             $conn,
             $insert_sql
         );
 
-
         if (!$insert_stmt) {
 
-            $error = "ไม่สามารถสร้างบัญชีได้";
+            $error = "ไม่สามารถสร้างบัญชีได้: " . mysqli_error($conn);
 
         } else {
 
             mysqli_stmt_bind_param(
                 $insert_stmt,
-                "ssssssss",
+                "sssssssss",
                 $username,
                 $user_code,
+                $prefix,
                 $firstname,
                 $lastname,
                 $email,
@@ -337,7 +360,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $department,
                 $hashed_password
             );
-
 
             if (mysqli_stmt_execute($insert_stmt)) {
 
@@ -349,9 +371,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             } else {
 
-                $error = "เกิดข้อผิดพลาดในการสมัครสมาชิก";
+                $error = "เกิดข้อผิดพลาดในการสมัครสมาชิก: " .
+                         mysqli_stmt_error($insert_stmt);
             }
-
 
             mysqli_stmt_close($insert_stmt);
         }
@@ -374,29 +396,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <title>สมัครสมาชิก - คลังโปรเจกต์ SDU</title>
 
-
     <!-- Bootstrap -->
-
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
         rel="stylesheet"
     >
 
-
     <!-- Bootstrap Icons -->
-
     <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     >
-
 
     <style>
 
         * {
             box-sizing: border-box;
         }
-
 
         body {
 
@@ -427,11 +443,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 sans-serif;
         }
 
-
-        /* =====================================================
-           CONTAINER
-           ===================================================== */
-
         .register-container {
 
             width: 100%;
@@ -451,11 +462,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border:
                 1px solid #e1edf4;
         }
-
-
-        /* =====================================================
-           LOGO
-           ===================================================== */
 
         .logo {
 
@@ -481,7 +487,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 rgba(0,0,0,0.12);
         }
 
-
         h2 {
 
             text-align: center;
@@ -492,7 +497,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             margin-bottom: 6px;
         }
-
 
         .subtitle {
 
@@ -505,16 +509,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-bottom: 25px;
         }
 
-
-        /* =====================================================
-           FORM
-           ===================================================== */
-
         .form-group {
 
             margin-bottom: 17px;
         }
-
 
         label {
 
@@ -529,12 +527,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-weight: 600;
         }
 
-
         .input-wrapper {
 
             position: relative;
         }
-
 
         .input-wrapper i {
 
@@ -553,7 +549,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             z-index: 2;
         }
-
 
         .input-wrapper input,
         .input-wrapper select {
@@ -579,14 +574,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #263238;
         }
 
-
         .input-wrapper select {
 
             cursor: pointer;
 
             appearance: auto;
         }
-
 
         .input-wrapper input:focus,
         .input-wrapper select:focus {
@@ -598,11 +591,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 rgba(66,151,205,0.12);
         }
 
-
-        /* =====================================================
-           ROLE
-           ===================================================== */
-
         .role-box {
 
             display: grid;
@@ -613,12 +601,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             gap: 10px;
         }
 
-
         .role-option {
 
             position: relative;
         }
-
 
         .role-option input {
 
@@ -626,7 +612,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             opacity: 0;
         }
-
 
         .role-option label {
 
@@ -652,7 +637,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             transition: 0.2s;
         }
 
-
         .role-option label i {
 
             display: block;
@@ -663,7 +647,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             color: #4297CD;
         }
-
 
         .role-option input:checked + label {
 
@@ -677,11 +660,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 0 0 0 2px
                 rgba(66,151,205,0.10);
         }
-
-
-        /* =====================================================
-           ADMIN CODE
-           ===================================================== */
 
         .admin-code-box {
 
@@ -699,12 +677,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-top: 12px;
         }
 
-
         .admin-code-box.show {
 
             display: block;
         }
-
 
         .admin-code-title {
 
@@ -716,7 +692,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             margin-bottom: 7px;
         }
-
 
         .admin-code-box input {
 
@@ -736,7 +711,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 14px;
         }
 
-
         .admin-code-box input:focus {
 
             border-color: #d0ae3d;
@@ -746,11 +720,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 rgba(208,174,61,0.12);
         }
 
-
-        /* =====================================================
-           OTHER DEPARTMENT
-           ===================================================== */
-
         .other-department-box {
 
             display: none;
@@ -758,16 +727,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-top: 10px;
         }
 
-
         .other-department-box.show {
 
             display: block;
         }
-
-
-        /* =====================================================
-           ALERT
-           ===================================================== */
 
         .alert {
 
@@ -775,11 +738,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             font-size: 14px;
         }
-
-
-        /* =====================================================
-           BUTTON
-           ===================================================== */
 
         .register-button {
 
@@ -811,7 +769,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-top: 8px;
         }
 
-
         .register-button:hover {
 
             transform:
@@ -821,11 +778,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 0 5px 15px
                 rgba(53,138,189,0.25);
         }
-
-
-        /* =====================================================
-           LOGIN LINK
-           ===================================================== */
 
         .login-link {
 
@@ -838,7 +790,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size: 14px;
         }
 
-
         .login-link a {
 
             color: #287cab;
@@ -848,16 +799,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             text-decoration: none;
         }
 
-
         .login-link a:hover {
 
             text-decoration: underline;
         }
-
-
-        /* =====================================================
-           MOBILE
-           ===================================================== */
 
         @media (max-width: 500px) {
 
@@ -866,7 +811,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 padding:
                     25px 20px;
             }
-
 
             .role-box {
 
@@ -878,16 +822,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 </head>
 
-
 <body>
-
 
 <div class="register-container">
 
-
-    <!-- =====================================================
-         LOGO
-         ===================================================== -->
+    <!-- LOGO -->
 
     <img
         src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png"
@@ -895,20 +834,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         alt="SDU Logo"
     >
 
-
     <h2>
         สมัครสมาชิก
     </h2>
-
 
     <div class="subtitle">
         คลังโปรเจกต์ มหาวิทยาลัยสวนดุสิต
     </div>
 
-
-    <!-- =====================================================
-         ERROR
-         ===================================================== -->
+    <!-- ERROR -->
 
     <?php if ($error !== ''): ?>
 
@@ -922,10 +856,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php endif; ?>
 
-
-    <!-- =====================================================
-         SUCCESS
-         ===================================================== -->
+    <!-- SUCCESS -->
 
     <?php if ($success !== ''): ?>
 
@@ -945,20 +876,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php endif; ?>
 
-
-    <!-- =====================================================
-         FORM
-         ===================================================== -->
+    <!-- FORM -->
 
     <form
         method="POST"
         action=""
     >
 
-
-        <!-- =================================================
-             USERNAME
-             ================================================= -->
+        <!-- USERNAME -->
 
         <div class="form-group">
 
@@ -983,10 +908,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         </div>
 
-
-        <!-- =================================================
-             USER CODE
-             ================================================= -->
+        <!-- USER CODE -->
 
         <div class="form-group">
 
@@ -1011,102 +933,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         </div>
 
-
-        <!-- =================================================
-             NAME
-             ================================================= -->
-
-        <div class="row">
-
-            <div class="col-md-6">
-
-                <div class="form-group">
-
-                    <label>
-                        ชื่อ
-                    </label>
-
-                    <div class="input-wrapper">
-
-                        <input
-                            type="text"
-                            name="firstname"
-                            placeholder="ชื่อ"
-                            value="<?php echo e($_POST['firstname'] ?? ''); ?>"
-                            maxlength="50"
-                            required
-                        >
-
-                        <i class="bi bi-person"></i>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="col-md-6">
-
-                <div class="form-group">
-
-                    <label>
-                        นามสกุล
-                    </label>
-
-                    <div class="input-wrapper">
-
-                        <input
-                            type="text"
-                            name="lastname"
-                            placeholder="นามสกุล"
-                            value="<?php echo e($_POST['lastname'] ?? ''); ?>"
-                            maxlength="50"
-                            required
-                        >
-
-                        <i class="bi bi-person"></i>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- =================================================
-             EMAIL
-             ================================================= -->
-
-        <div class="form-group">
-
-            <label>
-                อีเมล
-            </label>
-
-            <div class="input-wrapper">
-
-                <input
-                    type="email"
-                    name="email"
-                    placeholder="example@mail.dusit.ac.th"
-                    value="<?php echo e($_POST['email'] ?? ''); ?>"
-                    maxlength="100"
-                    required
-                >
-
-                <i class="bi bi-envelope"></i>
-
-            </div>
-
-        </div>
-
-
-        <!-- =================================================
-             ROLE
-             ================================================= -->
+        <!-- ROLE -->
 
         <div class="form-group">
 
@@ -1114,9 +941,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ประเภทบัญชี
             </label>
 
-
             <div class="role-box">
-
 
                 <!-- STUDENT -->
 
@@ -1149,7 +974,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 </div>
 
-
                 <!-- TEACHER -->
 
                 <div class="role-option">
@@ -1178,7 +1002,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </label>
 
                 </div>
-
 
                 <!-- ADMIN -->
 
@@ -1209,13 +1032,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 </div>
 
-
             </div>
 
-
-            <!-- =================================================
-                 ADMIN REGISTER CODE
-                 ================================================= -->
+            <!-- ADMIN CODE -->
 
             <div
                 id="adminCodeBox"
@@ -1230,7 +1049,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 </div>
 
-
                 <input
                     type="password"
                     name="admin_code"
@@ -1243,17 +1061,126 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         </div>
 
+        <!-- PREFIX -->
 
-        <!-- =================================================
-             DEPARTMENT
-             ================================================= -->
+        <div class="form-group">
+
+            <label>
+                คำนำหน้า
+            </label>
+
+            <div class="input-wrapper">
+
+                <select
+                    name="prefix"
+                    id="prefix"
+                    required
+                >
+
+                    <option value="">
+                        -- เลือกคำนำหน้า --
+                    </option>
+
+                </select>
+
+                <i class="bi bi-person-badge"></i>
+
+            </div>
+
+        </div>
+
+        <!-- NAME -->
+
+        <div class="row">
+
+            <div class="col-md-6">
+
+                <div class="form-group">
+
+                    <label>
+                        ชื่อ
+                    </label>
+
+                    <div class="input-wrapper">
+
+                        <input
+                            type="text"
+                            name="firstname"
+                            placeholder="ชื่อ"
+                            value="<?php echo e($_POST['firstname'] ?? ''); ?>"
+                            maxlength="50"
+                            required
+                        >
+
+                        <i class="bi bi-person"></i>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-6">
+
+                <div class="form-group">
+
+                    <label>
+                        นามสกุล
+                    </label>
+
+                    <div class="input-wrapper">
+
+                        <input
+                            type="text"
+                            name="lastname"
+                            placeholder="นามสกุล"
+                            value="<?php echo e($_POST['lastname'] ?? ''); ?>"
+                            maxlength="50"
+                            required
+                        >
+
+                        <i class="bi bi-person"></i>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- EMAIL -->
+
+        <div class="form-group">
+
+            <label>
+                อีเมล
+            </label>
+
+            <div class="input-wrapper">
+
+                <input
+                    type="email"
+                    name="email"
+                    placeholder="example@mail.dusit.ac.th"
+                    value="<?php echo e($_POST['email'] ?? ''); ?>"
+                    maxlength="100"
+                    required
+                >
+
+                <i class="bi bi-envelope"></i>
+
+            </div>
+
+        </div>
+
+        <!-- DEPARTMENT -->
 
         <div class="form-group">
 
             <label>
                 สาขา / ภาควิชา
             </label>
-
 
             <div class="input-wrapper">
 
@@ -1267,97 +1194,97 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         -- เลือกสาขา / ภาควิชา --
                     </option>
 
-
                     <option
                         value="เทคโนโลยีสารสนเทศ"
-
                         <?php
                         echo (
                             ($_POST['department_select'] ?? '') ===
                             'เทคโนโลยีสารสนเทศ'
-                        )
-                        ? 'selected'
-                        : '';
+                        ) ? 'selected' : '';
                         ?>
                     >
                         เทคโนโลยีสารสนเทศ
                     </option>
 
-
                     <option
                         value="วิทยาการคอมพิวเตอร์"
-
                         <?php
                         echo (
                             ($_POST['department_select'] ?? '') ===
                             'วิทยาการคอมพิวเตอร์'
-                        )
-                        ? 'selected'
-                        : '';
+                        ) ? 'selected' : '';
                         ?>
                     >
                         วิทยาการคอมพิวเตอร์
                     </option>
 
-
                     <option
                         value="เทคโนโลยีดิจิทัล"
-
                         <?php
                         echo (
                             ($_POST['department_select'] ?? '') ===
                             'เทคโนโลยีดิจิทัล'
-                        )
-                        ? 'selected'
-                        : '';
+                        ) ? 'selected' : '';
                         ?>
                     >
                         เทคโนโลยีดิจิทัล
                     </option>
 
-
                     <option
                         value="คอมพิวเตอร์ธุรกิจ"
-
                         <?php
                         echo (
                             ($_POST['department_select'] ?? '') ===
                             'คอมพิวเตอร์ธุรกิจ'
-                        )
-                        ? 'selected'
-                        : '';
+                        ) ? 'selected' : '';
                         ?>
                     >
                         คอมพิวเตอร์ธุรกิจ
                     </option>
 
-
                     <option
                         value="มัลติมีเดีย"
-
                         <?php
                         echo (
                             ($_POST['department_select'] ?? '') ===
                             'มัลติมีเดีย'
-                        )
-                        ? 'selected'
-                        : '';
+                        ) ? 'selected' : '';
                         ?>
                     >
                         มัลติมีเดีย
                     </option>
 
+                    <option
+                        value="วิทยาศาสตร์สิ่งแวดล้อม"
+                        <?php
+                        echo (
+                            ($_POST['department_select'] ?? '') ===
+                            'วิทยาศาสตร์สิ่งแวดล้อม'
+                        ) ? 'selected' : '';
+                        ?>
+                    >
+                        วิทยาศาสตร์สิ่งแวดล้อม
+                    </option>
+
+                    <option
+                        value="เทคโนโลยีการประกอบอาหาร"
+                        <?php
+                        echo (
+                            ($_POST['department_select'] ?? '') ===
+                            'เทคโนโลยีการประกอบอาหาร'
+                        ) ? 'selected' : '';
+                        ?>
+                    >
+                        เทคโนโลยีการประกอบอาหาร
+                    </option>
 
                     <option
                         value="อื่นๆ"
-
                         <?php
                         echo (
                             ($_POST['department_select'] ?? '') ===
                             'อื่นๆ'
-                        )
-                        ? 'selected'
-                        : '';
+                        ) ? 'selected' : '';
                         ?>
                     >
                         อื่นๆ
@@ -1369,10 +1296,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             </div>
 
-
-            <!-- =================================================
-                 OTHER DEPARTMENT INPUT
-                 ================================================= -->
+            <!-- OTHER DEPARTMENT -->
 
             <div
                 id="otherDepartmentBox"
@@ -1398,10 +1322,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         </div>
 
-
-        <!-- =================================================
-             PASSWORD
-             ================================================= -->
+        <!-- PASSWORD -->
 
         <div class="form-group">
 
@@ -1424,10 +1345,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         </div>
 
-
-        <!-- =================================================
-             CONFIRM PASSWORD
-             ================================================= -->
+        <!-- CONFIRM PASSWORD -->
 
         <div class="form-group">
 
@@ -1450,10 +1368,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         </div>
 
-
-        <!-- =================================================
-             REGISTER BUTTON
-             ================================================= -->
+        <!-- REGISTER BUTTON -->
 
         <button
             type="submit"
@@ -1466,13 +1381,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         </button>
 
-
     </form>
 
-
-    <!-- =====================================================
-         LOGIN
-         ===================================================== -->
+    <!-- LOGIN -->
 
     <div class="login-link">
 
@@ -1484,122 +1395,272 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     </div>
 
-
 </div>
-
-
-<!-- =========================================================
-     JAVASCRIPT
-     ========================================================= -->
 
 <script>
 
+/* =====================================================
+   PREFIX
+   ===================================================== */
 
-    /* =====================================================
-       ADMIN CODE
-       ===================================================== */
+const studentRadio = document.getElementById('student');
+const teacherRadio = document.getElementById('teacher');
+const adminRadio = document.getElementById('admin');
 
-    const studentRadio =
-        document.getElementById('student');
+const prefixSelect = document.getElementById('prefix');
 
-    const teacherRadio =
-        document.getElementById('teacher');
-
-    const adminRadio =
-        document.getElementById('admin');
-
-    const adminCodeBox =
-        document.getElementById('adminCodeBox');
-
-    const adminCodeInput =
-        document.getElementById('admin_code');
+const oldPrefix = <?php
+echo json_encode($_POST['prefix'] ?? '', JSON_UNESCAPED_UNICODE);
+?>;
 
 
-    function checkAdmin()
-    {
+/* =====================================================
+   ตัวเลือกคำนำหน้า
+   ===================================================== */
 
-        if (adminRadio.checked) {
+const prefixOptions = {
 
-            adminCodeBox.classList.add('show');
-
-            adminCodeInput.required = true;
-
-        } else {
-
-            adminCodeBox.classList.remove('show');
-
-            adminCodeInput.required = false;
-
+    student: [
+        {
+            value: 'นาย',
+            text: 'นาย'
+        },
+        {
+            value: 'นางสาว',
+            text: 'นางสาว'
         }
+    ],
 
+    teacher: [
+        {
+            value: 'อ.',
+            text: 'อาจารย์'
+        },
+        {
+            value: 'ผศ.',
+            text: 'ผู้ช่วยศาสตราจารย์'
+        },
+        {
+            value: 'ผศ.ดร.',
+            text: 'ผู้ช่วยศาสตราจารย์ ดร.'
+        },
+        {
+            value: 'รศ.',
+            text: 'รองศาสตราจารย์'
+        },
+        {
+            value: 'รศ.ดร.',
+            text: 'รองศาสตราจารย์ ดร.'
+        },
+        {
+            value: 'ศ.',
+            text: 'ศาสตราจารย์'
+        },
+        {
+            value: 'ศ.ดร.',
+            text: 'ศาสตราจารย์ ดร.'
+        },
+        {
+            value: 'ดร.',
+            text: 'ดอกเตอร์'
+        }
+    ],
+
+    admin: [
+        {
+            value: 'นาย',
+            text: 'นาย'
+        },
+        {
+            value: 'นาง',
+            text: 'นาง'
+        },
+        {
+            value: 'นางสาว',
+            text: 'นางสาว'
+        },
+        {
+            value: 'ดร.',
+            text: 'ดอกเตอร์'
+        }
+    ]
+
+};
+
+
+/* =====================================================
+   เปลี่ยนคำนำหน้าตาม Role
+   ===================================================== */
+
+function updatePrefixOptions(keepOld = false)
+{
+
+    let role = '';
+
+    if (studentRadio.checked) {
+        role = 'student';
     }
 
-
-    studentRadio.addEventListener(
-        'change',
-        checkAdmin
-    );
-
-
-    teacherRadio.addEventListener(
-        'change',
-        checkAdmin
-    );
-
-
-    adminRadio.addEventListener(
-        'change',
-        checkAdmin
-    );
-
-
-    checkAdmin();
-
-
-    /* =====================================================
-       OTHER DEPARTMENT
-       ===================================================== */
-
-    const departmentSelect =
-        document.getElementById('department_select');
-
-    const otherDepartmentBox =
-        document.getElementById('otherDepartmentBox');
-
-    const otherDepartmentInput =
-        document.getElementById('other_department');
-
-
-    function checkDepartment()
-    {
-
-        if (departmentSelect.value === 'อื่นๆ') {
-
-            otherDepartmentBox.classList.add('show');
-
-            otherDepartmentInput.required = true;
-
-        } else {
-
-            otherDepartmentBox.classList.remove('show');
-
-            otherDepartmentInput.required = false;
-
-        }
-
+    else if (teacherRadio.checked) {
+        role = 'teacher';
     }
 
+    else if (adminRadio.checked) {
+        role = 'admin';
+    }
 
-    departmentSelect.addEventListener(
-        'change',
-        checkDepartment
-    );
+    prefixSelect.innerHTML = '';
+
+    const firstOption = document.createElement('option');
+
+    firstOption.value = '';
+
+    firstOption.textContent =
+        '-- เลือกคำนำหน้า --';
+
+    prefixSelect.appendChild(firstOption);
+
+    if (role !== '') {
+
+        prefixOptions[role].forEach(function(option) {
+
+            const optionElement =
+                document.createElement('option');
+
+            optionElement.value =
+                option.value;
+
+            optionElement.textContent =
+                option.text;
+
+            if (
+                keepOld &&
+                oldPrefix === option.value
+            ) {
+
+                optionElement.selected = true;
+            }
+
+            prefixSelect.appendChild(
+                optionElement
+            );
+
+        });
+    }
+}
 
 
-    checkDepartment();
+/* =====================================================
+   ADMIN CODE
+   ===================================================== */
+
+const adminCodeBox =
+    document.getElementById('adminCodeBox');
+
+const adminCodeInput =
+    document.getElementById('admin_code');
+
+
+function checkAdmin()
+{
+
+    if (adminRadio.checked) {
+
+        adminCodeBox.classList.add('show');
+
+        adminCodeInput.required = true;
+
+    } else {
+
+        adminCodeBox.classList.remove('show');
+
+        adminCodeInput.required = false;
+    }
+}
+
+
+studentRadio.addEventListener(
+    'change',
+    function() {
+
+        checkAdmin();
+
+        updatePrefixOptions(false);
+
+    }
+);
+
+
+teacherRadio.addEventListener(
+    'change',
+    function() {
+
+        checkAdmin();
+
+        updatePrefixOptions(false);
+
+    }
+);
+
+
+adminRadio.addEventListener(
+    'change',
+    function() {
+
+        checkAdmin();
+
+        updatePrefixOptions(false);
+
+    }
+);
+
+
+checkAdmin();
+
+updatePrefixOptions(true);
+
+
+/* =====================================================
+   OTHER DEPARTMENT
+   ===================================================== */
+
+const departmentSelect =
+    document.getElementById('department_select');
+
+const otherDepartmentBox =
+    document.getElementById('otherDepartmentBox');
+
+const otherDepartmentInput =
+    document.getElementById('other_department');
+
+
+function checkDepartment()
+{
+
+    if (departmentSelect.value === 'อื่นๆ') {
+
+        otherDepartmentBox.classList.add('show');
+
+        otherDepartmentInput.required = true;
+
+    } else {
+
+        otherDepartmentBox.classList.remove('show');
+
+        otherDepartmentInput.required = false;
+    }
+}
+
+
+departmentSelect.addEventListener(
+    'change',
+    checkDepartment
+);
+
+
+checkDepartment();
 
 </script>
-
 
 </body>
 

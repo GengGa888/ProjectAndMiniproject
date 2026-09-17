@@ -3,36 +3,29 @@
 session_start();
 require_once "db_connect.php";
 
-
 // =====================================================
 // ตรวจสอบ Login
 // =====================================================
 
 if (!isset($_SESSION['user_id'])) {
-
     header("Location: login.php");
     exit;
-
 }
-
 
 // =====================================================
 // ตรวจสอบสิทธิ์ Admin
 // =====================================================
 
 if (($_SESSION['role'] ?? '') !== 'admin') {
-
     echo "<script>
         alert('หน้านี้สำหรับ Admin เท่านั้น');
         window.location.href='index2.php';
     </script>";
-
     exit;
 }
 
-
 // =====================================================
-// Helper สำหรับแสดงข้อมูลอย่างปลอดภัย
+// Helper
 // =====================================================
 
 function e($value)
@@ -44,18 +37,14 @@ function e($value)
     );
 }
 
-
 // =====================================================
 // ข้อมูล Admin ปัจจุบัน
 // =====================================================
 
 $current_user_id = (int)($_SESSION['user_id'] ?? 0);
 
-$current_first_name =
-    $_SESSION['first_name'] ?? 'Admin';
-
-$current_last_name =
-    $_SESSION['last_name'] ?? '';
+$current_first_name = $_SESSION['first_name'] ?? 'Admin';
+$current_last_name  = $_SESSION['last_name'] ?? '';
 
 $admin_name = trim(
     $current_first_name . ' ' . $current_last_name
@@ -65,17 +54,16 @@ if ($admin_name === '') {
     $admin_name = 'Admin';
 }
 
-
 // =====================================================
 // ตัวแปร Dashboard
 // =====================================================
 
-$total_users    = 0;
+$total_users = 0;
 $total_students = 0;
 $total_teachers = 0;
-$total_admins   = 0;
+$total_admins = 0;
 $total_projects = 0;
-
+$total_downloads = 0;
 
 // =====================================================
 // จำนวน Users ทั้งหมด
@@ -91,9 +79,7 @@ if (!$result) {
 }
 
 $row = mysqli_fetch_assoc($result);
-
 $total_users = (int)($row['total'] ?? 0);
-
 
 // =====================================================
 // จำนวน Student
@@ -111,9 +97,7 @@ if (!$result) {
 }
 
 $row = mysqli_fetch_assoc($result);
-
 $total_students = (int)($row['total'] ?? 0);
-
 
 // =====================================================
 // จำนวน Teacher
@@ -131,9 +115,7 @@ if (!$result) {
 }
 
 $row = mysqli_fetch_assoc($result);
-
 $total_teachers = (int)($row['total'] ?? 0);
-
 
 // =====================================================
 // จำนวน Admin
@@ -151,9 +133,7 @@ if (!$result) {
 }
 
 $row = mysqli_fetch_assoc($result);
-
 $total_admins = (int)($row['total'] ?? 0);
-
 
 // =====================================================
 // จำนวน Projects
@@ -169,9 +149,24 @@ if (!$result) {
 }
 
 $row = mysqli_fetch_assoc($result);
-
 $total_projects = (int)($row['total'] ?? 0);
 
+// =====================================================
+// จำนวน Downloads ทั้งหมด
+// =====================================================
+
+$result = mysqli_query(
+    $conn,
+    "SELECT COALESCE(SUM(downloads), 0) AS total
+     FROM projects"
+);
+
+if (!$result) {
+    die("SQL Error (Downloads): " . e(mysqli_error($conn)));
+}
+
+$row = mysqli_fetch_assoc($result);
+$total_downloads = (int)($row['total'] ?? 0);
 
 // =====================================================
 // ดึง Users
@@ -200,11 +195,8 @@ if (!$result) {
 }
 
 while ($row = mysqli_fetch_assoc($result)) {
-
     $users[] = $row;
-
 }
-
 
 // =====================================================
 // ดึง Projects
@@ -228,6 +220,8 @@ $result = mysqli_query(
         pdf_file,
         github_url,
         status,
+        views,
+        downloads,
         created_at
     FROM projects
     ORDER BY id DESC
@@ -239,15 +233,12 @@ if (!$result) {
 }
 
 while ($row = mysqli_fetch_assoc($result)) {
-
     $projects[] = $row;
-
 }
 
 ?>
 
 <!DOCTYPE html>
-
 <html lang="th">
 
 <head>
@@ -259,9 +250,7 @@ while ($row = mysqli_fetch_assoc($result)) {
     content="width=device-width, initial-scale=1.0"
 >
 
-<title>
-    Admin Dashboard - คลังโปรเจกต์ SDU
-</title>
+<title>Admin Dashboard - คลังโปรเจกต์ SDU</title>
 
 <link
     rel="stylesheet"
@@ -278,175 +267,120 @@ while ($row = mysqli_fetch_assoc($result)) {
     box-sizing: border-box;
 }
 
-
 /* =====================================================
    BODY
 ===================================================== */
 
 body {
-
     margin: 0;
-
-    font-family:
-        Arial,
-        "Sarabun",
-        sans-serif;
-
+    font-family: Arial, "Sarabun", sans-serif;
     background: #f4f8fb;
-
     color: #333;
 }
-
 
 /* =====================================================
    HEADER
 ===================================================== */
 
 .custom-header {
-
-    background:
-        linear-gradient(
-            90deg,
-            #4aa4d6,
-            #4297cd,
-            #3287bb
-        );
+    background: linear-gradient(
+        90deg,
+        #4aa4d6,
+        #4297cd,
+        #3287bb
+    );
 
     color: white;
-
     min-height: 90px;
 
     display: flex;
-
     align-items: center;
 
     padding: 15px 35px;
 
     box-shadow:
-        0 3px 10px
-        rgba(0,0,0,.12);
+        0 3px 10px rgba(0,0,0,.12);
 }
 
-
 .header-inner {
-
     width: 100%;
 
     display: flex;
-
     align-items: center;
-
     justify-content: space-between;
 
     gap: 20px;
 }
 
-
 .header-left {
-
     display: flex;
-
     align-items: center;
-
     gap: 15px;
 }
 
-
 .logo {
-
     width: 58px;
-
     height: 58px;
 
     object-fit: contain;
-
     display: block;
 }
 
-
 .header-title {
-
     font-size: 23px;
-
     font-weight: bold;
 }
 
-
 .header-right {
-
     display: flex;
-
     align-items: center;
-
     gap: 10px;
 }
 
-
 .admin-name {
+    background: rgba(255,255,255,.15);
 
-    background:
-        rgba(255,255,255,.15);
-
-    padding:
-        9px 14px;
-
+    padding: 9px 14px;
     border-radius: 8px;
 }
 
-
 .logout-btn {
-
     color: white;
-
     text-decoration: none;
 
-    background:
-        rgba(220,53,69,.9);
+    background: rgba(220,53,69,.9);
 
-    padding:
-        9px 14px;
-
+    padding: 9px 14px;
     border-radius: 8px;
 
     transition: .2s;
 }
 
-
 .logout-btn:hover {
-
     background: #dc3545;
-
-    transform:
-        translateY(-1px);
+    transform: translateY(-1px);
 }
-
 
 /* =====================================================
    CONTAINER
 ===================================================== */
 
 .container {
+    max-width: 1450px;
 
-    max-width: 1400px;
+    margin: 35px auto;
 
-    margin:
-        35px auto;
-
-    padding:
-        0 20px;
+    padding: 0 20px;
 }
-
 
 /* =====================================================
    PAGE TITLE
 ===================================================== */
 
 .page-title {
-
     display: flex;
 
     align-items: center;
-
     justify-content: space-between;
 
     gap: 15px;
@@ -454,9 +388,7 @@ body {
     margin-bottom: 25px;
 }
 
-
 .page-title h1 {
-
     margin: 0;
 
     color: #287cab;
@@ -464,40 +396,31 @@ body {
     font-size: 30px;
 }
 
-
 .page-title p {
-
-    margin:
-        6px 0 0;
-
+    margin: 6px 0 0;
     color: #777;
 }
-
 
 /* =====================================================
    BUTTON
 ===================================================== */
 
 .btn {
-
     display: inline-flex;
 
     align-items: center;
-
     justify-content: center;
 
     gap: 6px;
 
     border: none;
-
     text-decoration: none;
 
     cursor: pointer;
 
     border-radius: 8px;
 
-    padding:
-        9px 14px;
+    padding: 9px 14px;
 
     font-size: 14px;
 
@@ -506,83 +429,56 @@ body {
     white-space: nowrap;
 }
 
-
 .btn:hover {
-
     opacity: .9;
-
-    transform:
-        translateY(-1px);
+    transform: translateY(-1px);
 }
-
 
 .btn-primary {
-
     background: #3287bb;
-
     color: white;
 }
-
 
 .btn-success {
-
     background: #198754;
-
     color: white;
 }
-
 
 .btn-warning {
-
     background: #f0ad4e;
-
     color: white;
 }
-
 
 .btn-danger {
-
     background: #dc3545;
-
     color: white;
 }
 
-
 .btn-info {
-
     background: #0dcaf0;
-
     color: #111;
 }
 
-
 .btn-secondary {
-
     background: #6c757d;
-
     color: white;
 }
-
 
 /* =====================================================
    DASHBOARD
 ===================================================== */
 
 .dashboard {
-
     display: grid;
 
-    grid-template-columns:
-        repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
 
     gap: 18px;
 
     margin-bottom: 35px;
 }
 
-
 .card {
-
     background: white;
 
     border-radius: 14px;
@@ -590,8 +486,7 @@ body {
     padding: 22px;
 
     box-shadow:
-        0 4px 14px
-        rgba(0,0,0,.07);
+        0 4px 14px rgba(0,0,0,.07);
 
     display: flex;
 
@@ -600,11 +495,8 @@ body {
     gap: 15px;
 }
 
-
 .card-icon {
-
     width: 55px;
-
     height: 55px;
 
     min-width: 55px;
@@ -612,9 +504,7 @@ body {
     border-radius: 12px;
 
     display: flex;
-
     align-items: center;
-
     justify-content: center;
 
     font-size: 25px;
@@ -624,9 +514,7 @@ body {
     color: #3287bb;
 }
 
-
 .card h3 {
-
     margin: 0;
 
     font-size: 27px;
@@ -634,24 +522,19 @@ body {
     color: #333;
 }
 
-
 .card p {
-
-    margin:
-        3px 0 0;
+    margin: 3px 0 0;
 
     color: #777;
 
     font-size: 14px;
 }
 
-
 /* =====================================================
    SECTION
 ===================================================== */
 
 .section {
-
     background: white;
 
     border-radius: 14px;
@@ -661,17 +544,13 @@ body {
     margin-bottom: 30px;
 
     box-shadow:
-        0 4px 14px
-        rgba(0,0,0,.07);
+        0 4px 14px rgba(0,0,0,.07);
 }
 
-
 .section-header {
-
     display: flex;
 
     justify-content: space-between;
-
     align-items: center;
 
     margin-bottom: 20px;
@@ -679,9 +558,7 @@ body {
     gap: 15px;
 }
 
-
 .section-header h2 {
-
     margin: 0;
 
     color: #287cab;
@@ -689,37 +566,29 @@ body {
     font-size: 22px;
 }
 
-
 /* =====================================================
    TABLE
 ===================================================== */
 
 .table-wrapper {
-
     overflow-x: auto;
-
     width: 100%;
 }
 
-
 table {
-
     width: 100%;
 
     border-collapse: collapse;
 
-    min-width: 950px;
+    min-width: 1250px;
 }
 
-
 th {
-
     background: #eef8fd;
 
     color: #287cab;
 
-    padding:
-        13px 10px;
+    padding: 13px 10px;
 
     text-align: left;
 
@@ -728,41 +597,32 @@ th {
     white-space: nowrap;
 }
 
-
 td {
+    padding: 12px 10px;
 
-    padding:
-        12px 10px;
-
-    border-bottom:
-        1px solid #eee;
+    border-bottom: 1px solid #eee;
 
     font-size: 14px;
 
     vertical-align: middle;
 }
 
-
 tbody tr:hover td {
-
     background: #fafafa;
 }
-
 
 /* =====================================================
    ROLE
 ===================================================== */
 
 .role {
-
     display: inline-flex;
 
     align-items: center;
 
     gap: 5px;
 
-    padding:
-        5px 9px;
+    padding: 5px 9px;
 
     border-radius: 20px;
 
@@ -773,41 +633,29 @@ tbody tr:hover td {
     white-space: nowrap;
 }
 
-
 .role-student {
-
     background: #e7f5ff;
-
     color: #0877b9;
 }
 
-
 .role-teacher {
-
     background: #fff3cd;
-
     color: #997404;
 }
 
-
 .role-admin {
-
     background: #f8d7da;
-
     color: #a71d2a;
 }
-
 
 /* =====================================================
    STATUS
 ===================================================== */
 
 .status {
-
     display: inline-block;
 
-    padding:
-        5px 9px;
+    padding: 5px 9px;
 
     border-radius: 20px;
 
@@ -820,13 +668,55 @@ tbody tr:hover td {
     white-space: nowrap;
 }
 
+/* =====================================================
+   VIEW COUNT
+===================================================== */
+
+.view-count {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    color: #287cab;
+
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+.view-count i {
+    font-size: 16px;
+}
+
+/* =====================================================
+   DOWNLOAD COUNT
+===================================================== */
+
+.download-count {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    color: #198754;
+
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+.download-count i {
+    font-size: 16px;
+}
 
 /* =====================================================
    ACTION BUTTONS
 ===================================================== */
 
 .action-buttons {
-
     display: flex;
 
     align-items: center;
@@ -836,22 +726,17 @@ tbody tr:hover td {
     flex-wrap: wrap;
 }
 
-
 .action-buttons .btn {
-
-    padding:
-        7px 10px;
+    padding: 7px 10px;
 
     font-size: 13px;
 }
-
 
 /* =====================================================
    PROJECT TITLE
 ===================================================== */
 
 .project-title {
-
     font-weight: bold;
 
     color: #287cab;
@@ -861,13 +746,11 @@ tbody tr:hover td {
     line-height: 1.5;
 }
 
-
 /* =====================================================
    EMPTY
 ===================================================== */
 
 .empty {
-
     text-align: center;
 
     padding: 40px;
@@ -875,9 +758,7 @@ tbody tr:hover td {
     color: #888;
 }
 
-
 .empty i {
-
     display: block;
 
     font-size: 40px;
@@ -885,93 +766,68 @@ tbody tr:hover td {
     margin-bottom: 10px;
 }
 
-
 /* =====================================================
    FOOTER
 ===================================================== */
 
 .footer {
-
     text-align: center;
 
     color: #888;
 
-    padding:
-        20px;
+    padding: 20px;
 
     font-size: 13px;
 }
-
 
 /* =====================================================
    RESPONSIVE
 ===================================================== */
 
-@media (max-width: 1100px) {
+@media (max-width: 1250px) {
 
     .dashboard {
-
-        grid-template-columns:
-            repeat(3, 1fr);
+        grid-template-columns: repeat(3, 1fr);
     }
-}
 
+}
 
 @media (max-width: 750px) {
 
     .custom-header {
-
-        padding:
-            15px 20px;
+        padding: 15px 20px;
     }
 
-
     .header-title {
-
         font-size: 18px;
     }
 
-
     .admin-name {
-
         display: none;
     }
 
-
     .dashboard {
-
-        grid-template-columns:
-            repeat(2, 1fr);
+        grid-template-columns: repeat(2, 1fr);
     }
 
-
     .page-title {
-
         align-items: flex-start;
-
         flex-direction: column;
     }
 
 }
 
-
 @media (max-width: 500px) {
 
     .dashboard {
-
-        grid-template-columns:
-            1fr;
+        grid-template-columns: 1fr;
     }
 
-
     .section {
-
         padding: 15px;
     }
 
-
     .page-title h1 {
-
         font-size: 25px;
     }
 
@@ -981,9 +837,7 @@ tbody tr:hover td {
 
 </head>
 
-
 <body>
-
 
 <!-- =====================================================
      HEADER
@@ -992,7 +846,6 @@ tbody tr:hover td {
 <header class="custom-header">
 
     <div class="header-inner">
-
 
         <div class="header-left">
 
@@ -1006,15 +859,11 @@ tbody tr:hover td {
 
             </a>
 
-
             <div class="header-title">
-
                 คลังโปรเจกต์ SDU
-
             </div>
 
         </div>
-
 
         <div class="header-right">
 
@@ -1027,7 +876,6 @@ tbody tr:hover td {
                 <strong>(Admin)</strong>
 
             </div>
-
 
             <a
                 href="logout.php"
@@ -1047,14 +895,11 @@ tbody tr:hover td {
 
 </header>
 
-
-
 <!-- =====================================================
      MAIN
 ===================================================== -->
 
 <div class="container">
-
 
     <!-- =================================================
          PAGE TITLE
@@ -1078,7 +923,6 @@ tbody tr:hover td {
 
         </div>
 
-
         <a
             href="index2.php"
             class="btn btn-primary"
@@ -1092,27 +936,24 @@ tbody tr:hover td {
 
     </div>
 
-
-
     <!-- =================================================
          DASHBOARD CARDS
     ================================================== -->
 
     <div class="dashboard">
 
+        <!-- USERS -->
 
         <div class="card">
 
             <div class="card-icon">
-
                 <i class="bi bi-people-fill"></i>
-
             </div>
 
             <div>
 
                 <h3>
-                    <?= $total_users ?>
+                    <?= number_format($total_users) ?>
                 </h3>
 
                 <p>
@@ -1123,19 +964,18 @@ tbody tr:hover td {
 
         </div>
 
+        <!-- STUDENTS -->
 
         <div class="card">
 
             <div class="card-icon">
-
                 <i class="bi bi-person-fill"></i>
-
             </div>
 
             <div>
 
                 <h3>
-                    <?= $total_students ?>
+                    <?= number_format($total_students) ?>
                 </h3>
 
                 <p>
@@ -1146,19 +986,18 @@ tbody tr:hover td {
 
         </div>
 
+        <!-- TEACHERS -->
 
         <div class="card">
 
             <div class="card-icon">
-
                 <i class="bi bi-person-workspace"></i>
-
             </div>
 
             <div>
 
                 <h3>
-                    <?= $total_teachers ?>
+                    <?= number_format($total_teachers) ?>
                 </h3>
 
                 <p>
@@ -1169,19 +1008,18 @@ tbody tr:hover td {
 
         </div>
 
+        <!-- ADMINS -->
 
         <div class="card">
 
             <div class="card-icon">
-
                 <i class="bi bi-shield-lock-fill"></i>
-
             </div>
 
             <div>
 
                 <h3>
-                    <?= $total_admins ?>
+                    <?= number_format($total_admins) ?>
                 </h3>
 
                 <p>
@@ -1192,19 +1030,18 @@ tbody tr:hover td {
 
         </div>
 
+        <!-- PROJECTS -->
 
         <div class="card">
 
             <div class="card-icon">
-
                 <i class="bi bi-folder-fill"></i>
-
             </div>
 
             <div>
 
                 <h3>
-                    <?= $total_projects ?>
+                    <?= number_format($total_projects) ?>
                 </h3>
 
                 <p>
@@ -1215,16 +1052,35 @@ tbody tr:hover td {
 
         </div>
 
+        <!-- DOWNLOADS -->
+
+        <div class="card">
+
+            <div class="card-icon">
+                <i class="bi bi-download"></i>
+            </div>
+
+            <div>
+
+                <h3>
+                    <?= number_format($total_downloads) ?>
+                </h3>
+
+                <p>
+                    ดาวน์โหลดทั้งหมด
+                </p>
+
+            </div>
+
+        </div>
+
     </div>
-
-
 
     <!-- =================================================
          USERS
     ================================================== -->
 
     <div class="section">
-
 
         <div class="section-header">
 
@@ -1235,7 +1091,6 @@ tbody tr:hover td {
                 จัดการผู้ใช้งาน
 
             </h2>
-
 
             <a
                 href="admin_add_user.php"
@@ -1250,9 +1105,7 @@ tbody tr:hover td {
 
         </div>
 
-
         <?php if (!empty($users)): ?>
-
 
             <div class="table-wrapper">
 
@@ -1263,26 +1116,18 @@ tbody tr:hover td {
                         <tr>
 
                             <th>ID</th>
-
                             <th>Username</th>
-
                             <th>ชื่อ - นามสกุล</th>
-
                             <th>Email</th>
-
                             <th>Role</th>
-
                             <th>สาขา</th>
-
                             <th>จัดการ</th>
 
                         </tr>
 
                     </thead>
 
-
                     <tbody>
-
 
                     <?php foreach ($users as $row): ?>
 
@@ -1303,14 +1148,15 @@ tbody tr:hover td {
 
                         ?>
 
-
                         <tr>
 
+                            <!-- ID -->
 
                             <td>
                                 <?= (int)$row['id'] ?>
                             </td>
 
+                            <!-- USERNAME -->
 
                             <td>
 
@@ -1320,19 +1166,21 @@ tbody tr:hover td {
 
                             </td>
 
+                            <!-- NAME -->
 
                             <td>
                                 <?= e($full_name) ?>
                             </td>
 
+                            <!-- EMAIL -->
 
                             <td>
                                 <?= e($row['email'] ?? '-') ?>
                             </td>
 
+                            <!-- ROLE -->
 
                             <td>
-
 
                                 <?php if ($user_role === 'admin'): ?>
 
@@ -1344,7 +1192,6 @@ tbody tr:hover td {
 
                                     </span>
 
-
                                 <?php elseif ($user_role === 'teacher'): ?>
 
                                     <span class="role role-teacher">
@@ -1354,7 +1201,6 @@ tbody tr:hover td {
                                         Teacher
 
                                     </span>
-
 
                                 <?php else: ?>
 
@@ -1368,19 +1214,19 @@ tbody tr:hover td {
 
                                 <?php endif; ?>
 
-
                             </td>
 
+                            <!-- DEPARTMENT -->
 
                             <td>
                                 <?= e($row['department'] ?? '-') ?>
                             </td>
 
+                            <!-- ACTION -->
 
                             <td>
 
                                 <div class="action-buttons">
-
 
                                     <!-- EDIT USER -->
 
@@ -1395,7 +1241,6 @@ tbody tr:hover td {
 
                                     </a>
 
-
                                     <!-- DELETE USER -->
 
                                     <?php if (
@@ -1406,7 +1251,7 @@ tbody tr:hover td {
                                         <a
                                             href="admin_delete_user.php?id=<?= (int)$row['id'] ?>"
                                             class="btn btn-danger"
-                                            onclick="return confirm('ต้องการลบผู้ใช้นี้ใช่หรือไม่?\\n\\nข้อมูลผู้ใช้จะถูกลบออกจากระบบ');"
+                                            onclick="return confirm('ต้องการลบผู้ใช้นี้ใช่หรือไม่?\n\nข้อมูลผู้ใช้จะถูกลบออกจากระบบ');"
                                         >
 
                                             <i class="bi bi-trash-fill"></i>
@@ -1427,7 +1272,6 @@ tbody tr:hover td {
 
                                     <?php endif; ?>
 
-
                                 </div>
 
                             </td>
@@ -1436,16 +1280,13 @@ tbody tr:hover td {
 
                     <?php endforeach; ?>
 
-
                     </tbody>
 
                 </table>
 
             </div>
 
-
         <?php else: ?>
-
 
             <div class="empty">
 
@@ -1455,20 +1296,15 @@ tbody tr:hover td {
 
             </div>
 
-
         <?php endif; ?>
 
-
     </div>
-
-
 
     <!-- =================================================
          PROJECTS
     ================================================== -->
 
     <div class="section">
-
 
         <div class="section-header">
 
@@ -1482,9 +1318,7 @@ tbody tr:hover td {
 
         </div>
 
-
         <?php if (!empty($projects)): ?>
-
 
             <div class="table-wrapper">
 
@@ -1495,38 +1329,35 @@ tbody tr:hover td {
                         <tr>
 
                             <th>ID</th>
-
                             <th>ชื่อโปรเจกต์</th>
-
                             <th>ผู้จัดทำ</th>
-
                             <th>ระดับ</th>
-
                             <th>สาขา</th>
-
                             <th>อาจารย์ที่ปรึกษา</th>
-
                             <th>สถานะ</th>
-
+                            <th>ยอดเข้าชม</th>
+                            <th>ยอดดาวน์โหลด</th>
                             <th>วันที่ส่ง</th>
-
                             <th>จัดการ</th>
 
                         </tr>
 
                     </thead>
 
-
                     <tbody>
-
 
                     <?php foreach ($projects as $row): ?>
 
-
                         <?php
 
+                        // =================================================
+                        // ชื่อโปรเจกต์
+                        // =================================================
+
                         $display_title =
-                            trim($row['title'] ?? '');
+                            trim(
+                                $row['title'] ?? ''
+                            );
 
                         if ($display_title === '') {
 
@@ -1541,9 +1372,14 @@ tbody tr:hover td {
                             $display_title = '-';
                         }
 
+                        // =================================================
+                        // ผู้จัดทำ
+                        // =================================================
 
                         $display_authors =
-                            trim($row['authors'] ?? '');
+                            trim(
+                                $row['authors'] ?? ''
+                            );
 
                         if ($display_authors === '') {
 
@@ -1558,9 +1394,14 @@ tbody tr:hover td {
                             $display_authors = '-';
                         }
 
+                        // =================================================
+                        // ระดับ
+                        // =================================================
 
                         $display_degree =
-                            trim($row['degree'] ?? '');
+                            trim(
+                                $row['degree'] ?? ''
+                            );
 
                         if ($display_degree === '') {
 
@@ -1575,16 +1416,48 @@ tbody tr:hover td {
                             $display_degree = '-';
                         }
 
-                        ?>
+                        // =================================================
+                        // Views
+                        // =================================================
 
+                        $view_count =
+                            (int)($row['views'] ?? 0);
+
+                        // =================================================
+                        // Downloads
+                        // =================================================
+
+                        $download_count =
+                            (int)($row['downloads'] ?? 0);
+
+                        // =================================================
+                        // GitHub
+                        // =================================================
+
+                        $github_url =
+                            trim(
+                                $row['github_url'] ?? ''
+                            );
+
+                        $github_scheme =
+                            strtolower(
+                                parse_url(
+                                    $github_url,
+                                    PHP_URL_SCHEME
+                                ) ?? ''
+                            );
+
+                        ?>
 
                         <tr>
 
+                            <!-- ID -->
 
                             <td>
                                 <?= (int)$row['id'] ?>
                             </td>
 
+                            <!-- TITLE -->
 
                             <td>
 
@@ -1596,16 +1469,23 @@ tbody tr:hover td {
 
                             </td>
 
+                            <!-- AUTHORS -->
 
                             <td>
-                                <?= e($display_authors) ?>
+
+                                <?= nl2br(
+                                    e($display_authors)
+                                ) ?>
+
                             </td>
 
+                            <!-- DEGREE -->
 
                             <td>
                                 <?= e($display_degree) ?>
                             </td>
 
+                            <!-- DEPARTMENT -->
 
                             <td>
                                 <?= e(
@@ -1613,6 +1493,7 @@ tbody tr:hover td {
                                 ) ?>
                             </td>
 
+                            <!-- ADVISOR -->
 
                             <td>
                                 <?= e(
@@ -1620,6 +1501,7 @@ tbody tr:hover td {
                                 ) ?>
                             </td>
 
+                            <!-- STATUS -->
 
                             <td>
 
@@ -1635,6 +1517,39 @@ tbody tr:hover td {
 
                             </td>
 
+                            <!-- VIEWS -->
+
+                            <td>
+
+                                <span class="view-count">
+
+                                    <i class="bi bi-eye-fill"></i>
+
+                                    <?= number_format($view_count) ?>
+
+                                    ครั้ง
+
+                                </span>
+
+                            </td>
+
+                            <!-- DOWNLOADS -->
+
+                            <td>
+
+                                <span class="download-count">
+
+                                    <i class="bi bi-download"></i>
+
+                                    <?= number_format($download_count) ?>
+
+                                    ครั้ง
+
+                                </span>
+
+                            </td>
+
+                            <!-- CREATED -->
 
                             <td>
 
@@ -1659,11 +1574,11 @@ tbody tr:hover td {
 
                             </td>
 
+                            <!-- ACTION -->
 
                             <td>
 
                                 <div class="action-buttons">
-
 
                                     <!-- VIEW -->
 
@@ -1678,7 +1593,6 @@ tbody tr:hover td {
 
                                     </a>
 
-
                                     <!-- EDIT -->
 
                                     <a
@@ -1692,7 +1606,6 @@ tbody tr:hover td {
 
                                     </a>
 
-
                                     <!-- PDF -->
 
                                     <?php if (
@@ -1700,44 +1613,19 @@ tbody tr:hover td {
                                     ): ?>
 
                                         <a
-                                            href="uploads/<?= rawurlencode(
-                                                basename(
-                                                    $row['pdf_file']
-                                                )
-                                            ) ?>"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                            href="download-pdf.php?id=<?= (int)$row['id'] ?>"
                                             class="btn btn-primary"
                                         >
 
-                                            <i class="bi bi-file-earmark-pdf-fill"></i>
+                                            <i class="bi bi-download"></i>
 
-                                            PDF
+                                            ดาวน์โหลด PDF
 
                                         </a>
 
                                     <?php endif; ?>
 
-
                                     <!-- GITHUB -->
-
-                                    <?php
-
-                                    $github_url =
-                                        trim(
-                                            $row['github_url'] ?? ''
-                                        );
-
-                                    $github_scheme =
-                                        strtolower(
-                                            parse_url(
-                                                $github_url,
-                                                PHP_URL_SCHEME
-                                            ) ?? ''
-                                        );
-
-                                    ?>
-
 
                                     <?php if (
                                         $github_url !== '' &&
@@ -1763,13 +1651,12 @@ tbody tr:hover td {
 
                                     <?php endif; ?>
 
-
                                     <!-- DELETE -->
 
                                     <a
                                         href="admin_delete_project.php?id=<?= (int)$row['id'] ?>"
                                         class="btn btn-danger"
-                                        onclick="return confirm('ต้องการลบโปรเจกต์นี้ใช่หรือไม่?\\n\\nไฟล์ PDF และข้อมูลโปรเจกต์จะถูกลบด้วย');"
+                                        onclick="return confirm('ต้องการลบโปรเจกต์นี้ใช่หรือไม่?\n\nไฟล์ PDF และข้อมูลโปรเจกต์จะถูกลบด้วย');"
                                     >
 
                                         <i class="bi bi-trash-fill"></i>
@@ -1778,16 +1665,13 @@ tbody tr:hover td {
 
                                     </a>
 
-
                                 </div>
 
                             </td>
 
                         </tr>
 
-
                     <?php endforeach; ?>
-
 
                     </tbody>
 
@@ -1795,9 +1679,7 @@ tbody tr:hover td {
 
             </div>
 
-
         <?php else: ?>
-
 
             <div class="empty">
 
@@ -1807,16 +1689,11 @@ tbody tr:hover td {
 
             </div>
 
-
         <?php endif; ?>
-
 
     </div>
 
-
 </div>
-
-
 
 <!-- =====================================================
      FOOTER
@@ -1828,7 +1705,5 @@ tbody tr:hover td {
 
 </div>
 
-
 </body>
-
 </html>
