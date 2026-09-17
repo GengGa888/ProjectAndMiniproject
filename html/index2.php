@@ -4,28 +4,155 @@ session_start();
 require_once "db_connect.php";
 
 
-// =====================================================
-// ตรวจสอบสถานะ Login
-// =====================================================
+/* =====================================================
+   LOGIN
+===================================================== */
 
-$logged_in = isset($_SESSION['user_id']);
-
-$user_id   = $_SESSION['user_id'] ?? null;
-$user_role = $_SESSION['role'] ?? '';
-
-
-// =====================================================
-// รับค่าจากช่องค้นหา
-// =====================================================
-
-$keyword = trim($_GET['keyword'] ?? '');
-$degree  = $_GET['degree'] ?? 'all';
-$major   = $_GET['major'] ?? 'all';
+$logged_in =
+    isset(
+        $_SESSION['user_id']
+    );
 
 
-// =====================================================
-// SQL เริ่มต้น
-// =====================================================
+$user_id =
+    $logged_in
+        ? (int)$_SESSION['user_id']
+        : 0;
+
+
+$user_role =
+    $_SESSION['role'] ?? '';
+
+
+
+/* =====================================================
+   PROFILE IMAGE
+===================================================== */
+
+$profile_image_url =
+    'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+
+
+if (
+    $logged_in &&
+    $user_id > 0
+) {
+
+    $profile_stmt =
+        mysqli_prepare(
+            $conn,
+            "
+            SELECT profile_image
+            FROM users
+            WHERE id = ?
+            LIMIT 1
+            "
+        );
+
+
+    if ($profile_stmt) {
+
+        mysqli_stmt_bind_param(
+            $profile_stmt,
+            "i",
+            $user_id
+        );
+
+
+        mysqli_stmt_execute(
+            $profile_stmt
+        );
+
+
+        $profile_result =
+            mysqli_stmt_get_result(
+                $profile_stmt
+            );
+
+
+        if ($profile_result) {
+
+            $profile_row =
+                mysqli_fetch_assoc(
+                    $profile_result
+                );
+
+
+            $profile_image =
+                trim(
+                    $profile_row[
+                        'profile_image'
+                    ]
+                    ?? ''
+                );
+
+
+            if (
+                $profile_image !== ''
+            ) {
+
+                $safe_profile_image =
+                    basename(
+                        $profile_image
+                    );
+
+
+                $profile_file_path =
+                    __DIR__ .
+                    DIRECTORY_SEPARATOR .
+                    'profile_uploads' .
+                    DIRECTORY_SEPARATOR .
+                    $safe_profile_image;
+
+
+                if (
+                    is_file(
+                        $profile_file_path
+                    )
+                ) {
+
+                    $profile_image_url =
+                        'profile_uploads/' .
+                        rawurlencode(
+                            $safe_profile_image
+                        );
+                }
+            }
+        }
+
+
+        mysqli_stmt_close(
+            $profile_stmt
+        );
+    }
+}
+
+
+
+/* =====================================================
+   SEARCH
+===================================================== */
+
+$keyword =
+    trim(
+        $_GET['keyword'] ?? ''
+    );
+
+
+$degree =
+    $_GET['degree']
+    ?? 'all';
+
+
+$major =
+    $_GET['major']
+    ?? 'all';
+
+
+
+/* =====================================================
+   SQL
+===================================================== */
 
 $sql = "
     SELECT
@@ -49,63 +176,80 @@ $sql = "
     WHERE 1=1
 ";
 
+
 $params = [];
-$types  = "";
+
+$types =
+    "";
 
 
-// =====================================================
-// สิทธิ์การมองเห็นโปรเจกต์
-// =====================================================
-//
-// Guest   = เห็นทั้งหมด
-// Student = เห็นทั้งหมด
-// Teacher = เห็นทั้งหมด
-// Admin   = เห็นทั้งหมด
-//
-// ทุกคนสามารถดูรายละเอียดโปรเจกต์ได้
-// การจำกัดสิทธิ์แก้ไข/ลบ จะตรวจสอบในไฟล์แยก
-// =====================================================
+/* =====================================================
+   KEYWORD
+===================================================== */
 
+if (
+    $keyword !== ''
+) {
 
-// =====================================================
-// ค้นหาโปรเจกต์
-// =====================================================
+    $search =
+        '%' .
+        $keyword .
+        '%';
 
-if ($keyword !== '') {
-
-    $search = "%" . $keyword . "%";
 
     $sql .= "
         AND (
-            LOWER(project_name) LIKE LOWER(?)
-            OR LOWER(title) LIKE LOWER(?)
-            OR LOWER(authors) LIKE LOWER(?)
-            OR LOWER(description) LIKE LOWER(?)
-            OR LOWER(department) LIKE LOWER(?)
-            OR LOWER(degree) LIKE LOWER(?)
-            OR LOWER(advisor) LIKE LOWER(?)
-            OR LOWER(student_name) LIKE LOWER(?)
+            LOWER(project_name)
+                LIKE LOWER(?)
+
+            OR LOWER(title)
+                LIKE LOWER(?)
+
+            OR LOWER(authors)
+                LIKE LOWER(?)
+
+            OR LOWER(description)
+                LIKE LOWER(?)
+
+            OR LOWER(department)
+                LIKE LOWER(?)
+
+            OR LOWER(degree)
+                LIKE LOWER(?)
+
+            OR LOWER(advisor)
+                LIKE LOWER(?)
+
+            OR LOWER(student_name)
+                LIKE LOWER(?)
         )
     ";
 
-    $params[] = $search;
-    $params[] = $search;
-    $params[] = $search;
-    $params[] = $search;
-    $params[] = $search;
-    $params[] = $search;
-    $params[] = $search;
-    $params[] = $search;
 
-    $types .= "ssssssss";
+    for (
+        $i = 0;
+        $i < 8;
+        $i++
+    ) {
+
+        $params[] =
+            $search;
+    }
+
+
+    $types =
+        "ssssssss";
 }
 
 
-// =====================================================
-// กรองระดับการศึกษา
-// =====================================================
 
-if ($degree === 'bachelor') {
+/* =====================================================
+   DEGREE FILTER
+===================================================== */
+
+if (
+    $degree === 'bachelor'
+) {
 
     $sql .= "
         AND (
@@ -114,7 +258,10 @@ if ($degree === 'bachelor') {
         )
     ";
 
-} elseif ($degree === 'master') {
+
+} elseif (
+    $degree === 'master'
+) {
 
     $sql .= "
         AND (
@@ -123,7 +270,10 @@ if ($degree === 'bachelor') {
         )
     ";
 
-} elseif ($degree === 'doctorate') {
+
+} elseif (
+    $degree === 'doctorate'
+) {
 
     $sql .= "
         AND (
@@ -134,64 +284,87 @@ if ($degree === 'bachelor') {
 }
 
 
-// =====================================================
-// กรองสาขาวิชา
-// =====================================================
 
-if ($major === 'it') {
+/* =====================================================
+   MAJOR FILTER
+===================================================== */
+
+if (
+    $major === 'it'
+) {
 
     $sql .= "
         AND (
             department LIKE '%เทคโนโลยีสารสนเทศ%'
-            OR LOWER(department) LIKE '%information technology%'
+            OR LOWER(department)
+                LIKE '%information technology%'
             OR department = 'IT'
         )
     ";
 
-} elseif ($major === 'cs') {
+
+} elseif (
+    $major === 'cs'
+) {
 
     $sql .= "
         AND (
             department LIKE '%วิทยาการคอมพิวเตอร์%'
-            OR LOWER(department) LIKE '%computer science%'
+            OR LOWER(department)
+                LIKE '%computer science%'
             OR department = 'CS'
         )
     ";
 
-} elseif ($major === 'env') {
+
+} elseif (
+    $major === 'env'
+) {
 
     $sql .= "
         AND (
             department LIKE '%วิทยาศาสตร์สิ่งแวดล้อม%'
-            OR LOWER(department) LIKE '%environmental science%'
+            OR LOWER(department)
+                LIKE '%environmental science%'
         )
     ";
 
-} elseif ($major === 'food') {
+
+} elseif (
+    $major === 'food'
+) {
 
     $sql .= "
         AND (
             department LIKE '%เทคโนโลยีการประกอบอาหาร%'
-            OR LOWER(department) LIKE '%food technology%'
+            OR LOWER(department)
+                LIKE '%food technology%'
         )
     ";
 }
 
 
-// =====================================================
-// เรียงจากโปรเจกต์ล่าสุด
-// =====================================================
+
+/* =====================================================
+   ORDER
+===================================================== */
 
 $sql .= "
     ORDER BY id DESC
 ";
 
 
-// =====================================================
-// Prepare SQL
-// =====================================================
 
-$stmt = mysqli_prepare($conn, $sql);
+/* =====================================================
+   PREPARE
+===================================================== */
+
+$stmt =
+    mysqli_prepare(
+        $conn,
+        $sql
+    );
+
 
 if (!$stmt) {
 
@@ -206,11 +379,14 @@ if (!$stmt) {
 }
 
 
-// =====================================================
-// Bind Parameters
-// =====================================================
 
-if (!empty($params)) {
+/* =====================================================
+   BIND
+===================================================== */
+
+if (
+    !empty($params)
+) {
 
     mysqli_stmt_bind_param(
         $stmt,
@@ -220,11 +396,14 @@ if (!empty($params)) {
 }
 
 
-// =====================================================
-// Execute
-// =====================================================
 
-if (!mysqli_stmt_execute($stmt)) {
+/* =====================================================
+   EXECUTE
+===================================================== */
+
+if (
+    !mysqli_stmt_execute($stmt)
+) {
 
     die(
         "Execute Error: " .
@@ -237,11 +416,15 @@ if (!mysqli_stmt_execute($stmt)) {
 }
 
 
-// =====================================================
-// Get Result
-// =====================================================
 
-$result = mysqli_stmt_get_result($stmt);
+/* =====================================================
+   RESULT
+===================================================== */
+
+$result =
+    mysqli_stmt_get_result(
+        $stmt
+    );
 
 ?>
 
@@ -253,10 +436,12 @@ $result = mysqli_stmt_get_result($stmt);
 
     <meta charset="UTF-8">
 
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
+
 
     <title>
         หน้าแรก - คลังโปรเจกต์ SDU
@@ -268,6 +453,7 @@ $result = mysqli_stmt_get_result($stmt);
         rel="stylesheet"
     >
 
+
     <link
         rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
@@ -277,12 +463,16 @@ $result = mysqli_stmt_get_result($stmt);
     <style>
 
         :root {
-            --sdu-pdf-blue: #4aa4d6;
+
+            --sdu-pdf-blue:
+                #4aa4d6;
         }
 
 
         body {
-            background-color: #ffffff;
+
+            background-color:
+                #ffffff;
 
             font-family:
                 'Segoe UI',
@@ -306,7 +496,8 @@ $result = mysqli_stmt_get_result($stmt);
                     #3287BB
                 );
 
-            padding: 8px 0 15px 0;
+            padding:
+                8px 0 15px 0;
 
             border-bottom:
                 2px solid #287cab;
@@ -319,120 +510,173 @@ $result = mysqli_stmt_get_result($stmt);
 
         .profile-image {
 
-            width: 45px;
+            width:
+                45px;
 
-            height: 45px;
+            height:
+                45px;
 
-            border-radius: 50%;
+            border-radius:
+                50%;
 
-            object-fit: cover;
+            object-fit:
+                cover;
 
-            border: 2px solid white;
+            border:
+                2px solid white;
 
-            cursor: pointer;
+            cursor:
+                pointer;
 
-            transition: 0.2s;
+            transition:
+                0.2s;
+
+            background:
+                white;
         }
 
 
         .profile-image:hover {
 
-            opacity: 0.85;
+            opacity:
+                0.85;
 
-            transform: scale(1.05);
+            transform:
+                scale(
+                    1.05
+                );
         }
 
 
         /* =====================================================
-           LOGIN BUTTON
+           LOGIN
         ===================================================== */
 
         .btn-login {
 
-            min-height: 45px;
+            min-height:
+                45px;
 
             padding:
                 0 17px;
 
-            border-radius: 25px;
+            border-radius:
+                25px;
 
             background-color:
-                rgba(255, 255, 255, 0.18);
+                rgba(
+                    255,
+                    255,
+                    255,
+                    0.18
+                );
 
             border:
                 2px solid white;
 
-            color: white;
+            color:
+                white;
 
-            display: flex;
+            display:
+                flex;
 
-            align-items: center;
+            align-items:
+                center;
 
-            justify-content: center;
+            justify-content:
+                center;
 
-            gap: 7px;
+            gap:
+                7px;
 
-            text-decoration: none;
+            text-decoration:
+                none;
 
-            font-size: 0.95rem;
+            font-size:
+                0.95rem;
 
-            font-weight: 500;
+            font-weight:
+                500;
 
-            transition: all 0.2s ease;
+            transition:
+                all 0.2s ease;
         }
 
 
         .btn-login:hover {
 
-            background-color: white;
+            background-color:
+                white;
 
-            color: #3287BB;
+            color:
+                #3287BB;
 
-            transform: translateY(-1px);
+            transform:
+                translateY(-1px);
         }
 
 
         /* =====================================================
-           UPLOAD BUTTON
+           UPLOAD
         ===================================================== */
 
         .btn-upload-project {
 
-            width: 45px;
+            width:
+                45px;
 
-            height: 45px;
+            height:
+                45px;
 
-            border-radius: 50%;
+            border-radius:
+                50%;
 
             background-color:
-                rgba(255, 255, 255, 0.2);
+                rgba(
+                    255,
+                    255,
+                    255,
+                    0.2
+                );
 
             border:
                 2px solid white;
 
-            color: white;
+            color:
+                white;
 
-            display: flex;
+            display:
+                flex;
 
-            align-items: center;
+            align-items:
+                center;
 
-            justify-content: center;
+            justify-content:
+                center;
 
-            text-decoration: none;
+            text-decoration:
+                none;
 
-            font-size: 1.4rem;
+            font-size:
+                1.4rem;
 
-            transition: all 0.2s ease;
+            transition:
+                all 0.2s ease;
         }
 
 
         .btn-upload-project:hover {
 
-            background-color: white;
+            background-color:
+                white;
 
-            color: #3287BB;
+            color:
+                #3287BB;
 
-            transform: scale(1.05);
+            transform:
+                scale(
+                    1.05
+                );
         }
 
 
@@ -442,15 +686,20 @@ $result = mysqli_stmt_get_result($stmt);
 
         .sdu-logo {
 
-            width: 45px;
+            width:
+                45px;
 
-            height: auto;
+            height:
+                auto;
 
-            background-color: white;
+            background-color:
+                white;
 
-            border-radius: 50%;
+            border-radius:
+                50%;
 
-            padding: 2px;
+            padding:
+                2px;
         }
 
 
@@ -460,82 +709,111 @@ $result = mysqli_stmt_get_result($stmt);
 
         .main-menu .nav-link {
 
-            color: white !important;
+            color:
+                white !important;
 
-            font-size: 1.05rem;
+            font-size:
+                1.05rem;
 
-            padding-left: 0;
+            padding-left:
+                0;
 
-            margin-right: 20px;
+            margin-right:
+                20px;
 
-            font-weight: 500;
+            font-weight:
+                500;
         }
 
 
-        .main-menu .nav-link:hover {
+        .main-menu
+        .nav-link:hover {
 
-            color: #e8f4fc !important;
+            color:
+                #e8f4fc !important;
 
-            text-decoration: underline;
+            text-decoration:
+                underline;
         }
 
 
         /* =====================================================
-           PROFILE DROPDOWN
+           PROFILE MENU
         ===================================================== */
 
         .custom-profile-menu {
 
-            background-color: #173f5f;
+            background-color:
+                #173f5f;
 
             border:
                 1px solid #285776;
 
-            border-radius: 12px;
+            border-radius:
+                12px;
 
             box-shadow:
                 0 10px 25px
-                rgba(0, 0, 0, 0.3);
+                rgba(
+                    0,
+                    0,
+                    0,
+                    0.3
+                );
 
-            min-width: 220px;
+            min-width:
+                220px;
 
-            padding: 8px;
+            padding:
+                8px;
         }
 
 
-        .custom-profile-menu .dropdown-item {
+        .custom-profile-menu
+        .dropdown-item {
 
-            color: #b9dced;
+            color:
+                #b9dced;
 
-            font-size: 0.95rem;
+            font-size:
+                0.95rem;
 
-            padding: 10px 14px;
+            padding:
+                10px 14px;
 
-            border-radius: 8px;
+            border-radius:
+                8px;
 
-            display: flex;
+            display:
+                flex;
 
-            align-items: center;
+            align-items:
+                center;
 
-            gap: 12px;
+            gap:
+                12px;
 
-            transition: all 0.2s ease;
+            transition:
+                all 0.2s ease;
         }
 
 
         .custom-profile-menu
         .dropdown-item:hover {
 
-            background-color: #204b6d;
+            background-color:
+                #204b6d;
 
-            color: #ffffff;
+            color:
+                #ffffff;
         }
 
 
         .custom-profile-menu
         .dropdown-item.logout-btn {
 
-            color: #f7768e;
+            color:
+                #f7768e;
         }
 
 
@@ -543,18 +821,26 @@ $result = mysqli_stmt_get_result($stmt);
         .dropdown-item.logout-btn:hover {
 
             background-color:
-                rgba(247, 118, 142, 0.15);
+                rgba(
+                    247,
+                    118,
+                    142,
+                    0.15
+                );
 
-            color: #ff6c6b;
+            color:
+                #ff6c6b;
         }
 
 
         .custom-profile-menu
         .dropdown-divider {
 
-            border-color: #285776;
+            border-color:
+                #285776;
 
-            margin: 6px 0;
+            margin:
+                6px 0;
         }
 
 
@@ -564,14 +850,17 @@ $result = mysqli_stmt_get_result($stmt);
 
         .filter-section {
 
-            background-color: #f4f8fb;
+            background-color:
+                #f4f8fb;
 
             border:
                 1px solid #e9ecef;
 
-            border-radius: 6px;
+            border-radius:
+                6px;
 
-            padding: 15px 20px;
+            padding:
+                15px 20px;
         }
 
 
@@ -581,9 +870,11 @@ $result = mysqli_stmt_get_result($stmt);
 
         .project-item {
 
-            padding-bottom: 25px;
+            padding-bottom:
+                25px;
 
-            margin-bottom: 25px;
+            margin-bottom:
+                25px;
 
             border-bottom:
                 1px solid #dee2e6;
@@ -592,65 +883,85 @@ $result = mysqli_stmt_get_result($stmt);
 
         .project-title {
 
-            font-size: 1.1rem;
+            font-size:
+                1.1rem;
 
-            color: #3287BB;
+            color:
+                #3287BB;
 
-            text-decoration: none;
+            text-decoration:
+                none;
 
-            font-weight: 500;
+            font-weight:
+                500;
 
-            line-height: 1.6;
+            line-height:
+                1.6;
         }
 
 
         .project-title:hover {
 
-            text-decoration: underline;
+            text-decoration:
+                underline;
 
-            color: #287cab;
+            color:
+                #287cab;
         }
 
 
         .author-text {
 
-            font-size: 0.9rem;
+            font-size:
+                0.9rem;
 
-            color: #737373;
+            color:
+                #737373;
 
-            margin-bottom: 0.15rem;
+            margin-bottom:
+                0.15rem;
         }
 
 
         .page-text {
 
-            font-size: 0.85rem;
+            font-size:
+                0.85rem;
 
-            color: #737373;
+            color:
+                #737373;
         }
 
 
         .description-text {
 
-            font-size: 0.9rem;
+            font-size:
+                0.9rem;
 
-            color: #555;
+            color:
+                #555;
 
-            line-height: 1.6;
+            line-height:
+                1.6;
 
-            margin-top: 10px;
+            margin-top:
+                10px;
 
-            margin-bottom: 8px;
+            margin-bottom:
+                8px;
 
-            max-width: 950px;
+            max-width:
+                950px;
         }
 
 
         .description-label {
 
-            color: #555;
+            color:
+                #555;
 
-            font-weight: 600;
+            font-weight:
+                600;
         }
 
 
@@ -661,29 +972,40 @@ $result = mysqli_stmt_get_result($stmt);
         .btn-pdf {
 
             background-color:
-                var(--sdu-pdf-blue);
+                var(
+                    --sdu-pdf-blue
+                );
 
-            border: none;
+            border:
+                none;
 
-            color: white;
+            color:
+                white;
 
-            border-radius: 4px;
+            border-radius:
+                4px;
 
-            padding: 4px 16px;
+            padding:
+                4px 16px;
 
-            font-size: 0.9rem;
+            font-size:
+                0.9rem;
 
-            text-decoration: none;
+            text-decoration:
+                none;
 
-            display: inline-block;
+            display:
+                inline-block;
         }
 
 
         .btn-pdf:hover {
 
-            background-color: #4297CD;
+            background-color:
+                #4297CD;
 
-            color: white;
+            color:
+                white;
         }
 
 
@@ -693,31 +1015,42 @@ $result = mysqli_stmt_get_result($stmt);
 
         .btn-github {
 
-            background-color: #24292f;
+            background-color:
+                #24292f;
 
-            border: none;
+            border:
+                none;
 
-            color: white;
+            color:
+                white;
 
-            border-radius: 4px;
+            border-radius:
+                4px;
 
-            padding: 4px 14px;
+            padding:
+                4px 14px;
 
-            font-size: 0.9rem;
+            font-size:
+                0.9rem;
 
-            text-decoration: none;
+            text-decoration:
+                none;
 
-            display: inline-block;
+            display:
+                inline-block;
 
-            margin-left: 5px;
+            margin-left:
+                5px;
         }
 
 
         .btn-github:hover {
 
-            background-color: #000000;
+            background-color:
+                #000000;
 
-            color: white;
+            color:
+                white;
         }
 
 
@@ -727,50 +1060,63 @@ $result = mysqli_stmt_get_result($stmt);
 
         .no-project {
 
-            text-align: center;
+            text-align:
+                center;
 
-            padding: 60px 20px;
+            padding:
+                60px 20px;
 
-            color: #888;
+            color:
+                #888;
         }
 
 
         .no-project i {
 
-            font-size: 50px;
+            font-size:
+                50px;
 
-            color: #b9dced;
+            color:
+                #b9dced;
 
-            margin-bottom: 10px;
+            margin-bottom:
+                10px;
         }
 
 
         .no-project h5 {
 
-            color: #666;
+            color:
+                #666;
         }
 
 
         /* =====================================================
-           GUEST NOTICE
+           GUEST
         ===================================================== */
 
         .guest-notice {
 
-            background-color: #eef8fd;
+            background-color:
+                #eef8fd;
 
             border:
                 1px solid #d5ebf6;
 
-            color: #527487;
+            color:
+                #527487;
 
-            border-radius: 6px;
+            border-radius:
+                6px;
 
-            padding: 10px 15px;
+            padding:
+                10px 15px;
 
-            margin-bottom: 20px;
+            margin-bottom:
+                20px;
 
-            font-size: 0.9rem;
+            font-size:
+                0.9rem;
         }
 
 
@@ -778,37 +1124,58 @@ $result = mysqli_stmt_get_result($stmt);
            MOBILE
         ===================================================== */
 
-        @media (max-width: 576px) {
+        @media (
+            max-width: 576px
+        ) {
 
-            .main-menu .nav-link {
+            .main-menu
+            .nav-link {
 
-                margin-right: 8px;
+                margin-right:
+                    8px;
 
-                font-size: 0.95rem;
+                font-size:
+                    0.95rem;
             }
 
 
             .sdu-logo {
 
-                width: 40px;
+                width:
+                    40px;
             }
 
 
             .btn-login {
 
-                min-height: 40px;
+                min-height:
+                    40px;
 
-                padding: 0 12px;
+                padding:
+                    0 12px;
 
-                font-size: 0.85rem;
+                font-size:
+                    0.85rem;
             }
 
 
             .btn-upload-project {
 
-                width: 40px;
+                width:
+                    40px;
 
-                height: 40px;
+                height:
+                    40px;
+            }
+
+
+            .profile-image {
+
+                width:
+                    40px;
+
+                height:
+                    40px;
             }
 
         }
@@ -826,17 +1193,31 @@ $result = mysqli_stmt_get_result($stmt);
     <div class="container">
 
         <div
-            class="d-flex justify-content-between align-items-center flex-wrap mt-2"
+            class="
+                d-flex
+                justify-content-between
+                align-items-center
+                flex-wrap
+                mt-2
+            "
         >
 
 
             <!-- =================================================
-                 ซ้าย
+                 LEFT
             ================================================== -->
 
-            <div class="d-flex align-items-center gap-3">
+            <div
+                class="
+                    d-flex
+                    align-items-center
+                    gap-3
+                "
+            >
 
-                <a href="index2.php">
+                <a
+                    href="index2.php"
+                >
 
                     <img
                         src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png"
@@ -847,16 +1228,28 @@ $result = mysqli_stmt_get_result($stmt);
                 </a>
 
 
-                <ul class="nav main-menu">
+                <ul
+                    class="
+                        nav
+                        main-menu
+                    "
+                >
 
-                    <li class="nav-item">
+                    <li
+                        class="nav-item"
+                    >
 
                         <a
                             class="nav-link"
                             href="index2.php"
                         >
 
-                            <i class="bi bi-house-fill"></i>
+                            <i
+                                class="
+                                    bi
+                                    bi-house-fill
+                                "
+                            ></i>
 
                             หน้าแรก
 
@@ -870,7 +1263,9 @@ $result = mysqli_stmt_get_result($stmt);
                         $user_role === 'admin'
                     ): ?>
 
-                        <li class="nav-item">
+                        <li
+                            class="nav-item"
+                        >
 
                             <a
                                 class="nav-link"
@@ -878,7 +1273,10 @@ $result = mysqli_stmt_get_result($stmt);
                             >
 
                                 <i
-                                    class="bi bi-shield-lock-fill"
+                                    class="
+                                        bi
+                                        bi-shield-lock-fill
+                                    "
                                 ></i>
 
                                 Admin
@@ -895,15 +1293,21 @@ $result = mysqli_stmt_get_result($stmt);
 
 
             <!-- =================================================
-                 ขวา
+                 RIGHT
             ================================================== -->
 
             <div
-                class="d-flex align-items-center gap-3"
+                class="
+                    d-flex
+                    align-items-center
+                    gap-3
+                "
             >
 
 
-                <?php if ($logged_in): ?>
+                <?php if (
+                    $logged_in
+                ): ?>
 
 
                     <?php if (
@@ -918,14 +1322,23 @@ $result = mysqli_stmt_get_result($stmt);
                             title="ส่งโปรเจกต์"
                         >
 
-                            <i class="bi bi-plus-lg"></i>
+                            <i
+                                class="
+                                    bi
+                                    bi-plus-lg
+                                "
+                            ></i>
 
                         </a>
 
                     <?php endif; ?>
 
 
-                    <div class="dropdown">
+                    <!-- PROFILE -->
+
+                    <div
+                        class="dropdown"
+                    >
 
                         <a
                             href="#"
@@ -936,7 +1349,13 @@ $result = mysqli_stmt_get_result($stmt);
                         >
 
                             <img
-                                src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
+                                src="<?php
+                                    echo htmlspecialchars(
+                                        $profile_image_url,
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    );
+                                ?>"
                                 alt="โปรไฟล์"
                                 class="profile-image"
                             >
@@ -945,19 +1364,28 @@ $result = mysqli_stmt_get_result($stmt);
 
 
                         <ul
-                            class="dropdown-menu dropdown-menu-end custom-profile-menu mt-2"
+                            class="
+                                dropdown-menu
+                                dropdown-menu-end
+                                custom-profile-menu
+                                mt-2
+                            "
                         >
-
 
                             <li>
 
                                 <a
-                                    class="dropdown-item"
+                                    class="
+                                        dropdown-item
+                                    "
                                     href="profile.php"
                                 >
 
                                     <i
-                                        class="bi bi-person-fill"
+                                        class="
+                                            bi
+                                            bi-person-fill
+                                        "
                                     ></i>
 
                                     <span>
@@ -976,12 +1404,17 @@ $result = mysqli_stmt_get_result($stmt);
                                 <li>
 
                                     <a
-                                        class="dropdown-item"
+                                        class="
+                                            dropdown-item
+                                        "
                                         href="admin.php"
                                     >
 
                                         <i
-                                            class="bi bi-shield-lock-fill"
+                                            class="
+                                                bi
+                                                bi-shield-lock-fill
+                                            "
                                         ></i>
 
                                         <span>
@@ -998,7 +1431,9 @@ $result = mysqli_stmt_get_result($stmt);
                             <li>
 
                                 <hr
-                                    class="dropdown-divider"
+                                    class="
+                                        dropdown-divider
+                                    "
                                 >
 
                             </li>
@@ -1007,12 +1442,18 @@ $result = mysqli_stmt_get_result($stmt);
                             <li>
 
                                 <a
-                                    class="dropdown-item logout-btn"
+                                    class="
+                                        dropdown-item
+                                        logout-btn
+                                    "
                                     href="logout.php"
                                 >
 
                                     <i
-                                        class="bi bi-box-arrow-right"
+                                        class="
+                                            bi
+                                            bi-box-arrow-right
+                                        "
                                     ></i>
 
                                     <span>
@@ -1034,11 +1475,13 @@ $result = mysqli_stmt_get_result($stmt);
                     <a
                         href="login.php"
                         class="btn-login"
-                        title="เข้าสู่ระบบ"
                     >
 
                         <i
-                            class="bi bi-box-arrow-in-right"
+                            class="
+                                bi
+                                bi-box-arrow-in-right
+                            "
                         ></i>
 
                         เข้าสู่ระบบ
@@ -1059,18 +1502,29 @@ $result = mysqli_stmt_get_result($stmt);
 
 
 
-<div class="container mt-4 mb-5">
+<div
+    class="
+        container
+        mt-4
+        mb-5
+    "
+>
 
 
-    <!-- =================================================
-         แจ้ง Guest
-    ================================================== -->
+    <?php if (
+        !$logged_in
+    ): ?>
 
-    <?php if (!$logged_in): ?>
+        <div
+            class="guest-notice"
+        >
 
-        <div class="guest-notice">
-
-            <i class="bi bi-eye-fill"></i>
+            <i
+                class="
+                    bi
+                    bi-eye-fill
+                "
+            ></i>
 
             กำลังเข้าชมในฐานะบุคคลทั่วไป
             สามารถค้นหาและดูรายละเอียดโปรเจกต์ได้
@@ -1081,17 +1535,23 @@ $result = mysqli_stmt_get_result($stmt);
     <?php endif; ?>
 
 
+    <!-- SEARCH -->
 
-    <!-- =================================================
-         ค้นหา
-    ================================================== -->
-
-    <div class="filter-section mb-4">
+    <div
+        class="
+            filter-section
+            mb-4
+        "
+    >
 
         <form
             action="index2.php"
             method="GET"
-            class="row g-3 align-items-end"
+            class="
+                row
+                g-3
+                align-items-end
+            "
         >
 
 
@@ -1099,7 +1559,12 @@ $result = mysqli_stmt_get_result($stmt);
 
                 <label
                     for="searchKeyword"
-                    class="form-label fw-bold text-secondary mb-1"
+                    class="
+                        form-label
+                        fw-bold
+                        text-secondary
+                        mb-1
+                    "
                 >
 
                     ค้นหาโปรเจกต์:
@@ -1110,7 +1575,10 @@ $result = mysqli_stmt_get_result($stmt);
                 <input
                     type="text"
                     name="keyword"
-                    class="form-control form-control-sm"
+                    class="
+                        form-control
+                        form-control-sm
+                    "
                     id="searchKeyword"
                     placeholder="พิมพ์ชื่อโปรเจกต์..."
                     value="<?php
@@ -1129,7 +1597,12 @@ $result = mysqli_stmt_get_result($stmt);
 
                 <label
                     for="degreeSelect"
-                    class="form-label fw-bold text-secondary mb-1"
+                    class="
+                        form-label
+                        fw-bold
+                        text-secondary
+                        mb-1
+                    "
                 >
 
                     ระดับหลักสูตร:
@@ -1139,47 +1612,70 @@ $result = mysqli_stmt_get_result($stmt);
 
                 <select
                     name="degree"
-                    class="form-select form-select-sm"
+                    class="
+                        form-select
+                        form-select-sm
+                    "
                     id="degreeSelect"
                 >
 
                     <option
                         value="all"
-                        <?= $degree === 'all'
+                        <?php
+                        echo
+                            $degree === 'all'
                             ? 'selected'
-                            : '' ?>
+                            : '';
+                        ?>
                     >
+
                         ทุกระดับการศึกษา
+
                     </option>
 
 
                     <option
                         value="bachelor"
-                        <?= $degree === 'bachelor'
+                        <?php
+                        echo
+                            $degree === 'bachelor'
                             ? 'selected'
-                            : '' ?>
+                            : '';
+                        ?>
                     >
+
                         ปริญญาตรี
+
                     </option>
 
 
                     <option
                         value="master"
-                        <?= $degree === 'master'
+                        <?php
+                        echo
+                            $degree === 'master'
                             ? 'selected'
-                            : '' ?>
+                            : '';
+                        ?>
                     >
+
                         ปริญญาโท
+
                     </option>
 
 
                     <option
                         value="doctorate"
-                        <?= $degree === 'doctorate'
+                        <?php
+                        echo
+                            $degree === 'doctorate'
                             ? 'selected'
-                            : '' ?>
+                            : '';
+                        ?>
                     >
+
                         ปริญญาเอก
+
                     </option>
 
                 </select>
@@ -1191,7 +1687,12 @@ $result = mysqli_stmt_get_result($stmt);
 
                 <label
                     for="majorSelect"
-                    class="form-label fw-bold text-secondary mb-1"
+                    class="
+                        form-label
+                        fw-bold
+                        text-secondary
+                        mb-1
+                    "
                 >
 
                     สาขาวิชา:
@@ -1201,57 +1702,85 @@ $result = mysqli_stmt_get_result($stmt);
 
                 <select
                     name="major"
-                    class="form-select form-select-sm"
+                    class="
+                        form-select
+                        form-select-sm
+                    "
                     id="majorSelect"
                 >
 
                     <option
                         value="all"
-                        <?= $major === 'all'
+                        <?php
+                        echo
+                            $major === 'all'
                             ? 'selected'
-                            : '' ?>
+                            : '';
+                        ?>
                     >
+
                         ทุกสาขาวิชา
+
                     </option>
 
 
                     <option
                         value="it"
-                        <?= $major === 'it'
+                        <?php
+                        echo
+                            $major === 'it'
                             ? 'selected'
-                            : '' ?>
+                            : '';
+                        ?>
                     >
+
                         เทคโนโลยีสารสนเทศ
+
                     </option>
 
 
                     <option
                         value="cs"
-                        <?= $major === 'cs'
+                        <?php
+                        echo
+                            $major === 'cs'
                             ? 'selected'
-                            : '' ?>
+                            : '';
+                        ?>
                     >
+
                         วิทยาการคอมพิวเตอร์
+
                     </option>
 
 
                     <option
                         value="env"
-                        <?= $major === 'env'
+                        <?php
+                        echo
+                            $major === 'env'
                             ? 'selected'
-                            : '' ?>
+                            : '';
+                        ?>
                     >
+
                         วิทยาศาสตร์สิ่งแวดล้อม
+
                     </option>
 
 
                     <option
                         value="food"
-                        <?= $major === 'food'
+                        <?php
+                        echo
+                            $major === 'food'
                             ? 'selected'
-                            : '' ?>
+                            : '';
+                        ?>
                     >
+
                         เทคโนโลยีการประกอบอาหาร
+
                     </option>
 
                 </select>
@@ -1263,10 +1792,20 @@ $result = mysqli_stmt_get_result($stmt);
 
                 <button
                     type="submit"
-                    class="btn btn-primary btn-sm w-100"
+                    class="
+                        btn
+                        btn-primary
+                        btn-sm
+                        w-100
+                    "
                 >
 
-                    <i class="bi bi-search"></i>
+                    <i
+                        class="
+                            bi
+                            bi-search
+                        "
+                    ></i>
 
                     ค้นหา
 
@@ -1274,39 +1813,55 @@ $result = mysqli_stmt_get_result($stmt);
 
             </div>
 
+
         </form>
 
     </div>
 
 
 
-    <!-- =================================================
-         จำนวน
-    ================================================== -->
+    <!-- COUNT -->
 
-    <div class="mb-3 text-secondary">
+    <div
+        class="
+            mb-3
+            text-secondary
+        "
+    >
 
         <small>
 
             พบโปรเจกต์
 
             <strong>
-                <?= mysqli_num_rows($result) ?>
+
+                <?php
+                echo mysqli_num_rows(
+                    $result
+                );
+                ?>
+
             </strong>
 
             รายการ
 
 
-            <?php if ($keyword !== ''): ?>
+            <?php if (
+                $keyword !== ''
+            ): ?>
 
                 สำหรับคำค้นหา
 
                 <strong>
-                    "<?= htmlspecialchars(
+
+                    "<?php
+                    echo htmlspecialchars(
                         $keyword,
                         ENT_QUOTES,
                         'UTF-8'
-                    ) ?>"
+                    );
+                    ?>"
+
                 </strong>
 
             <?php endif; ?>
@@ -1317,38 +1872,48 @@ $result = mysqli_stmt_get_result($stmt);
 
 
 
-    <!-- =================================================
-         แสดงโปรเจกต์
-    ================================================== -->
+    <!-- PROJECTS -->
 
     <?php if (
-        mysqli_num_rows($result) > 0
+        mysqli_num_rows(
+            $result
+        ) > 0
     ): ?>
 
 
         <?php while (
             $project =
-            mysqli_fetch_assoc($result)
+            mysqli_fetch_assoc(
+                $result
+            )
         ): ?>
 
 
-            <div class="project-item">
+            <div
+                class="
+                    project-item
+                "
+            >
 
 
-                <!-- =========================================
-                     ชื่อโปรเจกต์
-                ========================================== -->
+                <!-- TITLE -->
 
                 <a
-                    href="project-detail.php?id=<?= (int)$project['id'] ?>"
-                    class="project-title"
+                    href="project-detail.php?id=<?php
+                        echo (int)
+                            $project['id'];
+                    ?>"
+                    class="
+                        project-title
+                    "
                 >
 
                     <?php
 
                     $display_title =
                         trim(
-                            $project['title'] ?? ''
+                            $project['title']
+                            ?? ''
                         );
 
 
@@ -1358,7 +1923,10 @@ $result = mysqli_stmt_get_result($stmt);
 
                         $display_title =
                             trim(
-                                $project['project_name'] ?? ''
+                                $project[
+                                    'project_name'
+                                ]
+                                ?? ''
                             );
                     }
 
@@ -1383,113 +1951,161 @@ $result = mysqli_stmt_get_result($stmt);
                 </a>
 
 
-
-                <!-- =========================================
-                     ระดับ
-                ========================================== -->
+                <!-- DEGREE -->
 
                 <?php if (
-                    !empty($project['degree'])
+                    !empty(
+                        $project['degree']
+                    )
                 ): ?>
 
                     <span
-                        class="badge bg-light text-dark ms-2 border"
+                        class="
+                            badge
+                            bg-light
+                            text-dark
+                            ms-2
+                            border
+                        "
                     >
 
-                        <?= htmlspecialchars(
-                            $project['degree'],
+                        <?php
+                        echo htmlspecialchars(
+                            $project[
+                                'degree'
+                            ],
                             ENT_QUOTES,
                             'UTF-8'
-                        ) ?>
+                        );
+                        ?>
 
                     </span>
 
                 <?php endif; ?>
 
 
-
-                <!-- =========================================
-                     สาขา
-                ========================================== -->
+                <!-- DEPARTMENT -->
 
                 <?php if (
-                    !empty($project['department'])
+                    !empty(
+                        $project[
+                            'department'
+                        ]
+                    )
                 ): ?>
 
                     <span
-                        class="badge bg-info text-dark ms-1"
+                        class="
+                            badge
+                            bg-info
+                            text-dark
+                            ms-1
+                        "
                     >
 
-                        <?= htmlspecialchars(
-                            $project['department'],
+                        <?php
+                        echo htmlspecialchars(
+                            $project[
+                                'department'
+                            ],
                             ENT_QUOTES,
                             'UTF-8'
-                        ) ?>
+                        );
+                        ?>
 
                     </span>
 
                 <?php endif; ?>
 
 
-
-                <!-- =========================================
-                     สมาชิก
-                ========================================== -->
+                <!-- AUTHORS -->
 
                 <?php if (
-                    !empty($project['authors'])
+                    !empty(
+                        $project['authors']
+                    )
                 ): ?>
 
-                    <p class="author-text mt-2">
+                    <p
+                        class="
+                            author-text
+                            mt-2
+                        "
+                    >
 
-                        <?= htmlspecialchars(
-                            $project['authors'],
-                            ENT_QUOTES,
-                            'UTF-8'
-                        ) ?>
+                        <?php
+
+                        echo nl2br(
+                            htmlspecialchars(
+                                $project[
+                                    'authors'
+                                ],
+                                ENT_QUOTES,
+                                'UTF-8'
+                            )
+                        );
+
+                        ?>
 
                     </p>
 
                 <?php endif; ?>
 
 
-
-                <!-- =========================================
-                     อาจารย์
-                ========================================== -->
+                <!-- ADVISOR -->
 
                 <?php if (
-                    !empty($project['advisor'])
+                    !empty(
+                        $project['advisor']
+                    )
                 ): ?>
 
-                    <p class="author-text">
+                    <p
+                        class="
+                            author-text
+                        "
+                    >
 
-                        <?= htmlspecialchars(
-                            $project['advisor'],
+                        <?php
+                        echo htmlspecialchars(
+                            $project[
+                                'advisor'
+                            ],
                             ENT_QUOTES,
                             'UTF-8'
-                        ) ?>
+                        );
+                        ?>
 
                     </p>
 
                 <?php endif; ?>
 
 
-
-                <!-- =========================================
-                     คำอธิบาย
-                ========================================== -->
+                <!-- DESCRIPTION -->
 
                 <?php if (
-                    !empty($project['description'])
+                    !empty(
+                        $project[
+                            'description'
+                        ]
+                    )
                 ): ?>
 
-                    <p class="description-text">
+
+                    <p
+                        class="
+                            description-text
+                        "
+                    >
 
                         <span
-                            class="description-label"
+                            class="
+                                description-label
+                            "
                         >
+
                             คำอธิบาย:
+
                         </span>
 
 
@@ -1497,7 +2113,9 @@ $result = mysqli_stmt_get_result($stmt);
 
                         $description =
                             trim(
-                                $project['description']
+                                $project[
+                                    'description'
+                                ]
                             );
 
 
@@ -1533,49 +2151,61 @@ $result = mysqli_stmt_get_result($stmt);
                 <?php endif; ?>
 
 
-
-                <!-- =========================================
-                     จำนวนหน้า
-                ========================================== -->
+                <!-- PAGE -->
 
                 <?php if (
-                    !empty($project['pages'])
+                    !empty(
+                        $project['pages']
+                    )
                 ): ?>
 
-                    <p class="page-text">
+                    <p
+                        class="
+                            page-text
+                        "
+                    >
 
-                        <?= htmlspecialchars(
+                        <?php
+                        echo htmlspecialchars(
                             $project['pages'],
                             ENT_QUOTES,
                             'UTF-8'
-                        ) ?>
+                        );
+                        ?>
 
                     </p>
 
                 <?php endif; ?>
 
 
-
-                <!-- =========================================
+                <!-- =================================================
                      PDF
-                ========================================== -->
+                     ใช้ download-pdf.php
+                ================================================== -->
 
                 <?php if (
-                    !empty($project['pdf_file'])
+                    !empty(
+                        $project['pdf_file']
+                    )
                 ): ?>
 
                     <a
-                        href="uploads/<?= rawurlencode(
-                            basename(
-                                $project['pdf_file']
-                            )
-                        ) ?>"
-                        target="_blank"
-                        class="btn btn-pdf mt-1"
+                        href="download-pdf.php?id=<?php
+                            echo (int)
+                                $project['id'];
+                        ?>"
+                        class="
+                            btn
+                            btn-pdf
+                            mt-1
+                        "
                     >
 
                         <i
-                            class="bi bi-file-earmark-pdf"
+                            class="
+                                bi
+                                bi-file-earmark-pdf
+                            "
                         ></i>
 
                         PDF
@@ -1585,27 +2215,37 @@ $result = mysqli_stmt_get_result($stmt);
                 <?php endif; ?>
 
 
-
-                <!-- =========================================
-                     GitHub
-                ========================================== -->
+                <!-- GITHUB -->
 
                 <?php if (
-                    !empty($project['github_url'])
+                    !empty(
+                        $project[
+                            'github_url'
+                        ]
+                    )
                 ): ?>
 
                     <a
-                        href="<?= htmlspecialchars(
-                            $project['github_url'],
-                            ENT_QUOTES,
-                            'UTF-8'
-                        ) ?>"
+                        href="<?php
+                            echo htmlspecialchars(
+                                $project[
+                                    'github_url'
+                                ],
+                                ENT_QUOTES,
+                                'UTF-8'
+                            );
+                        ?>"
                         target="_blank"
                         rel="noopener noreferrer"
                         class="btn-github"
                     >
 
-                        <i class="bi bi-github"></i>
+                        <i
+                            class="
+                                bi
+                                bi-github
+                            "
+                        ></i>
 
                         GitHub
 
@@ -1623,28 +2263,45 @@ $result = mysqli_stmt_get_result($stmt);
     <?php else: ?>
 
 
-        <div class="no-project">
+        <div
+            class="
+                no-project
+            "
+        >
 
-            <i class="bi bi-folder-x"></i>
+            <i
+                class="
+                    bi
+                    bi-folder-x
+                "
+            ></i>
 
 
             <h5>
+
                 ไม่พบโปรเจกต์
+
             </h5>
 
 
-            <?php if ($keyword !== ''): ?>
+            <?php if (
+                $keyword !== ''
+            ): ?>
 
                 <p>
 
                     ไม่พบโปรเจกต์ที่ตรงกับ
 
                     "<strong>
-                        <?= htmlspecialchars(
+
+                        <?php
+                        echo htmlspecialchars(
                             $keyword,
                             ENT_QUOTES,
                             'UTF-8'
-                        ) ?>
+                        );
+                        ?>
+
                     </strong>"
 
                 </p>
@@ -1652,10 +2309,14 @@ $result = mysqli_stmt_get_result($stmt);
             <?php else: ?>
 
                 <p>
-                    ยังไม่มีโปรเจกต์ที่ตรงกับข้อมูลที่ค้นหา
+
+                    ยังไม่มีโปรเจกต์
+                    ที่ตรงกับข้อมูลที่ค้นหา
+
                 </p>
 
             <?php endif; ?>
+
 
         </div>
 
@@ -1664,6 +2325,7 @@ $result = mysqli_stmt_get_result($stmt);
 
 
 </div>
+
 
 
 <script
