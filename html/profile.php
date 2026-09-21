@@ -1728,9 +1728,6 @@ $projects_stmt->close();
 
             </a>
 
-            <div class="header-title">
-                คลังโปรเจกต์ SDU
-            </div>
 
             <a
                 href="index2.php"

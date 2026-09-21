@@ -5,7 +5,276 @@ require_once 'db_connect.php';
 
 
 /* =========================================================
-   HELPER
+   LANGUAGE SYSTEM
+========================================================= */
+
+$supported_languages = ['th', 'en'];
+
+if (
+    isset($_GET['lang']) &&
+    in_array($_GET['lang'], $supported_languages, true)
+) {
+    $_SESSION['lang'] = $_GET['lang'];
+}
+
+$lang = $_SESSION['lang'] ?? 'th';
+
+if (!in_array($lang, $supported_languages, true)) {
+    $lang = 'th';
+    $_SESSION['lang'] = 'th';
+}
+
+
+/* =========================================================
+   TRANSLATION
+========================================================= */
+
+$translations = [
+
+    'th' => [
+
+        'home' => 'หน้าแรก',
+        'project_archive' => 'คลังโปรเจกต์ SDU',
+
+        'project_information' => 'ข้อมูลโปรเจกต์',
+
+        'view_pdf' => 'ดูไฟล์ PDF',
+        'download_pdf' => 'ดาวน์โหลด PDF',
+        'no_pdf' => 'ไม่มีไฟล์ PDF',
+
+        'published' => 'วันที่เผยแพร่',
+        'status' => 'สถานะ',
+        'pdf_views' => 'ยอดเข้าชม PDF',
+        'pdf_downloads' => 'ยอดดาวน์โหลด PDF',
+        'times' => 'ครั้ง',
+
+        'education_level' => 'ระดับการศึกษา',
+        'department' => 'สาขา / ภาควิชา',
+        'advisor' => 'อาจารย์ที่ปรึกษา',
+
+        'members' => 'สมาชิกกลุ่ม',
+        'person' => 'คน',
+
+        'github_repository' => 'GitHub Repository',
+        'github_project' => 'เปิดโปรเจกต์บน GitHub',
+        'no_github' => 'ยังไม่ได้เพิ่มลิงก์ GitHub',
+
+        'student_project' => 'โปรเจกต์นักศึกษา',
+        'university' => 'มหาวิทยาลัยสวนดุสิต',
+
+        'description' => 'คำอธิบาย / บทคัดย่อ',
+
+        'advisor_comments' => 'ความคิดเห็นจากอาจารย์ที่ปรึกษา',
+        'advisor_label' => 'อาจารย์ที่ปรึกษา:',
+        'write_comment' => 'แสดงความคิดเห็นต่อโปรเจกต์นี้',
+        'comment_placeholder' => 'พิมพ์ความคิดเห็นหรือคำแนะนำ...',
+        'send_comment' => 'ส่งความคิดเห็น',
+
+        'teacher_only' =>
+            'โปรเจกต์นี้อยู่ภายใต้การดูแลของ',
+
+        'teacher_only_2' =>
+            'จึงมีเฉพาะอาจารย์ที่ปรึกษาเท่านั้นที่สามารถแสดงความคิดเห็นได้',
+
+        'no_comments' =>
+            'ยังไม่มีความคิดเห็นจากอาจารย์ที่ปรึกษา',
+
+        'delete_comment' => 'ลบความคิดเห็น',
+
+        'edit_project' => 'แก้ไขโปรเจกต์',
+        'delete_project' => 'ลบโปรเจกต์',
+
+        'guest_notice' =>
+            'บุคคลทั่วไปสามารถดูไฟล์ PDF วันเผยแพร่ อาจารย์ที่ปรึกษา สาขา / ภาควิชา และคำอธิบายโปรเจกต์ได้',
+
+        'not_found_project' =>
+            'ไม่พบโปรเจกต์ที่ต้องการ',
+
+        'no_description' =>
+            'ไม่มีคำอธิบายหรือบทคัดย่อ',
+
+        'no_author' =>
+            'ไม่ระบุผู้แต่ง',
+
+        'no_member' =>
+            'ไม่ระบุสมาชิก',
+
+        'not_specified' =>
+            'ไม่ระบุ',
+
+        'not_available' =>
+            'ไม่พบชื่อโปรเจกต์',
+
+        'admin_confirm_delete' =>
+            "ต้องการลบโปรเจกต์นี้ใช่หรือไม่?\n\nเมื่อลบแล้วจะไม่สามารถกู้คืนได้",
+
+        'comment_confirm_delete' =>
+            'ต้องการลบความคิดเห็นนี้ใช่หรือไม่?',
+
+        'profile' =>
+            'ดูโปรไฟล์สมาชิก',
+
+        'advisor_word' =>
+            'อาจารย์',
+
+        'error_sql' =>
+            'เกิดข้อผิดพลาดในการเตรียมคำสั่ง SQL',
+
+        'project_detail' =>
+            'รายละเอียดโปรเจกต์',
+
+        'submitted' =>
+            'ส่งโปรเจกต์แล้ว',
+
+        'open_github' =>
+            'เปิด GitHub',
+
+        'back_home' =>
+            'กลับหน้าแรก',
+
+        'pdf_document' =>
+            'เอกสารโครงงาน',
+
+        'project_stats' =>
+            'สถิติการเข้าถึง',
+
+        'login_required' =>
+            'เข้าสู่ระบบเพื่อดูข้อมูลเพิ่มเติม',
+
+    ],
+
+    'en' => [
+
+        'home' => 'Home',
+        'project_archive' => 'SDU Project Archive',
+
+        'project_information' => 'Project Information',
+
+        'view_pdf' => 'View PDF',
+        'download_pdf' => 'Download PDF',
+        'no_pdf' => 'No PDF file',
+
+        'published' => 'Published',
+        'status' => 'Status',
+        'pdf_views' => 'PDF Views',
+        'pdf_downloads' => 'PDF Downloads',
+        'times' => 'times',
+
+        'education_level' => 'Education Level',
+        'department' => 'Department',
+        'advisor' => 'Project Advisor',
+
+        'members' => 'Group Members',
+        'person' => 'members',
+
+        'github_repository' => 'GitHub Repository',
+        'github_project' => 'Open Project on GitHub',
+        'no_github' => 'GitHub link has not been added',
+
+        'student_project' => 'Student Project',
+        'university' => 'Suan Dusit University',
+
+        'description' => 'Description / Abstract',
+
+        'advisor_comments' => 'Advisor Comments',
+        'advisor_label' => 'Project Advisor:',
+        'write_comment' => 'Comment on this project',
+        'comment_placeholder' =>
+            'Write a comment or suggestion...',
+        'send_comment' => 'Send Comment',
+
+        'teacher_only' =>
+            'This project is supervised by',
+
+        'teacher_only_2' =>
+            'Therefore, only the project advisor can comment on this project.',
+
+        'no_comments' =>
+            'There are no comments from the project advisor yet.',
+
+        'delete_comment' => 'Delete Comment',
+
+        'edit_project' => 'Edit Project',
+        'delete_project' => 'Delete Project',
+
+        'guest_notice' =>
+            'Guests can view the PDF file, publication date, project advisor, department, and project description.',
+
+        'not_found_project' =>
+            'Project not found',
+
+        'no_description' =>
+            'No description or abstract available',
+
+        'no_author' =>
+            'No author specified',
+
+        'no_member' =>
+            'No members specified',
+
+        'not_specified' =>
+            'Not specified',
+
+        'not_available' =>
+            'Project name not found',
+
+        'admin_confirm_delete' =>
+            "Are you sure you want to delete this project?\n\nThis action cannot be undone.",
+
+        'comment_confirm_delete' =>
+            'Are you sure you want to delete this comment?',
+
+        'profile' =>
+            'View member profile',
+
+        'advisor_word' =>
+            'Advisor',
+
+        'error_sql' =>
+            'An error occurred while preparing the SQL statement.',
+
+        'project_detail' =>
+            'Project Details',
+
+        'submitted' =>
+            'Project Submitted',
+
+        'open_github' =>
+            'Open GitHub',
+
+        'back_home' =>
+            'Back to Home',
+
+        'pdf_document' =>
+            'Project Document',
+
+        'project_stats' =>
+            'Access Statistics',
+
+        'login_required' =>
+            'Log in to view more information',
+
+    ]
+
+];
+
+
+/* =========================================================
+   TRANSLATION HELPER
+========================================================= */
+
+function t($key)
+{
+    global $translations, $lang;
+
+    return $translations[$lang][$key]
+        ?? $translations['th'][$key]
+        ?? $key;
+}
+
+
+/* =========================================================
+   ESCAPE
 ========================================================= */
 
 function e($value)
@@ -15,6 +284,43 @@ function e($value)
         ENT_QUOTES,
         'UTF-8'
     );
+}
+
+
+/* =========================================================
+   PROJECT ID
+========================================================= */
+
+$project_id = isset($_GET['id'])
+    ? (int)$_GET['id']
+    : 0;
+
+
+/* =========================================================
+   LOGIN
+========================================================= */
+
+$logged_in = isset($_SESSION['user_id']);
+
+$user_id = $logged_in
+    ? (int)$_SESSION['user_id']
+    : 0;
+
+$user_role = $_SESSION['role'] ?? '';
+
+
+/* =========================================================
+   INVALID PROJECT
+========================================================= */
+
+if ($project_id <= 0) {
+
+    header(
+        "Location: index2.php?lang=" .
+        urlencode($lang)
+    );
+
+    exit();
 }
 
 
@@ -36,35 +342,6 @@ function normalize_teacher_name_for_comment($name)
         $name,
         'UTF-8'
     );
-}
-
-
-/* =========================================================
-   LOGIN
-========================================================= */
-
-$logged_in = isset($_SESSION['user_id']);
-
-$user_id = $logged_in
-    ? (int)$_SESSION['user_id']
-    : 0;
-
-$user_role = $_SESSION['role'] ?? '';
-
-
-/* =========================================================
-   PROJECT ID
-========================================================= */
-
-$project_id = isset($_GET['id'])
-    ? (int)$_GET['id']
-    : 0;
-
-
-if ($project_id <= 0) {
-
-    header("Location: index2.php");
-    exit();
 }
 
 
@@ -106,7 +383,7 @@ $stmt = mysqli_prepare(
 if (!$stmt) {
 
     die(
-        "เกิดข้อผิดพลาดในการเตรียมคำสั่ง SQL"
+        e(t('error_sql'))
     );
 }
 
@@ -120,7 +397,6 @@ mysqli_stmt_bind_param(
 
 mysqli_stmt_execute($stmt);
 
-
 $result = mysqli_stmt_get_result($stmt);
 
 
@@ -133,8 +409,15 @@ if (
 
     echo "
     <script>
-        alert('ไม่พบโปรเจกต์ที่ต้องการ');
-        window.location.href='index2.php';
+        alert(" .
+        json_encode(
+            t('not_found_project'),
+            JSON_UNESCAPED_UNICODE
+        ) .
+        ");
+        window.location.href='index2.php?lang=" .
+        e($lang) .
+        "';
     </script>
     ";
 
@@ -144,23 +427,7 @@ if (
 
 $row = mysqli_fetch_assoc($result);
 
-
 mysqli_stmt_close($stmt);
-
-
-/*
-=========================================================
-   สำคัญ
-
-   ไม่มีการเพิ่ม views ตรงนี้แล้ว
-
-   การเปิดหน้า project-detail.php
-   จะไม่เพิ่มยอดเข้าชม
-
-   views จะเพิ่มเมื่อกด "ดูไฟล์ PDF"
-   ผ่าน view-pdf.php เท่านั้น
-=========================================================
-*/
 
 
 /* =========================================================
@@ -182,7 +449,7 @@ if ($title === '') {
 
 if ($title === '') {
 
-    $title = 'ไม่พบชื่อโปรเจกต์';
+    $title = t('not_available');
 }
 
 
@@ -198,7 +465,7 @@ $description = trim(
 if ($description === '') {
 
     $description =
-        'ไม่มีคำอธิบายหรือบทคัดย่อ';
+        t('no_description');
 }
 
 
@@ -206,53 +473,79 @@ if ($description === '') {
    MEMBERS
 ========================================================= */
 
+$owner_name = trim(
+    $row['student_name'] ?? ''
+);
+
+
 $authors = trim(
     $row['authors'] ?? ''
 );
 
 
-if ($authors === '') {
+$member_list = [];
 
-    $authors = trim(
-        $row['student_name'] ?? ''
+if ($authors !== '') {
+
+    $member_list = preg_split(
+        '/\r\n|\r|\n/',
+        $authors
     );
 }
 
 
-if ($authors === '') {
-
-    $authors = 'ไม่ระบุผู้แต่ง';
-}
-
-
-$member_list = preg_split(
-    '/\r\n|\r|\n/',
-    $authors
-);
-
+/*
+   ถ้า authors ไม่มีข้อมูล
+   ให้ถือว่าไม่มีสมาชิกเพิ่มเติม
+*/
 
 $members = [];
+
+
+/*
+   เอาชื่อเจ้าของออกจากสมาชิก
+   เพื่อไม่ให้เจ้าของแสดงซ้ำ
+*/
+
+$owner_removed = false;
 
 
 foreach ($member_list as $member) {
 
     $member = trim($member);
 
-    if ($member !== '') {
-
-        $members[] = $member;
+    if ($member === '') {
+        continue;
     }
+
+
+    /*
+       ลบเจ้าของออกเพียง 1 ครั้ง
+    */
+
+    if (
+        !$owner_removed &&
+        $owner_name !== '' &&
+        normalize_teacher_name_for_comment($member)
+        ===
+        normalize_teacher_name_for_comment($owner_name)
+    ) {
+
+        $owner_removed = true;
+
+        continue;
+    }
+
+
+    $members[] = $member;
 }
 
 
-if (count($members) === 0) {
-
-    $members[] = 'ไม่ระบุสมาชิก';
-}
+$member_count = count($members);
 
 
 /* =========================================================
-   CREATE USER MAP FOR MEMBER PROFILE LINKS
+   USER MAP
 ========================================================= */
 
 $user_map = [];
@@ -295,18 +588,14 @@ if ($logged_in) {
                 $user_data['prefix'] ?? ''
             );
 
-
             $db_first_name = trim(
                 $user_data['first_name'] ?? ''
             );
-
 
             $db_last_name = trim(
                 $user_data['last_name'] ?? ''
             );
 
-
-            /* ชื่อแบบมีคำนำหน้า */
 
             $full_name = trim(
                 $db_prefix . ' ' .
@@ -315,15 +604,11 @@ if ($logged_in) {
             );
 
 
-            /* ชื่อแบบไม่มีคำนำหน้า */
-
             $name_without_prefix = trim(
                 $db_first_name . ' ' .
                 $db_last_name
             );
 
-
-            /* Normalize */
 
             $full_name_key =
                 normalize_teacher_name_for_comment(
@@ -337,8 +622,6 @@ if ($logged_in) {
                 );
 
 
-            /* เก็บชื่อแบบมีคำนำหน้า */
-
             if ($full_name_key !== '') {
 
                 $user_map[
@@ -347,11 +630,7 @@ if ($logged_in) {
             }
 
 
-            /* เก็บชื่อแบบไม่มีคำนำหน้า */
-
-            if (
-                $name_without_prefix_key !== ''
-            ) {
+            if ($name_without_prefix_key !== '') {
 
                 $user_map[
                     $name_without_prefix_key
@@ -373,7 +652,7 @@ $advisor = trim(
 
 if ($advisor === '') {
 
-    $advisor = 'ไม่ระบุ';
+    $advisor = t('not_specified');
 }
 
 
@@ -426,7 +705,9 @@ $status = trim(
 
 if ($status === '') {
 
-    $status = 'ส่งแล้ว';
+    $status = $lang === 'en'
+        ? 'Submitted'
+        : 'ส่งแล้ว';
 }
 
 
@@ -465,7 +746,7 @@ if ($pdf_file !== '') {
 
 
 /* =========================================================
-   VIEW / DOWNLOAD COUNT
+   COUNTERS
 ========================================================= */
 
 $view_count = (int)(
@@ -536,9 +817,8 @@ if ($logged_in) {
 
         $can_edit = true;
         $can_delete = true;
-    }
 
-    elseif (
+    } elseif (
         $user_role === 'student' &&
         $is_owner
     ) {
@@ -702,7 +982,7 @@ $project_type_label = trim(
 if ($project_type_label === '') {
 
     $project_type_label =
-        'โปรเจกต์นักศึกษา';
+        t('student_project');
 }
 
 
@@ -781,7 +1061,9 @@ if ($comment_stmt) {
 
 <!DOCTYPE html>
 
-<html lang="th">
+<html
+    lang="<?php echo $lang === 'en' ? 'en' : 'th'; ?>"
+>
 
 <head>
 
@@ -794,7 +1076,8 @@ if ($comment_stmt) {
 
     <title>
         <?php echo e($title); ?>
-        - คลังโปรเจกต์ SDU
+        -
+        <?php echo e(t('project_archive')); ?>
     </title>
 
 
@@ -810,6 +1093,23 @@ if ($comment_stmt) {
     >
 
 
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+
     <style>
 
         * {
@@ -817,24 +1117,68 @@ if ($comment_stmt) {
         }
 
 
+        :root {
+
+            --primary: #3287bb;
+            --primary-light: #58b4df;
+            --primary-dark: #174f70;
+
+            --text: #243746;
+            --muted: #71828d;
+
+            --border: #e3edf3;
+
+            --soft-blue: #eef8fd;
+
+            --green: #2e9b68;
+
+            --danger: #dc3545;
+
+            --shadow:
+                0 12px 35px
+                rgba(42, 104, 139, 0.10);
+        }
+
+
         body {
 
             margin: 0;
 
+            min-height: 100vh;
+
             background:
+                radial-gradient(
+                    circle at 10% 10%,
+                    rgba(88,180,223,.13),
+                    transparent 25%
+                ),
+
+                radial-gradient(
+                    circle at 90% 15%,
+                    rgba(50,135,187,.10),
+                    transparent 25%
+                ),
+
                 linear-gradient(
                     180deg,
-                    #f5f9fc 0%,
-                    #ffffff 35%
+                    #f4f9fc 0%,
+                    #ffffff 45%,
+                    #f7fbfd 100%
                 );
 
+            color: var(--text);
+
             font-family:
+                'Sarabun',
                 'Segoe UI',
                 Tahoma,
                 Arial,
                 sans-serif;
+        }
 
-            color: #263238;
+
+        a {
+            transition: .2s ease;
         }
 
 
@@ -844,24 +1188,30 @@ if ($comment_stmt) {
 
         .custom-header {
 
-            height: 90px;
+            position: sticky;
+
+            top: 0;
+
+            z-index: 1000;
+
+            min-height: 82px;
 
             background:
                 linear-gradient(
                     135deg,
-                    #4aa4d6,
-                    #4297CD,
-                    #3287BB
+                    rgba(74,164,214,.97),
+                    rgba(50,135,187,.98)
                 );
 
+            border-bottom:
+                1px solid
+                rgba(255,255,255,.20);
+
             box-shadow:
-                0 4px 18px
-                rgba(
-                    38,
-                    119,
-                    164,
-                    0.20
-                );
+                0 8px 28px
+                rgba(35,100,136,.20);
+
+            backdrop-filter: blur(14px);
         }
 
 
@@ -869,7 +1219,7 @@ if ($comment_stmt) {
 
             max-width: 1280px;
 
-            height: 90px;
+            min-height: 82px;
 
             margin: auto;
 
@@ -880,6 +1230,8 @@ if ($comment_stmt) {
             align-items: center;
 
             justify-content: flex-start;
+
+            gap: 20px;
         }
 
 
@@ -889,7 +1241,7 @@ if ($comment_stmt) {
 
             align-items: center;
 
-            gap: 20px;
+            gap: 17px;
         }
 
 
@@ -905,9 +1257,9 @@ if ($comment_stmt) {
 
         .sdu-logo {
 
-            width: 58px;
+            width: 54px;
 
-            height: 58px;
+            height: 54px;
 
             object-fit: contain;
 
@@ -918,13 +1270,22 @@ if ($comment_stmt) {
             padding: 3px;
 
             box-shadow:
-                0 3px 10px
-                rgba(
-                    0,
-                    0,
-                    0,
-                    0.15
-                );
+                0 5px 15px
+                rgba(0,0,0,.18);
+
+            transition: .25s;
+        }
+
+
+        .logo-link:hover .sdu-logo {
+
+            transform:
+                translateY(-2px)
+                rotate(-2deg);
+
+            box-shadow:
+                0 8px 20px
+                rgba(0,0,0,.22);
         }
 
 
@@ -940,33 +1301,43 @@ if ($comment_stmt) {
 
             text-decoration: none;
 
-            font-size: 18px;
+            font-size: 17px;
 
-            font-weight: 600;
+            font-weight: 700;
+
+            padding: 10px 15px;
+
+            border-radius: 12px;
         }
 
 
         .home-link:hover {
 
             color: white;
+
+            background:
+                rgba(255,255,255,.12);
+
+            transform:
+                translateY(-1px);
         }
 
 
         .home-icon {
 
-            font-size: 22px;
+            font-size: 20px;
         }
 
 
         /* =====================================================
-           CONTAINER
+           MAIN
         ===================================================== */
 
         .detail-container {
 
-            max-width: 1200px;
+            max-width: 1240px;
 
-            margin: 45px auto;
+            margin: 42px auto 70px;
 
             padding: 0 20px;
         }
@@ -974,28 +1345,51 @@ if ($comment_stmt) {
 
         .project-card {
 
-            background: white;
-
-            border-radius: 18px;
-
-            border: 1px solid #e5edf3;
-
-            box-shadow:
-                0 8px 30px
-                rgba(
-                    48,
-                    105,
-                    139,
-                    0.10
-                );
+            position: relative;
 
             overflow: hidden;
+
+            background: rgba(255,255,255,.94);
+
+            border:
+                1px solid
+                rgba(221,233,240,.95);
+
+            border-radius: 24px;
+
+            box-shadow: var(--shadow);
+
+            backdrop-filter: blur(8px);
+        }
+
+
+        .project-card::before {
+
+            content: '';
+
+            position: absolute;
+
+            top: 0;
+
+            left: 0;
+
+            right: 0;
+
+            height: 5px;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #58b4df,
+                    #3287bb,
+                    #174f70
+                );
         }
 
 
         .project-card-body {
 
-            padding: 35px;
+            padding: 36px;
         }
 
 
@@ -1007,35 +1401,61 @@ if ($comment_stmt) {
 
             height: 100%;
 
+            padding: 22px;
+
             background:
                 linear-gradient(
                     180deg,
-                    #f7fbfe,
-                    #ffffff
+                    #f8fcfe 0%,
+                    #ffffff 100%
                 );
 
-            border: 1px solid #e4edf3;
+            border:
+                1px solid
+                var(--border);
 
-            border-radius: 14px;
+            border-radius: 18px;
 
-            padding: 22px;
+            box-shadow:
+                0 5px 20px
+                rgba(50,135,187,.05);
         }
 
 
         .side-title {
 
-            font-size: 17px;
+            display: flex;
 
-            font-weight: 700;
+            align-items: center;
 
-            color: #245c7d;
+            gap: 9px;
 
-            margin-bottom: 18px;
+            color: var(--primary-dark);
+
+            font-size: 18px;
+
+            font-weight: 800;
+
+            padding-bottom: 17px;
+
+            margin-bottom: 4px;
+
+            border-bottom:
+                1px solid
+                var(--border);
+        }
+
+
+        .side-title i {
+
+            color: var(--primary);
+
+            font-size: 19px;
         }
 
 
         /* =====================================================
-           PDF BUTTON
+           PDF
         ===================================================== */
 
         .pdf-button {
@@ -1048,21 +1468,25 @@ if ($comment_stmt) {
 
             justify-content: center;
 
-            gap: 10px;
+            gap: 9px;
 
             padding: 13px 15px;
 
-            color: white;
+            border-radius: 11px;
 
-            border-radius: 10px;
+            color: white;
 
             text-decoration: none;
 
+            font-size: 14px;
+
             font-weight: 700;
 
-            margin-bottom: 10px;
+            margin-bottom: 9px;
 
-            transition: 0.2s;
+            box-shadow:
+                0 5px 14px
+                rgba(50,135,187,.13);
         }
 
 
@@ -1070,19 +1494,20 @@ if ($comment_stmt) {
 
             color: white;
 
-            transform: translateY(-2px);
+            transform:
+                translateY(-2px);
+
+            box-shadow:
+                0 8px 18px
+                rgba(50,135,187,.20);
         }
 
 
         .pdf-button i {
 
-            font-size: 20px;
+            font-size: 19px;
         }
 
-
-        /* =====================================================
-           ดูไฟล์ PDF
-        ===================================================== */
 
         .pdf-view-button {
 
@@ -1090,45 +1515,36 @@ if ($comment_stmt) {
                 linear-gradient(
                     135deg,
                     #58b4df,
-                    #358abd
+                    #3287bb
                 );
         }
 
-
-        .pdf-view-button:hover {
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #4297CD,
-                    #2878a8
-                );
-        }
-
-
-        /* =====================================================
-           ดาวน์โหลด PDF
-        ===================================================== */
 
         .pdf-download-button {
 
             background:
                 linear-gradient(
                     135deg,
-                    #4caf7d,
+                    #51b982,
                     #27895d
                 );
         }
 
 
-        .pdf-download-button:hover {
+        .pdf-document-label {
 
-            background:
-                linear-gradient(
-                    135deg,
-                    #3d9d6d,
-                    #20764f
-                );
+            display: flex;
+
+            align-items: center;
+
+            gap: 7px;
+
+            color: var(--muted);
+
+            font-size: 12px;
+
+            margin:
+                7px 0 12px;
         }
 
 
@@ -1140,7 +1556,9 @@ if ($comment_stmt) {
 
             padding: 15px 0;
 
-            border-top: 1px solid #e7eef2;
+            border-top:
+                1px solid
+                #e7eef2;
         }
 
 
@@ -1152,19 +1570,23 @@ if ($comment_stmt) {
 
             gap: 8px;
 
-            color: #527184;
+            color: #607985;
 
-            font-size: 13px;
+            font-size: 12px;
 
-            font-weight: 600;
+            font-weight: 700;
 
             margin-bottom: 7px;
+
+            text-transform: uppercase;
+
+            letter-spacing: .15px;
         }
 
 
         .info-label i {
 
-            color: #4297CD;
+            color: var(--primary);
 
             font-size: 16px;
         }
@@ -1172,37 +1594,120 @@ if ($comment_stmt) {
 
         .info-value {
 
-            color: #263238;
+            color: var(--text);
 
             font-size: 14px;
 
-            line-height: 1.6;
+            line-height: 1.65;
 
             word-break: break-word;
         }
 
 
-        .view-count-value {
+        .advisor-value {
 
-            display: flex;
+            color: var(--primary-dark);
+
+            font-weight: 700;
+
+            line-height: 1.7;
+        }
+
+
+        .status-pill {
+
+            display: inline-flex;
 
             align-items: center;
 
-            gap: 7px;
+            gap: 6px;
 
-            color: #245c7d;
+            padding: 6px 11px;
 
-            font-size: 15px;
+            background: #eaf8f1;
+
+            border:
+                1px solid
+                #ccebdc;
+
+            color: #277b55;
+
+            border-radius: 30px;
+
+            font-size: 12px;
 
             font-weight: 700;
         }
 
 
-        .view-count-value i {
+        .status-pill i {
 
-            color: #4297CD;
+            font-size: 13px;
+        }
+
+
+        /* =====================================================
+           STAT
+        ===================================================== */
+
+        .stats-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                1fr 1fr;
+
+            gap: 8px;
+        }
+
+
+        .stat-box {
+
+            padding: 12px 10px;
+
+            background: white;
+
+            border:
+                1px solid
+                var(--border);
+
+            border-radius: 10px;
+
+            text-align: center;
+        }
+
+
+        .stat-icon {
 
             font-size: 18px;
+
+            color: var(--primary);
+        }
+
+
+        .stat-number {
+
+            display: block;
+
+            color: var(--primary-dark);
+
+            font-size: 17px;
+
+            font-weight: 800;
+
+            margin-top: 3px;
+        }
+
+
+        .stat-label {
+
+            display: block;
+
+            color: var(--muted);
+
+            font-size: 10px;
+
+            margin-top: 2px;
         }
 
 
@@ -1230,31 +1735,63 @@ if ($comment_stmt) {
 
             gap: 8px;
 
-            padding: 9px 10px;
+            padding: 10px 11px;
 
-            background: #f8fbfd;
+            background: white;
 
-            border: 1px solid #e5eef3;
+            border:
+                1px solid
+                var(--border);
 
-            border-radius: 8px;
+            border-radius: 9px;
 
-            color: #263238;
+            color: var(--text);
 
             font-size: 14px;
 
-            line-height: 1.6;
+            line-height: 1.55;
+
+            transition: .2s;
+        }
+
+
+        .member-item:hover {
+
+            border-color:
+                #c9e5f3;
+
+            transform:
+                translateX(2px);
+
+            box-shadow:
+                0 4px 12px
+                rgba(50,135,187,.07);
         }
 
 
         .member-number {
 
-            color: #4297CD;
+            display: flex;
 
-            font-weight: 700;
+            align-items: center;
 
-            min-width: 22px;
+            justify-content: center;
+
+            width: 22px;
+
+            height: 22px;
 
             flex-shrink: 0;
+
+            border-radius: 50%;
+
+            background: var(--soft-blue);
+
+            color: var(--primary);
+
+            font-size: 11px;
+
+            font-weight: 800;
         }
 
 
@@ -1264,27 +1801,19 @@ if ($comment_stmt) {
         }
 
 
-        /* =====================================================
-           MEMBER PROFILE LINK
-        ===================================================== */
-
         .member-profile-link {
 
-            color: #245c7d;
+            color: var(--primary-dark);
 
             text-decoration: none;
 
-            font-weight: 600;
-
-            transition: 0.2s;
-
-            cursor: pointer;
+            font-weight: 700;
         }
 
 
         .member-profile-link:hover {
 
-            color: #3287BB;
+            color: var(--primary);
 
             text-decoration: underline;
         }
@@ -1292,25 +1821,11 @@ if ($comment_stmt) {
 
         .member-profile-link i {
 
-            font-size: 12px;
+            font-size: 11px;
 
-            margin-left: 5px;
+            margin-left: 4px;
 
-            opacity: 0.7;
-        }
-
-
-        /* =====================================================
-           ADVISOR
-        ===================================================== */
-
-        .advisor-value {
-
-            color: #245c7d;
-
-            font-weight: 600;
-
-            line-height: 1.7;
+            opacity: .65;
         }
 
 
@@ -1324,11 +1839,18 @@ if ($comment_stmt) {
 
             padding: 17px;
 
-            background: #f8fafc;
+            background:
+                linear-gradient(
+                    135deg,
+                    #f7f9fb,
+                    #ffffff
+                );
 
-            border: 1px solid #e1e7ec;
+            border:
+                1px solid
+                #e0e7ec;
 
-            border-radius: 12px;
+            border-radius: 13px;
         }
 
 
@@ -1340,11 +1862,19 @@ if ($comment_stmt) {
 
             gap: 8px;
 
-            font-weight: 700;
-
             color: #24292f;
 
+            font-size: 14px;
+
+            font-weight: 800;
+
             margin-bottom: 10px;
+        }
+
+
+        .github-title i {
+
+            font-size: 19px;
         }
 
 
@@ -1354,21 +1884,33 @@ if ($comment_stmt) {
 
             padding: 10px;
 
+            margin-bottom: 10px;
+
             background: white;
 
-            border: 1px solid #dce4e9;
+            border:
+                1px solid
+                #dce4e9;
 
             border-radius: 8px;
 
-            color: #3287BB;
+            color: var(--primary);
 
-            font-size: 13px;
+            font-size: 12px;
 
             word-break: break-all;
 
             text-decoration: none;
+        }
 
-            margin-bottom: 10px;
+
+        .github-url:hover {
+
+            border-color:
+                #afd6e9;
+
+            background:
+                #f9fdff;
         }
 
 
@@ -1394,9 +1936,9 @@ if ($comment_stmt) {
 
             text-decoration: none;
 
-            font-size: 14px;
+            font-size: 13px;
 
-            font-weight: 600;
+            font-weight: 700;
         }
 
 
@@ -1405,6 +1947,9 @@ if ($comment_stmt) {
             background: #111;
 
             color: white;
+
+            transform:
+                translateY(-1px);
         }
 
 
@@ -1414,7 +1959,7 @@ if ($comment_stmt) {
 
         .project-content {
 
-            padding-left: 25px;
+            padding-left: 15px;
         }
 
 
@@ -1426,35 +1971,48 @@ if ($comment_stmt) {
 
             gap: 7px;
 
-            background: #eaf6fc;
+            background:
+                linear-gradient(
+                    135deg,
+                    #eaf7fd,
+                    #f2faff
+                );
 
-            color: #3287BB;
+            color: var(--primary);
 
-            border: 1px solid #cce9f7;
+            border:
+                1px solid
+                #cbe7f5;
 
             padding: 7px 13px;
 
             border-radius: 30px;
 
-            font-size: 13px;
+            font-size: 12px;
 
-            font-weight: 600;
+            font-weight: 800;
 
-            margin-bottom: 16px;
+            margin-bottom: 17px;
         }
 
 
         .project-title {
 
-            font-size: 34px;
+            font-size: clamp(
+                28px,
+                4vw,
+                40px
+            );
 
-            line-height: 1.35;
+            line-height: 1.28;
 
-            font-weight: 750;
+            font-weight: 800;
 
-            color: #174f70;
+            color: var(--primary-dark);
 
-            margin: 0 0 15px;
+            margin: 0 0 13px;
+
+            letter-spacing: -.4px;
         }
 
 
@@ -1466,7 +2024,7 @@ if ($comment_stmt) {
 
             gap: 8px;
 
-            color: #7a8d98;
+            color: var(--muted);
 
             font-size: 14px;
 
@@ -1476,7 +2034,7 @@ if ($comment_stmt) {
 
         .university-text i {
 
-            color: #4297CD;
+            color: var(--primary);
         }
 
 
@@ -1486,13 +2044,47 @@ if ($comment_stmt) {
 
         .description-box {
 
-            background: #fbfdfe;
+            position: relative;
 
-            border: 1px solid #edf2f5;
+            background:
+                linear-gradient(
+                    135deg,
+                    #fbfdfe,
+                    #f7fbfd
+                );
 
-            border-radius: 12px;
+            border:
+                1px solid
+                var(--border);
 
-            padding: 22px;
+            border-radius: 15px;
+
+            padding: 23px;
+
+            overflow: hidden;
+        }
+
+
+        .description-box::before {
+
+            content: '';
+
+            position: absolute;
+
+            top: 0;
+
+            left: 0;
+
+            bottom: 0;
+
+            width: 4px;
+
+            background:
+                linear-gradient(
+                    180deg,
+                    #58b4df,
+                    #3287bb
+                );
         }
 
 
@@ -1504,11 +2096,11 @@ if ($comment_stmt) {
 
             gap: 9px;
 
-            font-size: 20px;
+            color: var(--primary-dark);
 
-            font-weight: 700;
+            font-size: 19px;
 
-            color: #245c7d;
+            font-weight: 800;
 
             margin-bottom: 13px;
         }
@@ -1516,13 +2108,13 @@ if ($comment_stmt) {
 
         .description-title i {
 
-            color: #4297CD;
+            color: var(--primary);
         }
 
 
         .description-text {
 
-            color: #53636c;
+            color: #526570;
 
             font-size: 15px;
 
@@ -1535,14 +2127,329 @@ if ($comment_stmt) {
 
 
         /* =====================================================
-           ADMIN ACTION
+           COMMENTS
+        ===================================================== */
+
+        .comments-box {
+
+            margin-top: 24px;
+
+            background: white;
+
+            border:
+                1px solid
+                var(--border);
+
+            border-radius: 15px;
+
+            padding: 22px;
+
+            box-shadow:
+                0 5px 18px
+                rgba(48,105,139,.06);
+        }
+
+
+        .comments-title {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 9px;
+
+            color: var(--primary-dark);
+
+            font-size: 19px;
+
+            font-weight: 800;
+
+            margin-bottom: 10px;
+        }
+
+
+        .comments-title i {
+
+            color: var(--primary);
+        }
+
+
+        .comment-advisor {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 7px;
+
+            color: var(--primary);
+
+            font-size: 13px;
+
+            padding-bottom: 14px;
+
+            border-bottom:
+                1px solid
+                #e7eef2;
+
+            margin-bottom: 15px;
+
+            flex-wrap: wrap;
+        }
+
+
+        .comment-advisor strong {
+
+            color: var(--primary-dark);
+        }
+
+
+        .teacher-comment-form {
+
+            background:
+                #f4faff;
+
+            border:
+                1px solid
+                #d8edf8;
+
+            border-radius: 11px;
+
+            padding: 16px;
+
+            margin-bottom: 20px;
+        }
+
+
+        .teacher-comment-form textarea {
+
+            width: 100%;
+
+            min-height: 120px;
+
+            resize: vertical;
+
+            border:
+                1px solid
+                #cedee8;
+
+            border-radius: 9px;
+
+            padding: 12px;
+
+            font-family: inherit;
+
+            font-size: 14px;
+
+            outline: none;
+
+            transition: .2s;
+        }
+
+
+        .teacher-comment-form textarea:focus {
+
+            border-color:
+                var(--primary);
+
+            box-shadow:
+                0 0 0 3px
+                rgba(66,151,205,.12);
+        }
+
+
+        .comment-submit {
+
+            margin-top: 10px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #58b4df,
+                    #3287bb
+                );
+
+            border: none;
+
+            color: white;
+
+            padding: 10px 18px;
+
+            border-radius: 8px;
+
+            font-family: inherit;
+
+            font-weight: 700;
+
+            cursor: pointer;
+
+            transition: .2s;
+        }
+
+
+        .comment-submit:hover {
+
+            transform:
+                translateY(-1px);
+
+            box-shadow:
+                0 5px 13px
+                rgba(50,135,187,.18);
+        }
+
+
+        .comment-item {
+
+            padding: 16px 0;
+
+            border-top:
+                1px solid
+                #e7eef2;
+
+            position: relative;
+        }
+
+
+        .comment-author {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+            color: var(--primary-dark);
+
+            font-weight: 800;
+
+            margin-bottom: 6px;
+
+            flex-wrap: wrap;
+        }
+
+
+        .comment-author i {
+
+            color: var(--primary);
+        }
+
+
+        .comment-date {
+
+            color: #8999a2;
+
+            font-size: 11px;
+
+            margin-left: 4px;
+
+            font-weight: 500;
+        }
+
+
+        .comment-text {
+
+            color: #53636c;
+
+            font-size: 14px;
+
+            line-height: 1.8;
+
+            white-space: pre-line;
+
+            margin: 10px 0 0;
+        }
+
+
+        .comment-delete-form {
+
+            margin-top: 12px;
+        }
+
+
+        .comment-delete-button {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            gap: 6px;
+
+            border: 1px solid
+                #f3c6ca;
+
+            background: #fff0f1;
+
+            color: var(--danger);
+
+            padding: 6px 11px;
+
+            border-radius: 7px;
+
+            font-family: inherit;
+
+            font-size: 12px;
+
+            font-weight: 700;
+
+            cursor: pointer;
+
+            transition: .2s;
+        }
+
+
+        .comment-delete-button:hover {
+
+            background: var(--danger);
+
+            color: white;
+        }
+
+
+        .no-comments {
+
+            color: #8999a2;
+
+            text-align: center;
+
+            padding: 22px 10px;
+
+            font-size: 14px;
+        }
+
+
+        .teacher-only-notice {
+
+            background: #fff8e8;
+
+            border:
+                1px solid
+                #f3dfaa;
+
+            color: #80651e;
+
+            border-radius: 9px;
+
+            padding: 11px 13px;
+
+            font-size: 13px;
+
+            margin-bottom: 18px;
+
+            line-height: 1.6;
+        }
+
+
+        /* =====================================================
+           ADMIN
         ===================================================== */
 
         .admin-actions {
 
             display: flex;
 
-            gap: 10px;
+            gap: 9px;
 
             margin-top: 20px;
 
@@ -1569,349 +2476,90 @@ if ($comment_stmt) {
 
             text-decoration: none;
 
-            font-size: 14px;
+            font-size: 13px;
 
-            font-weight: 600;
+            font-weight: 700;
+
+            transition: .2s;
         }
 
 
         .edit-button {
 
-            background: #4297CD;
-        }
-
-
-        .edit-button:hover {
-
-            background: #3287BB;
-
-            color: white;
+            background:
+                linear-gradient(
+                    135deg,
+                    #58b4df,
+                    #3287bb
+                );
         }
 
 
         .delete-button {
 
-            background: #dc3545;
+            background:
+                linear-gradient(
+                    135deg,
+                    #ef5969,
+                    #dc3545
+                );
         }
 
 
+        .edit-button:hover,
         .delete-button:hover {
 
-            background: #bb2d3b;
-
             color: white;
+
+            transform:
+                translateY(-1px);
         }
 
 
         /* =====================================================
-           COMMENTS
+           GUEST NOTICE
         ===================================================== */
-
-        .comments-box {
-
-            margin-top: 25px;
-
-            background: white;
-
-            border: 1px solid #e3edf3;
-
-            border-radius: 14px;
-
-            padding: 22px;
-
-            box-shadow:
-                0 5px 18px
-                rgba(
-                    48,
-                    105,
-                    139,
-                    0.06
-                );
-        }
-
-
-        .comments-title {
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 9px;
-
-            font-size: 20px;
-
-            font-weight: 700;
-
-            color: #245c7d;
-
-            margin-bottom: 10px;
-        }
-
-
-        .comments-title i {
-
-            color: #4297CD;
-        }
-
-
-        .comment-advisor {
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 7px;
-
-            color: #4297CD;
-
-            font-size: 13px;
-
-            font-weight: 600;
-
-            padding-bottom: 15px;
-
-            border-bottom: 1px solid #e7eef2;
-
-            margin-bottom: 15px;
-
-            flex-wrap: wrap;
-        }
-
-
-        .comment-advisor i {
-
-            font-size: 16px;
-        }
-
-
-        .teacher-comment-form {
-
-            background: #f5faff;
-
-            border: 1px solid #dceef8;
-
-            border-radius: 11px;
-
-            padding: 16px;
-
-            margin-bottom: 20px;
-        }
-
-
-        .teacher-comment-form textarea {
-
-            width: 100%;
-
-            min-height: 120px;
-
-            resize: vertical;
-
-            border: 1px solid #cedee8;
-
-            border-radius: 9px;
-
-            padding: 12px;
-
-            font-size: 14px;
-
-            outline: none;
-        }
-
-
-        .teacher-comment-form textarea:focus {
-
-            border-color: #4297CD;
-
-            box-shadow:
-                0 0 0 3px
-                rgba(
-                    66,
-                    151,
-                    205,
-                    0.12
-                );
-        }
-
-
-        .comment-submit {
-
-            margin-top: 10px;
-
-            background: #4297CD;
-
-            border: none;
-
-            color: white;
-
-            padding: 10px 18px;
-
-            border-radius: 8px;
-
-            font-weight: 600;
-
-            cursor: pointer;
-        }
-
-
-        .comment-submit:hover {
-
-            background: #3287BB;
-        }
-
-
-        .comment-item {
-
-            padding: 16px 0;
-
-            border-top: 1px solid #e7eef2;
-
-            position: relative;
-        }
-
-
-        .comment-author {
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 8px;
-
-            color: #245c7d;
-
-            font-weight: 700;
-
-            margin-bottom: 6px;
-
-            flex-wrap: wrap;
-        }
-
-
-        .comment-author i {
-
-            color: #4297CD;
-        }
-
-
-        .comment-date {
-
-            color: #8999a2;
-
-            font-size: 12px;
-
-            margin-left: 5px;
-        }
-
-
-        .comment-text {
-
-            color: #53636c;
-
-            font-size: 14px;
-
-            line-height: 1.8;
-
-            white-space: pre-line;
-
-            margin: 12px 0 0;
-        }
-
-
-        .comment-delete-form {
-
-            margin-top: 12px;
-        }
-
-
-        .comment-delete-button {
-
-            display: inline-flex;
-
-            align-items: center;
-
-            justify-content: center;
-
-            gap: 6px;
-
-            border: none;
-
-            background: #fff0f1;
-
-            color: #dc3545;
-
-            border: 1px solid #f3c6ca;
-
-            padding: 6px 11px;
-
-            border-radius: 7px;
-
-            font-size: 12px;
-
-            font-weight: 600;
-
-            cursor: pointer;
-
-            transition: 0.2s;
-        }
-
-
-        .comment-delete-button:hover {
-
-            background: #dc3545;
-
-            color: white;
-        }
-
-
-        .no-comments {
-
-            color: #8999a2;
-
-            text-align: center;
-
-            padding: 20px 10px;
-
-            font-size: 14px;
-        }
-
-
-        .teacher-only-notice {
-
-            background: #fff8e8;
-
-            border: 1px solid #f3dfaa;
-
-            color: #80651e;
-
-            border-radius: 9px;
-
-            padding: 11px 13px;
-
-            font-size: 13px;
-
-            margin-bottom: 18px;
-
-            line-height: 1.6;
-        }
-
 
         .guest-notice {
 
             margin-top: 20px;
 
+            display: flex;
+
+            align-items: flex-start;
+
+            gap: 10px;
+
             padding: 14px 16px;
 
-            background: #eef8fd;
+            background:
+                linear-gradient(
+                    135deg,
+                    #eef8fd,
+                    #f7fcff
+                );
 
-            border: 1px solid #cfeaf7;
+            border:
+                1px solid
+                #cfeaf7;
 
-            border-radius: 10px;
+            border-radius: 11px;
 
             color: #35677f;
 
             font-size: 13px;
 
-            line-height: 1.6;
+            line-height: 1.7;
+        }
+
+
+        .guest-notice i {
+
+            color: var(--primary);
+
+            font-size: 17px;
+
+            margin-top: 1px;
         }
 
 
@@ -1923,49 +2571,69 @@ if ($comment_stmt) {
 
             .custom-header {
 
-                height: 75px;
+                min-height: 72px;
             }
 
 
             .header-inner {
 
-                height: 75px;
+                min-height: 72px;
 
-                padding: 0 15px;
+                padding: 0 13px;
             }
 
 
             .header-left-area {
 
-                gap: 12px;
+                gap: 7px;
             }
 
 
             .sdu-logo {
 
-                width: 48px;
+                width: 45px;
 
-                height: 48px;
+                height: 45px;
             }
 
 
             .home-link {
 
-                font-size: 15px;
+                padding: 8px;
+
+                font-size: 14px;
+            }
+
+
+            .home-link span {
+
+                display: none;
             }
 
 
             .detail-container {
 
-                margin: 25px auto;
+                margin: 22px auto 45px;
 
-                padding: 0 12px;
+                padding: 0 11px;
+            }
+
+
+            .project-card {
+
+                border-radius: 17px;
             }
 
 
             .project-card-body {
 
-                padding: 18px;
+                padding: 17px;
+            }
+
+
+            .side-panel {
+
+                padding: 16px;
             }
 
 
@@ -1973,25 +2641,63 @@ if ($comment_stmt) {
 
                 padding-left: 0;
 
-                margin-top: 25px;
+                margin-top: 5px;
             }
 
 
             .project-title {
 
-                font-size: 27px;
+                font-size: 28px;
+
+                line-height: 1.35;
             }
 
 
-            .side-panel {
+            .description-box {
 
-                padding: 18px;
+                padding: 19px;
+            }
+
+
+            .description-text {
+
+                font-size: 14px;
+
+                line-height: 1.8;
+            }
+
+
+            .stats-grid {
+
+                gap: 7px;
+            }
+
+        }
+
+
+        @media (max-width: 420px) {
+
+            .project-title {
+
+                font-size: 25px;
             }
 
 
             .pdf-button {
 
-                padding: 12px;
+                font-size: 13px;
+            }
+
+
+            .side-title {
+
+                font-size: 16px;
+            }
+
+
+            .comments-box {
+
+                padding: 16px;
             }
 
         }
@@ -2015,8 +2721,9 @@ if ($comment_stmt) {
         <div class="header-left-area">
 
             <a
-                href="index2.php"
+                href="index2.php?lang=<?php echo e($lang); ?>"
                 class="logo-link"
+                title="<?php echo e(t('back_home')); ?>"
             >
 
                 <img
@@ -2029,7 +2736,7 @@ if ($comment_stmt) {
 
 
             <a
-                href="index2.php"
+                href="index2.php?lang=<?php echo e($lang); ?>"
                 class="home-link"
             >
 
@@ -2038,7 +2745,7 @@ if ($comment_stmt) {
                 ></i>
 
                 <span>
-                    หน้าแรก
+                    <?php echo e(t('home')); ?>
                 </span>
 
             </a>
@@ -2067,10 +2774,10 @@ if ($comment_stmt) {
 
 
                 <!-- =================================================
-                     LEFT
+                     LEFT INFORMATION
                 ================================================== -->
 
-                <div class="col-md-4">
+                <div class="col-lg-4">
 
 
                     <div class="side-panel">
@@ -2078,27 +2785,34 @@ if ($comment_stmt) {
 
                         <div class="side-title">
 
-                            <i class="bi bi-info-circle"></i>
+                            <i class="bi bi-info-circle-fill"></i>
 
-                            ข้อมูลโปรเจกต์
+                            <?php
+                            echo e(
+                                t('project_information')
+                            );
+                            ?>
 
                         </div>
 
 
-                        <!-- =================================================
-                             PDF
-                        ================================================== -->
+                        <!-- PDF -->
 
                         <?php if ($has_pdf): ?>
 
 
-                            <!-- =================================================
-                                 ดูไฟล์ PDF
+                            <div class="pdf-document-label">
 
-                                 สำคัญ:
-                                 ใช้ view-pdf.php?id=...
-                                 เพื่อเพิ่ม views
-                            ================================================== -->
+                                <i class="bi bi-file-earmark-pdf"></i>
+
+                                <?php
+                                echo e(
+                                    t('pdf_document')
+                                );
+                                ?>
+
+                            </div>
+
 
                             <a
                                 href="view-pdf.php?id=<?php echo $project_id; ?>"
@@ -2109,17 +2823,14 @@ if ($comment_stmt) {
 
                                 <i class="bi bi-eye-fill"></i>
 
-                                ดูไฟล์ PDF
+                                <?php
+                                echo e(
+                                    t('view_pdf')
+                                );
+                                ?>
 
                             </a>
 
-
-                            <!-- =================================================
-                                 ดาวน์โหลดไฟล์ PDF
-
-                                 ใช้ download-pdf.php?id=...
-                                 เพื่อเพิ่ม downloads
-                            ================================================== -->
 
                             <a
                                 href="download-pdf.php?id=<?php echo $project_id; ?>"
@@ -2128,12 +2839,29 @@ if ($comment_stmt) {
 
                                 <i class="bi bi-download"></i>
 
-                                ดาวน์โหลดไฟล์ PDF
+                                <?php
+                                echo e(
+                                    t('download_pdf')
+                                );
+                                ?>
 
                             </a>
 
 
                         <?php else: ?>
+
+
+                            <div class="pdf-document-label">
+
+                                <i class="bi bi-file-earmark-x"></i>
+
+                                <?php
+                                echo e(
+                                    t('pdf_document')
+                                );
+                                ?>
+
+                            </div>
 
 
                             <button
@@ -2144,7 +2872,11 @@ if ($comment_stmt) {
 
                                 <i class="bi bi-file-earmark-x"></i>
 
-                                ไม่มีไฟล์ PDF
+                                <?php
+                                echo e(
+                                    t('no_pdf')
+                                );
+                                ?>
 
                             </button>
 
@@ -2152,9 +2884,7 @@ if ($comment_stmt) {
                         <?php endif; ?>
 
 
-                        <!-- =================================================
-                             DATE
-                        ================================================== -->
+                        <!-- DATE -->
 
                         <div class="info-item">
 
@@ -2162,25 +2892,30 @@ if ($comment_stmt) {
 
                                 <i class="bi bi-calendar3"></i>
 
-                                เผยแพร่เมื่อ
+                                <?php
+                                echo e(
+                                    t('published')
+                                );
+                                ?>
 
                             </div>
 
 
                             <div class="info-value">
 
-                                <?php echo e($created_at); ?>
+                                <?php
+                                echo e($created_at);
+                                ?>
 
                             </div>
 
                         </div>
 
 
-                        <!-- =================================================
-                             STATUS LOGIN ONLY
-                        ================================================== -->
+                        <!-- STATUS -->
 
                         <?php if ($logged_in): ?>
+
 
                             <div class="info-item">
 
@@ -2188,25 +2923,38 @@ if ($comment_stmt) {
 
                                     <i class="bi bi-check-circle"></i>
 
-                                    สถานะ
+                                    <?php
+                                    echo e(
+                                        t('status')
+                                    );
+                                    ?>
 
                                 </div>
 
 
                                 <div class="info-value">
 
-                                    <?php echo e($status); ?>
+                                    <span class="status-pill">
+
+                                        <i
+                                            class="bi bi-check-circle-fill"
+                                        ></i>
+
+                                        <?php
+                                        echo e($status);
+                                        ?>
+
+                                    </span>
 
                                 </div>
 
                             </div>
 
+
                         <?php endif; ?>
 
 
-                        <!-- =================================================
-                             ADMIN VIEW
-                        ================================================== -->
+                        <!-- ADMIN STATS -->
 
                         <?php if (
                             $logged_in &&
@@ -2218,60 +2966,85 @@ if ($comment_stmt) {
 
                                 <div class="info-label">
 
-                                    <i class="bi bi-eye-fill"></i>
+                                    <i class="bi bi-bar-chart-fill"></i>
 
-                                    ยอดเข้าชม PDF
-
-                                </div>
-
-
-                                <div class="view-count-value">
-
-                                    <i class="bi bi-eye"></i>
-
-                                    <span>
-
-                                        <?php
-                                        echo number_format(
-                                            $view_count
-                                        );
-                                        ?>
-
-                                        ครั้ง
-
-                                    </span>
-
-                                </div>
-
-                            </div>
-
-
-                            <div class="info-item">
-
-                                <div class="info-label">
-
-                                    <i class="bi bi-download"></i>
-
-                                    ยอดดาวน์โหลด PDF
+                                    <?php
+                                    echo e(
+                                        t('project_stats')
+                                    );
+                                    ?>
 
                                 </div>
 
 
-                                <div class="view-count-value">
+                                <div class="stats-grid">
 
-                                    <i class="bi bi-download"></i>
 
-                                    <span>
+                                    <div class="stat-box">
 
-                                        <?php
-                                        echo number_format(
-                                            $download_count
-                                        );
-                                        ?>
+                                        <i
+                                            class="bi bi-eye stat-icon"
+                                        ></i>
 
-                                        ครั้ง
+                                        <span
+                                            class="stat-number"
+                                        >
 
-                                    </span>
+                                            <?php
+                                            echo number_format(
+                                                $view_count
+                                            );
+                                            ?>
+
+                                        </span>
+
+                                        <span
+                                            class="stat-label"
+                                        >
+
+                                            <?php
+                                            echo e(
+                                                t('pdf_views')
+                                            );
+                                            ?>
+
+                                        </span>
+
+                                    </div>
+
+
+                                    <div class="stat-box">
+
+                                        <i
+                                            class="bi bi-download stat-icon"
+                                        ></i>
+
+                                        <span
+                                            class="stat-number"
+                                        >
+
+                                            <?php
+                                            echo number_format(
+                                                $download_count
+                                            );
+                                            ?>
+
+                                        </span>
+
+                                        <span
+                                            class="stat-label"
+                                        >
+
+                                            <?php
+                                            echo e(
+                                                t('pdf_downloads')
+                                            );
+                                            ?>
+
+                                        </span>
+
+                                    </div>
+
 
                                 </div>
 
@@ -2281,9 +3054,7 @@ if ($comment_stmt) {
                         <?php endif; ?>
 
 
-                        <!-- =================================================
-                             DEGREE LOGIN ONLY
-                        ================================================== -->
+                        <!-- DEGREE -->
 
                         <?php if ($logged_in): ?>
 
@@ -2292,16 +3063,22 @@ if ($comment_stmt) {
 
                                 <div class="info-label">
 
-                                    <i class="bi bi-mortarboard"></i>
+                                    <i class="bi bi-mortarboard-fill"></i>
 
-                                    ระดับการศึกษา
+                                    <?php
+                                    echo e(
+                                        t('education_level')
+                                    );
+                                    ?>
 
                                 </div>
 
 
                                 <div class="info-value">
 
-                                    <?php echo e($degree); ?>
+                                    <?php
+                                    echo e($degree);
+                                    ?>
 
                                 </div>
 
@@ -2311,9 +3088,7 @@ if ($comment_stmt) {
                         <?php endif; ?>
 
 
-                        <!-- =================================================
-                             DEPARTMENT
-                        ================================================== -->
+                        <!-- DEPARTMENT -->
 
                         <div class="info-item">
 
@@ -2321,23 +3096,27 @@ if ($comment_stmt) {
 
                                 <i class="bi bi-building"></i>
 
-                                สาขา / ภาควิชา
+                                <?php
+                                echo e(
+                                    t('department')
+                                );
+                                ?>
 
                             </div>
 
 
                             <div class="info-value">
 
-                                <?php echo e($department); ?>
+                                <?php
+                                echo e($department);
+                                ?>
 
                             </div>
 
                         </div>
 
 
-                        <!-- =================================================
-                             ADVISOR
-                        ================================================== -->
+                        <!-- ADVISOR -->
 
                         <div class="info-item">
 
@@ -2345,23 +3124,27 @@ if ($comment_stmt) {
 
                                 <i class="bi bi-person-workspace"></i>
 
-                                อาจารย์ที่ปรึกษา
+                                <?php
+                                echo e(
+                                    t('advisor')
+                                );
+                                ?>
 
                             </div>
 
 
                             <div class="info-value advisor-value">
 
-                                <?php echo e($advisor); ?>
+                                <?php
+                                echo e($advisor);
+                                ?>
 
                             </div>
 
                         </div>
 
 
-                        <!-- =================================================
-                             MEMBERS
-                        ================================================== -->
+                        <!-- MEMBERS -->
 
                         <?php if ($logged_in): ?>
 
@@ -2370,14 +3153,25 @@ if ($comment_stmt) {
 
                                 <div class="info-label">
 
-                                    <i class="bi bi-people"></i>
+                                    <i class="bi bi-people-fill"></i>
 
-                                    สมาชิกกลุ่ม
+                                    <?php
+                                    echo e(
+                                        t('members')
+                                    );
+                                    ?>
+
                                     (
                                     <?php
-                                    echo count($members);
+                                    echo $member_count;
                                     ?>
-                                    คน
+
+                                    <?php
+                                    echo e(
+                                        t('person')
+                                    );
+                                    ?>
+
                                     )
 
                                 </div>
@@ -2386,115 +3180,152 @@ if ($comment_stmt) {
                                 <div class="member-list">
 
 
-                                    <?php foreach (
-                                        $members
-                                        as $index => $member
+                                    <?php if (
+                                        $member_count === 0
                                     ): ?>
-
-
-                                        <?php
-
-                                        $member_key =
-                                            normalize_teacher_name_for_comment(
-                                                $member
-                                            );
-
-
-                                        $member_user =
-                                            $user_map[
-                                                $member_key
-                                            ] ?? null;
-
-
-                                        $can_view_member_profile =
-                                            false;
-
-
-                                        if ($member_user) {
-
-                                            $member_role =
-                                                $member_user['role']
-                                                ?? '';
-
-
-                                            $can_view_member_profile =
-                                                in_array(
-                                                    $member_role,
-                                                    [
-                                                        'student',
-                                                        'teacher',
-                                                        'admin'
-                                                    ],
-                                                    true
-                                                );
-                                        }
-
-                                        ?>
 
 
                                         <div class="member-item">
 
-
                                             <span
                                                 class="member-number"
                                             >
+                                                -
+                                            </span>
+
+                                            <span
+                                                class="member-name"
+                                            >
 
                                                 <?php
-                                                echo
-                                                    ($index + 1) .
-                                                    '.';
+                                                echo e(
+                                                    t('no_member')
+                                                );
                                                 ?>
 
                                             </span>
 
-
-                                            <?php if (
-                                                $member_user &&
-                                                $can_view_member_profile
-                                            ): ?>
+                                        </div>
 
 
-                                                <a
-                                                    href="profile.php?id=<?php
-                                                        echo (int)$member_user['id'];
-                                                    ?>"
-                                                    class="member-name member-profile-link"
-                                                    title="ดูโปรไฟล์สมาชิก"
-                                                >
-
-                                                    <?php
-                                                    echo e($member);
-                                                    ?>
+                                    <?php else: ?>
 
 
-                                                    <i
-                                                        class="bi bi-box-arrow-up-right"
-                                                    ></i>
+                                        <?php foreach (
+                                            $members
+                                            as $index => $member
+                                        ): ?>
 
-                                                </a>
+
+                                            <?php
+
+                                            $member_key =
+                                                normalize_teacher_name_for_comment(
+                                                    $member
+                                                );
 
 
-                                            <?php else: ?>
+                                            $member_user =
+                                                $user_map[
+                                                    $member_key
+                                                ] ?? null;
+
+
+                                            $can_view_member_profile =
+                                                false;
+
+
+                                            if ($member_user) {
+
+                                                $member_role =
+                                                    $member_user['role']
+                                                    ?? '';
+
+
+                                                $can_view_member_profile =
+                                                    in_array(
+                                                        $member_role,
+                                                        [
+                                                            'student',
+                                                            'teacher',
+                                                            'admin'
+                                                        ],
+                                                        true
+                                                    );
+                                            }
+
+                                            ?>
+
+
+                                            <div class="member-item">
 
 
                                                 <span
-                                                    class="member-name"
+                                                    class="member-number"
                                                 >
 
                                                     <?php
-                                                    echo e($member);
+                                                    echo $index + 1;
                                                     ?>
 
                                                 </span>
 
 
-                                            <?php endif; ?>
+                                                <?php if (
+                                                    $member_user &&
+                                                    $can_view_member_profile
+                                                ): ?>
 
 
-                                        </div>
+                                                    <a
+                                                        href="profile.php?id=<?php
+                                                            echo (int)
+                                                                $member_user['id'];
+                                                        ?>"
+                                                        class="member-name member-profile-link"
+                                                        title="<?php
+                                                            echo e(
+                                                                t('profile')
+                                                            );
+                                                        ?>"
+                                                    >
+
+                                                        <?php
+                                                        echo e($member);
+                                                        ?>
 
 
-                                    <?php endforeach; ?>
+                                                        <i
+                                                            class="bi bi-box-arrow-up-right"
+                                                        ></i>
+
+                                                    </a>
+
+
+                                                <?php else: ?>
+
+
+                                                    <span
+                                                        class="member-name"
+                                                    >
+
+                                                        <?php
+                                                        echo e($member);
+                                                        ?>
+
+                                                    </span>
+
+
+                                                <?php endif; ?>
+
+
+                                            </div>
+
+
+                                        <?php endforeach; ?>
+
+
+                                    <?php endif; ?>
 
 
                                 </div>
@@ -2505,9 +3336,7 @@ if ($comment_stmt) {
                         <?php endif; ?>
 
 
-                        <!-- =================================================
-                             GITHUB
-                        ================================================== -->
+                        <!-- GITHUB -->
 
                         <?php if ($logged_in): ?>
 
@@ -2519,7 +3348,11 @@ if ($comment_stmt) {
 
                                     <i class="bi bi-github"></i>
 
-                                    GitHub Repository
+                                    <?php
+                                    echo e(
+                                        t('github_repository')
+                                    );
+                                    ?>
 
                                 </div>
 
@@ -2530,7 +3363,9 @@ if ($comment_stmt) {
 
 
                                     <a
-                                        href="<?php echo e($github_url); ?>"
+                                        href="<?php
+                                            echo e($github_url);
+                                        ?>"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         class="github-url"
@@ -2544,7 +3379,9 @@ if ($comment_stmt) {
 
 
                                     <a
-                                        href="<?php echo e($github_url); ?>"
+                                        href="<?php
+                                            echo e($github_url);
+                                        ?>"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         class="github-button"
@@ -2552,7 +3389,11 @@ if ($comment_stmt) {
 
                                         <i class="bi bi-github"></i>
 
-                                        ดูโปรเจกต์บน GitHub
+                                        <?php
+                                        echo e(
+                                            t('github_project')
+                                        );
+                                        ?>
 
                                     </a>
 
@@ -2565,7 +3406,11 @@ if ($comment_stmt) {
                                         style="font-size:13px;"
                                     >
 
-                                        ยังไม่ได้เพิ่มลิงก์ GitHub
+                                        <?php
+                                        echo e(
+                                            t('no_github')
+                                        );
+                                        ?>
 
                                     </div>
 
@@ -2585,10 +3430,10 @@ if ($comment_stmt) {
 
 
                 <!-- =================================================
-                     RIGHT
+                     RIGHT CONTENT
                 ================================================== -->
 
-                <div class="col-md-8">
+                <div class="col-lg-8">
 
 
                     <div class="project-content">
@@ -2630,9 +3475,13 @@ if ($comment_stmt) {
 
                         <div class="university-text">
 
-                            <i class="bi bi-building"></i>
+                            <i class="bi bi-mortarboard-fill"></i>
 
-                            มหาวิทยาลัยสวนดุสิต
+                            <?php
+                            echo e(
+                                t('university')
+                            );
+                            ?>
 
                         </div>
 
@@ -2644,9 +3493,13 @@ if ($comment_stmt) {
 
                             <div class="description-title">
 
-                                <i class="bi bi-file-text"></i>
+                                <i class="bi bi-file-text-fill"></i>
 
-                                คำอธิบาย / บทคัดย่อ
+                                <?php
+                                echo e(
+                                    t('description')
+                                );
+                                ?>
 
                             </div>
 
@@ -2654,11 +3507,9 @@ if ($comment_stmt) {
                             <p class="description-text">
 
                                 <?php
-
                                 echo nl2br(
                                     e($description)
                                 );
-
                                 ?>
 
                             </p>
@@ -2667,9 +3518,7 @@ if ($comment_stmt) {
                         </div>
 
 
-                        <!-- =================================================
-                             COMMENTS
-                        ================================================== -->
+                        <!-- COMMENTS -->
 
                         <?php if ($logged_in): ?>
 
@@ -2683,7 +3532,11 @@ if ($comment_stmt) {
                                         class="bi bi-chat-left-text-fill"
                                     ></i>
 
-                                    ความคิดเห็นจากอาจารย์ที่ปรึกษา
+                                    <?php
+                                    echo e(
+                                        t('advisor_comments')
+                                    );
+                                    ?>
 
                                 </div>
 
@@ -2695,7 +3548,13 @@ if ($comment_stmt) {
                                     ></i>
 
                                     <span>
-                                        อาจารย์ที่ปรึกษา:
+
+                                        <?php
+                                        echo e(
+                                            t('advisor_label')
+                                        );
+                                        ?>
+
                                     </span>
 
                                     <strong>
@@ -2709,9 +3568,7 @@ if ($comment_stmt) {
                                 </div>
 
 
-                                <!-- =================================================
-                                     TEACHER FORM
-                                ================================================== -->
+                                <!-- TEACHER FORM -->
 
                                 <?php if ($can_comment): ?>
 
@@ -2725,7 +3582,7 @@ if ($comment_stmt) {
                                             class="mb-2"
                                             style="
                                                 font-size:14px;
-                                                font-weight:600;
+                                                font-weight:700;
                                                 color:#245c7d;
                                             "
                                         >
@@ -2734,7 +3591,11 @@ if ($comment_stmt) {
                                                 class="bi bi-pencil-square"
                                             ></i>
 
-                                            แสดงความคิดเห็นต่อโปรเจกต์นี้
+                                            <?php
+                                            echo e(
+                                                t('write_comment')
+                                            );
+                                            ?>
 
                                         </div>
 
@@ -2756,7 +3617,13 @@ if ($comment_stmt) {
 
                                             <textarea
                                                 name="comment"
-                                                placeholder="พิมพ์ความคิดเห็นหรือคำแนะนำ..."
+                                                placeholder="<?php
+                                                    echo e(
+                                                        t(
+                                                            'comment_placeholder'
+                                                        )
+                                                    );
+                                                ?>"
                                                 required
                                             ></textarea>
 
@@ -2770,7 +3637,11 @@ if ($comment_stmt) {
                                                     class="bi bi-send-fill"
                                                 ></i>
 
-                                                ส่งความคิดเห็น
+                                                <?php
+                                                echo e(
+                                                    t('send_comment')
+                                                );
+                                                ?>
 
                                             </button>
 
@@ -2794,7 +3665,11 @@ if ($comment_stmt) {
                                             class="bi bi-info-circle"
                                         ></i>
 
-                                        โปรเจกต์นี้อยู่ภายใต้การดูแลของ
+                                        <?php
+                                        echo e(
+                                            t('teacher_only')
+                                        );
+                                        ?>
 
                                         <strong>
 
@@ -2804,8 +3679,11 @@ if ($comment_stmt) {
 
                                         </strong>
 
-                                        จึงมีเฉพาะอาจารย์ที่ปรึกษาเท่านั้น
-                                        ที่สามารถแสดงความคิดเห็นได้
+                                        <?php
+                                        echo e(
+                                            t('teacher_only_2')
+                                        );
+                                        ?>
 
                                     </div>
 
@@ -2813,9 +3691,7 @@ if ($comment_stmt) {
                                 <?php endif; ?>
 
 
-                                <!-- =================================================
-                                     SHOW COMMENTS
-                                ================================================== -->
+                                <!-- SHOW COMMENTS -->
 
                                 <?php if (
                                     count($comments) > 0
@@ -2866,7 +3742,9 @@ if ($comment_stmt) {
                                         ) {
 
                                             $comment_teacher =
-                                                'อาจารย์';
+                                                t(
+                                                    'advisor_word'
+                                                );
                                         }
 
 
@@ -2965,13 +3843,11 @@ if ($comment_stmt) {
                                             >
 
                                                 <?php
-
                                                 echo nl2br(
                                                     e(
                                                         $comment['comment']
                                                     )
                                                 );
-
                                                 ?>
 
                                             </p>
@@ -2988,7 +3864,14 @@ if ($comment_stmt) {
                                                     class="comment-delete-form"
                                                     onsubmit="
                                                         return confirm(
-                                                            'ต้องการลบความคิดเห็นนี้ใช่หรือไม่?'
+                                                            <?php
+                                                            echo json_encode(
+                                                                t(
+                                                                    'comment_confirm_delete'
+                                                                ),
+                                                                JSON_UNESCAPED_UNICODE
+                                                            );
+                                                            ?>
                                                         );
                                                     "
                                                 >
@@ -3022,7 +3905,13 @@ if ($comment_stmt) {
                                                             class="bi bi-trash3"
                                                         ></i>
 
-                                                        ลบความคิดเห็น
+                                                        <?php
+                                                        echo e(
+                                                            t(
+                                                                'delete_comment'
+                                                            )
+                                                        );
+                                                        ?>
 
                                                     </button>
 
@@ -3050,7 +3939,11 @@ if ($comment_stmt) {
                                             class="bi bi-chat-square-text"
                                         ></i>
 
-                                        ยังไม่มีความคิดเห็นจากอาจารย์ที่ปรึกษา
+                                        <?php
+                                        echo e(
+                                            t('no_comments')
+                                        );
+                                        ?>
 
                                     </div>
 
@@ -3064,9 +3957,7 @@ if ($comment_stmt) {
                         <?php endif; ?>
 
 
-                        <!-- =================================================
-                             ADMIN / OWNER ACTION
-                        ================================================== -->
+                        <!-- ADMIN / OWNER -->
 
                         <?php if (
                             $can_edit ||
@@ -3091,7 +3982,11 @@ if ($comment_stmt) {
                                             class="bi bi-pencil-square"
                                         ></i>
 
-                                        แก้ไขโปรเจกต์
+                                        <?php
+                                        echo e(
+                                            t('edit_project')
+                                        );
+                                        ?>
 
                                     </a>
 
@@ -3109,7 +4004,14 @@ if ($comment_stmt) {
                                         class="delete-button"
                                         onclick="
                                             return confirm(
-                                                'ต้องการลบโปรเจกต์นี้ใช่หรือไม่?\n\nเมื่อลบแล้วจะไม่สามารถกู้คืนได้'
+                                                <?php
+                                                echo json_encode(
+                                                    t(
+                                                        'admin_confirm_delete'
+                                                    ),
+                                                    JSON_UNESCAPED_UNICODE
+                                                );
+                                                ?>
                                             );
                                         "
                                     >
@@ -3118,7 +4020,11 @@ if ($comment_stmt) {
                                             class="bi bi-trash3"
                                         ></i>
 
-                                        ลบโปรเจกต์
+                                        <?php
+                                        echo e(
+                                            t('delete_project')
+                                        );
+                                        ?>
 
                                     </a>
 
@@ -3132,20 +4038,24 @@ if ($comment_stmt) {
                         <?php endif; ?>
 
 
-                        <!-- =================================================
-                             GUEST
-                        ================================================== -->
+                        <!-- GUEST NOTICE -->
 
                         <?php if (!$logged_in): ?>
 
 
                             <div class="guest-notice">
 
-                                <i class="bi bi-eye"></i>
+                                <i class="bi bi-eye-fill"></i>
 
-                                บุคคลทั่วไปสามารถดูไฟล์ PDF
-                                วันเผยแพร่ อาจารย์ที่ปรึกษา
-                                สาขา / ภาควิชา และคำอธิบายโปรเจกต์ได้
+                                <span>
+
+                                    <?php
+                                    echo e(
+                                        t('guest_notice')
+                                    );
+                                    ?>
+
+                                </span>
 
                             </div>
 

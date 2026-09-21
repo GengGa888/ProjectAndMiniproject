@@ -10,23 +10,273 @@ function e($value)
     return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
 }
 
+
+/* =====================================================
+   Google Forms
+===================================================== */
+$feedback_form_url =
+    'https://docs.google.com/forms/d/e/1FAIpQLScDQbZ7bW4TH0MDOZhqfnMhaO6aBI1R9WcfMV4DNXxz-T6rYA/viewform';
+
+/* สร้าง QR Code จาก Google Forms อัตโนมัติ */
+$feedback_qr_url =
+    'https://api.qrserver.com/v1/create-qr-code/?size=500x500&margin=10&data='
+    . urlencode($feedback_form_url);
+
+
+/* =====================================================
+   ระบบเปลี่ยนภาษา
+===================================================== */
+$allowed_languages = ['th', 'en'];
+
+if (
+    isset($_GET['lang']) &&
+    in_array($_GET['lang'], $allowed_languages, true)
+) {
+    $_SESSION['lang'] = $_GET['lang'];
+}
+
+$lang = $_SESSION['lang'] ?? 'th';
+
+
+/* =====================================================
+   ข้อความภาษา
+===================================================== */
+$translations = [
+
+    'th' => [
+
+        'page_title' => 'หน้าแรก - คลังโปรเจกต์ SDU',
+
+        'home' => 'หน้าแรก',
+        'admin' => 'Admin',
+        'upload_project' => 'ส่งโปรเจกต์',
+        'profile' => 'ข้อมูลส่วนตัว',
+        'manage_system' => 'จัดการระบบ',
+        'logout' => 'ออกจากระบบ',
+        'login' => 'เข้าสู่ระบบ',
+
+        'project_archive' => 'โปรเจกต์ SDU',
+
+        'hero_description' =>
+            'แหล่งรวบรวมและค้นหาโปรเจกต์ของนักศึกษา เพื่อให้สามารถเข้าถึงผลงานทางวิชาการ ค้นหาโครงงานตามระดับการศึกษาและสาขาวิชา รวมถึงดูข้อมูลอาจารย์ที่ปรึกษาและเอกสารโปรเจกต์ได้อย่างสะดวก',
+
+        'about_title' =>
+            'เว็บไซต์นี้ทำหน้าที่อะไร?',
+
+        'about_description' =>
+            'เว็บไซต์นี้จัดทำขึ้นเพื่อเป็นศูนย์กลางสำหรับ จัดเก็บ ค้นหา และเผยแพร่โปรเจกต์ของนักศึกษา ภายในมหาวิทยาลัยสวนดุสิต ช่วยให้ผู้ใช้งานสามารถค้นหาโครงงานที่สนใจ และดูรายละเอียดของแต่ละโปรเจกต์ได้ง่ายขึ้น',
+
+        'search_project' => 'ค้นหาโปรเจกต์',
+        'search_placeholder' => 'พิมพ์ชื่อโปรเจกต์...',
+
+        'degree' => 'ระดับหลักสูตร',
+        'all_degree' => 'ทุกระดับการศึกษา',
+        'bachelor' => 'ปริญญาตรี',
+        'master' => 'ปริญญาโท',
+        'doctorate' => 'ปริญญาเอก',
+
+        'major' => 'สาขาวิชา',
+        'all_major' => 'ทุกสาขาวิชา',
+        'it' => 'เทคโนโลยีสารสนเทศ',
+        'cs' => 'วิทยาการคอมพิวเตอร์',
+        'env' => 'วิทยาศาสตร์สิ่งแวดล้อม',
+        'food' => 'เทคโนโลยีการประกอบอาหาร',
+
+        'search_filter' => 'ค้นหาและกรองโปรเจกต์',
+        'search' => 'ค้นหา',
+
+        'found' => 'พบโปรเจกต์',
+        'items' => 'รายการ',
+        'for_keyword' => 'สำหรับคำค้นหา',
+
+        'owner' => 'เจ้าของโปรเจกต์',
+        'members' => 'สมาชิกกลุ่ม',
+        'advisor' => 'อาจารย์ที่ปรึกษา',
+        'date' => 'วันที่ลงโปรเจกต์',
+        'description' => 'คำอธิบาย',
+
+        'guest' =>
+            'กำลังเข้าชมในฐานะบุคคลทั่วไป สามารถค้นหาและดูข้อมูลโปรเจกต์ได้',
+
+        'no_project' => 'ไม่พบโปรเจกต์',
+
+        'no_project_description' =>
+            'ยังไม่มีโปรเจกต์ที่ตรงกับข้อมูลที่ค้นหา',
+
+        'footer_description' =>
+            'ระบบจัดเก็บและค้นหาโปรเจกต์ของนักศึกษา มหาวิทยาลัยสวนดุสิต',
+
+        'language' => 'ภาษา',
+        'thai' => 'ไทย',
+        'english' => 'English',
+
+        'not_specified' => 'ไม่ระบุชื่อโปรเจกต์',
+
+        'pdf' => 'PDF',
+        'github' => 'GitHub',
+
+        'feedback_title' =>
+            'สอบถาม ร้องเรียน ข้อคิดเห็น ข้อเสนอแนะ',
+
+        'scan_qr' =>
+            'สแกน QR Code',
+
+        'feedback_description' =>
+            'เพื่อสอบถาม ร้องเรียน แสดงความคิดเห็น หรือส่งข้อเสนอแนะ'
+    ],
+
+
+    'en' => [
+
+        'page_title' => 'Home - SDU Project Archive',
+
+        'home' => 'Home',
+        'admin' => 'Admin',
+        'upload_project' => 'Submit Project',
+        'profile' => 'Profile',
+        'manage_system' => 'Manage System',
+        'logout' => 'Logout',
+        'login' => 'Login',
+
+        'project_archive' => 'SDU Project Archive',
+
+        'hero_description' =>
+            'A central platform for collecting and searching student projects, allowing users to access academic works, search projects by education level and department, and view advisor information and project documents easily.',
+
+        'about_title' =>
+            'What does this website do?',
+
+        'about_description' =>
+            'This website serves as a central platform for storing, searching, and publishing student projects at Suan Dusit University. Users can easily search for projects and view project details.',
+
+        'search_project' => 'Search Projects',
+        'search_placeholder' => 'Enter project name...',
+
+        'degree' => 'Education Level',
+        'all_degree' => 'All Education Levels',
+        'bachelor' => "Bachelor's Degree",
+        'master' => "Master's Degree",
+        'doctorate' => 'Doctorate',
+
+        'major' => 'Department',
+        'all_major' => 'All Departments',
+        'it' => 'Information Technology',
+        'cs' => 'Computer Science',
+        'env' => 'Environmental Science',
+        'food' => 'Food Technology',
+
+        'search_filter' => 'Search and Filter Projects',
+        'search' => 'Search',
+
+        'found' => 'Found',
+        'items' => 'projects',
+        'for_keyword' => 'for keyword',
+
+        'owner' => 'Project Owner',
+        'members' => 'Group Members',
+        'advisor' => 'Advisor',
+        'date' => 'Submission Date',
+        'description' => 'Description',
+
+        'guest' =>
+            'You are browsing as a guest. You can search and view project information.',
+
+        'no_project' => 'No Projects Found',
+
+        'no_project_description' =>
+            'There are no projects matching your search.',
+
+        'footer_description' =>
+            'Student project storage and search system, Suan Dusit University',
+
+        'language' => 'Language',
+        'thai' => 'ไทย',
+        'english' => 'English',
+
+        'not_specified' => 'Untitled Project',
+
+        'pdf' => 'PDF',
+        'github' => 'GitHub',
+
+        'feedback_title' =>
+            'Questions, Complaints, Comments & Suggestions',
+
+        'scan_qr' =>
+            'Scan QR Code',
+
+        'feedback_description' =>
+            'For questions, complaints, comments, or suggestions'
+    ]
+
+];
+
+
+/* =====================================================
+   ฟังก์ชันแปลภาษา
+===================================================== */
+function t($key)
+{
+    global $translations, $lang;
+
+    return $translations[$lang][$key]
+        ?? $translations['th'][$key]
+        ?? $key;
+}
+
+
+/* =====================================================
+   URL สำหรับเปลี่ยนภาษา
+===================================================== */
+function language_url($new_lang)
+{
+    $query = $_GET;
+
+    $query['lang'] = $new_lang;
+
+    return 'index2.php?' . http_build_query($query);
+}
+
+
+/* =====================================================
+   บันทึกจำนวนผู้เข้าชมเว็บไซต์
+===================================================== */
+mysqli_query(
+    $conn,
+    "INSERT INTO site_visits (visited_at)
+     VALUES (NOW())"
+);
+
+
 /* =====================================================
    ตรวจสอบการเข้าสู่ระบบ
 ===================================================== */
 $logged_in = isset($_SESSION['user_id']);
-$user_id = $logged_in ? (int)$_SESSION['user_id'] : 0;
-$user_role = $_SESSION['role'] ?? '';
+
+$user_id =
+    $logged_in
+        ? (int)$_SESSION['user_id']
+        : 0;
+
+$user_role =
+    $_SESSION['role'] ?? '';
+
 
 /* =====================================================
    รูปโปรไฟล์
 ===================================================== */
 $profile_image_url = '';
 
-if ($logged_in && $user_id > 0) {
+if (
+    $logged_in &&
+    $user_id > 0
+) {
 
     $profile_stmt = mysqli_prepare(
         $conn,
-        "SELECT profile_image FROM users WHERE id = ? LIMIT 1"
+        "SELECT profile_image
+         FROM users
+         WHERE id = ?
+         LIMIT 1"
     );
 
     if ($profile_stmt) {
@@ -37,21 +287,36 @@ if ($logged_in && $user_id > 0) {
             $user_id
         );
 
-        mysqli_stmt_execute($profile_stmt);
+        mysqli_stmt_execute(
+            $profile_stmt
+        );
 
-        $profile_result = mysqli_stmt_get_result($profile_stmt);
+        $profile_result =
+            mysqli_stmt_get_result(
+                $profile_stmt
+            );
 
         if ($profile_result) {
 
-            $profile_row = mysqli_fetch_assoc($profile_result);
+            $profile_row =
+                mysqli_fetch_assoc(
+                    $profile_result
+                );
 
             $profile_image =
-                trim($profile_row['profile_image'] ?? '');
+                trim(
+                    $profile_row['profile_image']
+                    ?? ''
+                );
 
-            if ($profile_image !== '') {
+            if (
+                $profile_image !== ''
+            ) {
 
                 $safe_profile_image =
-                    basename($profile_image);
+                    basename(
+                        $profile_image
+                    );
 
                 $profile_file_path =
                     __DIR__ .
@@ -60,36 +325,54 @@ if ($logged_in && $user_id > 0) {
                     DIRECTORY_SEPARATOR .
                     $safe_profile_image;
 
-                if (is_file($profile_file_path)) {
+                if (
+                    is_file(
+                        $profile_file_path
+                    )
+                ) {
 
                     $profile_image_url =
                         "profile_uploads/" .
-                        rawurlencode($safe_profile_image);
+                        rawurlencode(
+                            $safe_profile_image
+                        );
                 }
             }
         }
 
-        mysqli_stmt_close($profile_stmt);
+        mysqli_stmt_close(
+            $profile_stmt
+        );
     }
 }
+
 
 /* =====================================================
    รูปโปรไฟล์เริ่มต้น
 ===================================================== */
-if ($profile_image_url === '') {
+if (
+    $profile_image_url === ''
+) {
 
     $profile_image_url =
         "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 }
 
+
 /* =====================================================
    รับค่าค้นหา
 ===================================================== */
-$keyword = trim($_GET['keyword'] ?? '');
+$keyword =
+    trim(
+        $_GET['keyword'] ?? ''
+    );
 
-$degree = $_GET['degree'] ?? 'all';
+$degree =
+    $_GET['degree'] ?? 'all';
 
-$major = $_GET['major'] ?? 'all';
+$major =
+    $_GET['major'] ?? 'all';
+
 
 /* =====================================================
    SQL
@@ -116,15 +399,23 @@ $sql = "
     WHERE 1=1
 ";
 
+
 $params = [];
+
 $types = "";
+
 
 /* =====================================================
    ค้นหาโปรเจกต์
 ===================================================== */
-if ($keyword !== '') {
+if (
+    $keyword !== ''
+) {
 
-    $search = "%" . $keyword . "%";
+    $search =
+        "%" .
+        $keyword .
+        "%";
 
     $sql .= "
         AND (
@@ -139,22 +430,32 @@ if ($keyword !== '') {
         )
     ";
 
-    $params[] = $search;
-    $params[] = $search;
-    $params[] = $search;
-    $params[] = $search;
-    $params[] = $search;
-    $params[] = $search;
-    $params[] = $search;
-    $params[] = $search;
 
-    $types = "ssssssss";
+    $params = [
+
+        $search,
+        $search,
+        $search,
+        $search,
+        $search,
+        $search,
+        $search,
+        $search
+
+    ];
+
+
+    $types =
+        "ssssssss";
 }
+
 
 /* =====================================================
    กรองระดับการศึกษา
 ===================================================== */
-if ($degree === 'bachelor') {
+if (
+    $degree === 'bachelor'
+) {
 
     $sql .= "
         AND (
@@ -163,7 +464,9 @@ if ($degree === 'bachelor') {
         )
     ";
 
-} elseif ($degree === 'master') {
+} elseif (
+    $degree === 'master'
+) {
 
     $sql .= "
         AND (
@@ -172,7 +475,9 @@ if ($degree === 'bachelor') {
         )
     ";
 
-} elseif ($degree === 'doctorate') {
+} elseif (
+    $degree === 'doctorate'
+) {
 
     $sql .= "
         AND (
@@ -182,76 +487,97 @@ if ($degree === 'bachelor') {
     ";
 }
 
+
 /* =====================================================
    กรองสาขาวิชา
 ===================================================== */
-if ($major === 'it') {
+if (
+    $major === 'it'
+) {
 
     $sql .= "
         AND (
             department LIKE '%เทคโนโลยีสารสนเทศ%'
-            OR LOWER(department)
-               LIKE '%information technology%'
+            OR LOWER(department) LIKE '%information technology%'
             OR department = 'IT'
         )
     ";
 
-} elseif ($major === 'cs') {
+} elseif (
+    $major === 'cs'
+) {
 
     $sql .= "
         AND (
             department LIKE '%วิทยาการคอมพิวเตอร์%'
-            OR LOWER(department)
-               LIKE '%computer science%'
+            OR LOWER(department) LIKE '%computer science%'
             OR department = 'CS'
         )
     ";
 
-} elseif ($major === 'env') {
+} elseif (
+    $major === 'env'
+) {
 
     $sql .= "
         AND (
             department LIKE '%วิทยาศาสตร์สิ่งแวดล้อม%'
-            OR LOWER(department)
-               LIKE '%environmental science%'
+            OR LOWER(department) LIKE '%environmental science%'
         )
     ";
 
-} elseif ($major === 'food') {
+} elseif (
+    $major === 'food'
+) {
 
     $sql .= "
         AND (
             department LIKE '%เทคโนโลยีการประกอบอาหาร%'
-            OR LOWER(department)
-               LIKE '%food technology%'
+            OR LOWER(department) LIKE '%food technology%'
         )
     ";
 }
 
+
 /* =====================================================
-   เรียงจากโปรเจกต์ล่าสุด
+   เรียงโปรเจกต์ล่าสุด
 ===================================================== */
 $sql .= "
     ORDER BY id DESC
 ";
 
+
 /* =====================================================
    Prepare
 ===================================================== */
-$stmt = mysqli_prepare($conn, $sql);
+$stmt =
+    mysqli_prepare(
+        $conn,
+        $sql
+    );
 
-if (!$stmt) {
+
+if (
+    !$stmt
+) {
 
     die(
         "SQL Error: " .
-        e(mysqli_error($conn))
+        e(
+            mysqli_error(
+                $conn
+            )
+        )
     );
 }
+
 
 /* =====================================================
    Bind Parameter
 ===================================================== */
-if (!empty($params)) {
+if (
+    !empty($params)
+) {
 
     mysqli_stmt_bind_param(
         $stmt,
@@ -260,27 +586,42 @@ if (!empty($params)) {
     );
 }
 
+
 /* =====================================================
    Execute
 ===================================================== */
-if (!mysqli_stmt_execute($stmt)) {
+if (
+    !mysqli_stmt_execute(
+        $stmt
+    )
+) {
 
     die(
         "Execute Error: " .
-        e(mysqli_stmt_error($stmt))
+        e(
+            mysqli_stmt_error(
+                $stmt
+            )
+        )
     );
 }
+
 
 /* =====================================================
    Result
 ===================================================== */
-$result = mysqli_stmt_get_result($stmt);
+$result =
+    mysqli_stmt_get_result(
+        $stmt
+    );
 
 ?>
 
 <!DOCTYPE html>
 
-<html lang="th">
+<html
+    lang="<?php echo e($lang); ?>"
+>
 
 <head>
 
@@ -292,7 +633,7 @@ $result = mysqli_stmt_get_result($stmt);
     >
 
     <title>
-        หน้าแรก - คลังโปรเจกต์ SDU
+        <?php echo e(t('page_title')); ?>
     </title>
 
 
@@ -312,275 +653,233 @@ $result = mysqli_stmt_get_result($stmt);
     >
 
 
+    <!-- Google Font -->
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
+
     <style>
 
-        :root {
-
-            --sdu-pdf-blue:
-                #5ab1d8;
+        * {
+            box-sizing: border-box;
         }
 
 
-        /* =====================================================
-           BODY
-        ====================================================== */
-
         body {
 
+            margin: 0;
+
             background:
-                #ffffff;
+                linear-gradient(
+                    180deg,
+                    #f4f9fd 0%,
+                    #ffffff 45%
+                );
 
             font-family:
+                'Sarabun',
                 'Segoe UI',
                 Tahoma,
-                Geneva,
-                Verdana,
                 sans-serif;
+
+            color: #333;
         }
 
 
         /* =====================================================
            HEADER
-        ====================================================== */
+        ===================================================== */
 
         .custom-header {
 
             background:
                 linear-gradient(
-                    to right,
+                    135deg,
                     #4da4d9,
-                    #2b7bb3
+                    #2474aa
                 );
 
             padding:
-                8px 0 15px 0;
+                12px 0;
 
-            border-bottom:
-                2px solid #287cab;
+            box-shadow:
+                0 4px 18px
+                rgba(36, 116, 170, 0.20);
+
+            position:
+                sticky;
+
+            top: 0;
+
+            z-index: 1000;
+        }
+
+
+        .header-inner {
+
+            min-height:
+                55px;
         }
 
 
         .sdu-logo {
 
-            width:
-                45px;
+            width: 48px;
+            height: 48px;
 
-            height:
-                45px;
+            object-fit: contain;
 
-            object-fit:
-                contain;
+            background: #fff;
 
-            background:
-                #ffffff;
+            border-radius: 50%;
 
-            border-radius:
-                50%;
+            padding: 2px;
 
-            padding:
-                2px;
+            box-shadow:
+                0 3px 10px
+                rgba(0,0,0,.15);
         }
 
 
-        /* =====================================================
-           MENU
-        ====================================================== */
+        .main-menu {
+
+            margin: 0;
+
+            padding: 0;
+
+            list-style: none;
+        }
+
 
         .main-menu .nav-link {
 
-            color:
-                #ffffff !important;
+            color: #fff !important;
 
-            font-size:
-                1.05rem;
+            font-size: 1.05rem;
 
-            padding-left:
-                0;
+            font-weight: 600;
 
-            margin-right:
-                20px;
+            padding: 8px 12px;
 
-            font-weight:
-                500;
+            border-radius: 10px;
+
+            transition: .2s;
         }
 
 
         .main-menu .nav-link:hover {
 
-            color:
-                #e8f4fc !important;
-
-            text-decoration:
-                underline;
-        }
-
-
-        /* =====================================================
-           PROFILE
-        ====================================================== */
-
-        .profile-image {
-
-            width:
-                45px;
-
-            height:
-                45px;
-
-            border-radius:
-                50%;
-
-            object-fit:
-                cover;
-
-            border:
-                2px solid #ffffff;
-
-            cursor:
-                pointer;
-
-            transition:
-                0.2s;
-
             background:
-                #ffffff;
+                rgba(255,255,255,.15);
         }
 
 
-        .profile-image:hover {
+        .header-right {
 
-            opacity:
-                0.85;
+            display: flex;
 
-            transform:
-                scale(1.05);
+            align-items: center;
+
+            gap: 12px;
         }
 
-
-        /* =====================================================
-           LOGIN
-        ====================================================== */
 
         .btn-login {
 
-            min-height:
-                45px;
+            min-height: 43px;
 
-            padding:
-                0 17px;
+            padding: 0 18px;
 
-            border-radius:
-                25px;
-
-            background:
-                rgba(
-                    255,
-                    255,
-                    255,
-                    0.18
-                );
+            border-radius: 25px;
 
             border:
-                2px solid #ffffff;
+                2px solid rgba(255,255,255,.9);
 
-            color:
-                #ffffff;
+            color: #fff;
 
-            display:
-                flex;
+            text-decoration: none;
 
-            align-items:
-                center;
+            display: flex;
 
-            justify-content:
-                center;
+            align-items: center;
 
-            gap:
-                7px;
+            gap: 7px;
 
-            text-decoration:
-                none;
+            font-weight: 600;
 
-            font-size:
-                0.95rem;
-
-            font-weight:
-                500;
-
-            transition:
-                all 0.2s ease;
+            transition: .2s;
         }
 
 
         .btn-login:hover {
 
-            background:
-                #ffffff;
+            background: #fff;
 
-            color:
-                #3287bb;
-
-            transform:
-                translateY(-1px);
+            color: #287cab;
         }
 
 
-        /* =====================================================
-           ปุ่มเพิ่มโปรเจกต์
-        ====================================================== */
+        .profile-image {
+
+            width: 45px;
+            height: 45px;
+
+            border-radius: 50%;
+
+            object-fit: cover;
+
+            border: 2px solid #fff;
+
+            background: #fff;
+
+            transition: .2s;
+        }
+
+
+        .profile-image:hover {
+
+            transform:
+                scale(1.05);
+        }
+
 
         .btn-upload-project {
 
-            width:
-                45px;
+            width: 44px;
+            height: 44px;
 
-            height:
-                45px;
+            border-radius: 50%;
 
-            border-radius:
-                50%;
+            display: flex;
 
-            background:
-                rgba(
-                    255,
-                    255,
-                    255,
-                    0.2
-                );
+            align-items: center;
+
+            justify-content: center;
+
+            color: #fff;
 
             border:
-                2px solid #ffffff;
+                2px solid rgba(255,255,255,.9);
 
-            color:
-                #ffffff;
+            background:
+                rgba(255,255,255,.15);
 
-            display:
-                flex;
+            text-decoration: none;
 
-            align-items:
-                center;
+            font-size: 1.3rem;
 
-            justify-content:
-                center;
-
-            text-decoration:
-                none;
-
-            font-size:
-                1.4rem;
-
-            transition:
-                all 0.2s ease;
+            transition: .2s;
         }
 
 
         .btn-upload-project:hover {
 
-            background:
-                #ffffff;
+            background: #fff;
 
-            color:
-                #3287bb;
+            color: #287cab;
 
             transform:
                 scale(1.05);
@@ -588,477 +887,1268 @@ $result = mysqli_stmt_get_result($stmt);
 
 
         /* =====================================================
-           PROFILE DROPDOWN
-        ====================================================== */
+           LANGUAGE
+        ===================================================== */
 
-        .custom-profile-menu {
+        .language-button {
 
-            background:
-                #173f5f;
+            min-height: 38px;
+
+            padding: 0 12px;
+
+            border-radius: 20px;
 
             border:
-                1px solid #285776;
+                1px solid rgba(255,255,255,.85);
 
-            border-radius:
-                12px;
+            background:
+                rgba(255,255,255,.12);
 
-            box-shadow:
-                0 10px 25px
-                rgba(
-                    0,
-                    0,
-                    0,
-                    0.3
-                );
+            color: #fff;
 
-            min-width:
-                220px;
+            font-weight: 600;
 
-            padding:
-                8px;
+            cursor: pointer;
+
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            gap: 7px;
+
+            transition: .2s;
         }
 
 
-        .custom-profile-menu
-        .dropdown-item {
+        .language-button:hover {
 
-            color:
-                #b9dced;
+            background: #fff;
 
-            font-size:
-                0.95rem;
+            color: #287cab;
+        }
 
-            padding:
-                10px 14px;
 
-            border-radius:
-                8px;
+        /* รูปธง */
 
-            display:
-                flex;
+        .language-flag {
 
-            align-items:
-                center;
+            width: 24px;
 
-            gap:
-                12px;
+            height: 16px;
+
+            object-fit: cover;
+
+            display: inline-block;
+
+            border-radius: 2px;
+
+            box-shadow:
+                0 1px 3px
+                rgba(0,0,0,.18);
+        }
+
+
+        .language-button .language-flag {
+
+            width: 25px;
+
+            height: 17px;
+        }
+
+
+        .language-menu {
+
+            min-width: 165px;
+
+            border-radius: 12px;
+
+            border: 1px solid #e0ebf1;
+
+            box-shadow:
+                0 10px 25px
+                rgba(0,0,0,.15);
+
+            padding: 6px;
+        }
+
+
+        .language-menu .dropdown-item {
+
+            border-radius: 8px;
+
+            padding: 10px 12px;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 9px;
+        }
+
+
+        .language-menu .dropdown-item:hover {
+
+            background: #eef8fd;
+
+            color: #287cab;
+        }
+
+
+        .language-name {
+
+            flex: 1;
+
+            font-weight: 500;
+        }
+
+
+        /* =====================================================
+           PROFILE MENU
+        ===================================================== */
+
+        .custom-profile-menu {
+
+            background: #173f5f;
+
+            border: 1px solid #285776;
+
+            border-radius: 14px;
+
+            box-shadow:
+                0 12px 30px
+                rgba(0,0,0,.25);
+
+            min-width: 230px;
+
+            padding: 8px;
+        }
+
+
+        .custom-profile-menu .dropdown-item {
+
+            color: #d4ebf7;
+
+            padding: 11px 14px;
+
+            border-radius: 9px;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
         }
 
 
         .custom-profile-menu
         .dropdown-item:hover {
 
-            background:
-                #204b6d;
+            background: #204b6d;
 
-            color:
-                #ffffff;
+            color: #fff;
         }
 
 
         .custom-profile-menu
         .logout-btn {
 
-            color:
-                #f7768e;
+            color: #ff8499;
         }
 
 
         .custom-profile-menu
         .dropdown-divider {
 
-            border-color:
-                #285776;
+            border-color: #285776;
         }
 
 
         /* =====================================================
-           FILTER
-        ====================================================== */
+           HERO
+        ===================================================== */
+
+        .hero {
+
+            margin-top: 28px;
+
+            padding: 45px 35px;
+
+            border-radius: 24px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #eaf7ff,
+                    #ffffff
+                );
+
+            border:
+                1px solid #d7edf8;
+
+            box-shadow:
+                0 10px 35px
+                rgba(45, 137, 185, .08);
+
+            position: relative;
+
+            overflow: hidden;
+        }
+
+
+        .hero::after {
+
+            content: "";
+
+            position: absolute;
+
+            width: 250px;
+            height: 250px;
+
+            border-radius: 50%;
+
+            background:
+                rgba(77,164,217,.10);
+
+            right: -80px;
+
+            top: -100px;
+        }
+
+
+        .hero-icon {
+
+            width: 65px;
+            height: 65px;
+
+            border-radius: 18px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #4da4d9,
+                    #287cab
+                );
+
+            color: #fff;
+
+            font-size: 1.9rem;
+
+            margin-bottom: 18px;
+
+            box-shadow:
+                0 8px 20px
+                rgba(45, 137, 185, .25);
+        }
+
+
+        .hero h1 {
+
+            font-size:
+                clamp(
+                    1.8rem,
+                    4vw,
+                    2.6rem
+                );
+
+            font-weight: 700;
+
+            color: #245d80;
+
+            margin-bottom: 10px;
+        }
+
+
+        .hero p {
+
+            color: #607d8b;
+
+            font-size: 1.05rem;
+
+            line-height: 1.8;
+
+            max-width: 850px;
+
+            margin: 0;
+        }
+
+
+        /* =====================================================
+           ABOUT
+        ===================================================== */
+
+        .about-section {
+
+            margin-top: 25px;
+
+            padding: 28px;
+
+            background: #fff;
+
+            border-radius: 20px;
+
+            border:
+                1px solid #e2edf3;
+
+            box-shadow:
+                0 8px 25px
+                rgba(0,0,0,.05);
+        }
+
+
+        .section-title {
+
+            color: #285f7f;
+
+            font-size: 1.35rem;
+
+            font-weight: 700;
+
+            margin-bottom: 10px;
+        }
+
+
+        .section-description {
+
+            color: #6d7d86;
+
+            line-height: 1.8;
+
+            margin-bottom: 25px;
+        }
+
+
+        .feature-card {
+
+            height: 100%;
+
+            padding: 20px;
+
+            border-radius: 16px;
+
+            background:
+                #f8fcff;
+
+            border:
+                1px solid #e1f0f7;
+
+            transition: .25s;
+        }
+
+
+        .feature-card:hover {
+
+            transform:
+                translateY(-4px);
+
+            box-shadow:
+                0 10px 25px
+                rgba(45,137,185,.10);
+        }
+
+
+        .feature-icon {
+
+            width: 48px;
+            height: 48px;
+
+            border-radius: 13px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            background: #e4f5fd;
+
+            color: #318bb8;
+
+            font-size: 1.3rem;
+
+            margin-bottom: 12px;
+        }
+
+
+        .feature-card h5 {
+
+            font-size: 1.05rem;
+
+            font-weight: 700;
+
+            color: #315c73;
+
+            margin-bottom: 7px;
+        }
+
+
+        .feature-card p {
+
+            font-size: .9rem;
+
+            line-height: 1.7;
+
+            color: #71818a;
+
+            margin: 0;
+        }
+
+
+        /* =====================================================
+           GUEST
+        ===================================================== */
+
+        .guest-notice {
+
+            margin-top: 20px;
+
+            padding: 12px 16px;
+
+            border-radius: 12px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #eef9ff,
+                    #f7fcff
+                );
+
+            border:
+                1px solid #d7edf7;
+
+            color: #53768a;
+
+            font-size: .92rem;
+        }
+
+
+        /* =====================================================
+           SEARCH
+        ===================================================== */
 
         .filter-section {
 
-            background:
-                #f4f8fb;
+            margin-top: 25px;
+
+            padding: 22px;
+
+            background: #fff;
+
+            border-radius: 18px;
 
             border:
-                1px solid #e9ecef;
+                1px solid #e1ebf1;
 
-            border-radius:
-                6px;
+            box-shadow:
+                0 8px 25px
+                rgba(0,0,0,.045);
+        }
 
-            padding:
-                15px 20px;
+
+        .filter-title {
+
+            font-weight: 700;
+
+            color: #315f78;
+
+            margin-bottom: 15px;
+
+            font-size: 1.1rem;
+        }
+
+
+        .form-label {
+
+            color: #566d7b;
+
+            font-weight: 600;
+
+            font-size: .9rem;
+        }
+
+
+        .form-control,
+        .form-select {
+
+            border-radius: 10px;
+
+            border-color: #d7e4eb;
+
+            min-height: 40px;
+        }
+
+
+        .form-control:focus,
+        .form-select:focus {
+
+            border-color: #5ab1d8;
+
+            box-shadow:
+                0 0 0 .2rem
+                rgba(90,177,216,.15);
+        }
+
+
+        .btn-search {
+
+            min-height: 40px;
+
+            border: none;
+
+            border-radius: 10px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #4da4d9,
+                    #287cab
+                );
+
+            font-weight: 600;
+
+            transition: .2s;
+        }
+
+
+        .btn-search:hover {
+
+            transform:
+                translateY(-1px);
+
+            box-shadow:
+                0 5px 15px
+                rgba(40,124,171,.22);
         }
 
 
         /* =====================================================
-           PROJECT
-        ====================================================== */
+           RESULT COUNT
+        ===================================================== */
+
+        .result-count {
+
+            margin-top: 28px;
+
+            margin-bottom: 18px;
+
+            color: #71818a;
+        }
+
+
+        .result-count strong {
+
+            color: #287cab;
+        }
+
+
+        /* =====================================================
+           PROJECT CARD
+        ===================================================== */
 
         .project-item {
 
-            padding-bottom:
-                25px;
+            position: relative;
 
-            margin-bottom:
-                25px;
+            padding: 23px 25px;
 
-            border-bottom:
-                1px solid #dee2e6;
+            margin-bottom: 18px;
+
+            background: #fff;
+
+            border:
+                1px solid #e3edf2;
+
+            border-radius: 17px;
+
+            box-shadow:
+                0 5px 20px
+                rgba(0,0,0,.035);
+
+            transition: .25s;
+        }
+
+
+        .project-item:hover {
+
+            transform:
+                translateY(-3px);
+
+            box-shadow:
+                0 10px 30px
+                rgba(45,137,185,.10);
+
+            border-color:
+                #cfe7f3;
         }
 
 
         .project-title {
 
-            font-size:
-                1.1rem;
+            color: #287cab;
 
-            color:
-                #3287bb;
+            font-size: 1.2rem;
 
-            text-decoration:
-                none;
+            font-weight: 700;
 
-            font-weight:
-                500;
+            text-decoration: none;
 
-            line-height:
-                1.6;
+            line-height: 1.5;
         }
 
 
         .project-title:hover {
 
-            color:
-                #287cab;
-
-            text-decoration:
-                underline;
+            color: #155a82;
         }
 
 
-        /* =====================================================
-           INFO
-        ====================================================== */
+        .badge {
+
+            border-radius: 7px;
+
+            font-weight: 500;
+
+            padding: 6px 9px;
+        }
+
 
         .info-text {
 
-            font-size:
-                0.9rem;
+            font-size: .92rem;
 
-            color:
-                #737373;
+            color: #71818a;
 
-            margin-bottom:
-                5px;
+            margin-bottom: 5px;
 
-            line-height:
-                1.7;
+            line-height: 1.7;
         }
 
 
         .info-label {
 
-            color:
-                #555555;
+            color: #4c626e;
 
-            font-weight:
-                600;
+            font-weight: 700;
         }
 
-
-        /* =====================================================
-           MEMBER LIST
-        ====================================================== */
 
         .author-list {
 
-            margin-top:
-                3px;
+            margin-top: 3px;
 
-            margin-left:
-                5px;
+            margin-left: 5px;
 
-            padding-left:
-                15px;
+            padding-left: 15px;
 
-            color:
-                #737373;
+            color: #71818a;
 
-            font-size:
-                0.9rem;
+            font-size: .9rem;
 
-            line-height:
-                1.8;
+            line-height: 1.8;
         }
 
-
-        .author-list div {
-
-            margin-bottom:
-                2px;
-        }
-
-
-        /* =====================================================
-           DESCRIPTION
-        ====================================================== */
 
         .description-text {
 
-            font-size:
-                0.9rem;
+            font-size: .92rem;
 
-            color:
-                #555555;
+            color: #687a84;
 
-            line-height:
-                1.6;
+            line-height: 1.7;
 
-            margin-top:
-                10px;
+            margin-top: 10px;
 
-            margin-bottom:
-                8px;
+            margin-bottom: 8px;
 
-            max-width:
-                950px;
+            max-width: 950px;
         }
 
 
         .description-label {
 
-            color:
-                #555555;
+            color: #4c626e;
 
-            font-weight:
-                600;
+            font-weight: 700;
         }
 
 
         .page-text {
 
-            font-size:
-                0.85rem;
+            font-size: .85rem;
 
-            color:
-                #737373;
+            color: #87969d;
         }
 
 
         /* =====================================================
-           PDF
-        ====================================================== */
+           BUTTONS
+        ===================================================== */
+
+        .project-actions {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 7px;
+
+            flex-wrap: wrap;
+
+            margin-top: 12px;
+        }
+
 
         .btn-pdf {
 
             background:
-                var(--sdu-pdf-blue);
+                linear-gradient(
+                    135deg,
+                    #5ab1d8,
+                    #4297cd
+                );
 
-            border:
-                none;
+            border: none;
 
-            color:
-                #ffffff;
+            color: #fff;
 
-            border-radius:
-                4px;
+            border-radius: 8px;
 
-            padding:
-                4px 16px;
+            padding: 7px 15px;
 
-            font-size:
-                0.9rem;
+            font-size: .9rem;
 
-            text-decoration:
-                none;
+            text-decoration: none;
 
-            display:
-                inline-block;
-
-            transition:
-                all 0.2s ease;
+            transition: .2s;
         }
 
 
         .btn-pdf:hover {
 
-            background:
-                #4297cd;
-
-            color:
-                #ffffff;
+            color: #fff;
 
             transform:
                 translateY(-1px);
+
+            box-shadow:
+                0 5px 12px
+                rgba(66,151,205,.25);
         }
 
 
-        /* =====================================================
-           GITHUB
-        ====================================================== */
-
         .btn-github {
 
-            background:
-                #24292f;
+            background: #24292f;
 
-            border:
-                none;
+            color: #fff;
 
-            color:
-                #ffffff;
+            border-radius: 8px;
 
-            border-radius:
-                4px;
+            padding: 7px 14px;
 
-            padding:
-                4px 14px;
+            font-size: .9rem;
 
-            font-size:
-                0.9rem;
+            text-decoration: none;
 
-            text-decoration:
-                none;
-
-            display:
-                inline-block;
-
-            margin-left:
-                5px;
+            transition: .2s;
         }
 
 
         .btn-github:hover {
 
-            background:
-                #000000;
+            background: #000;
 
-            color:
-                #ffffff;
-        }
-
-
-        /* =====================================================
-           GUEST NOTICE
-        ====================================================== */
-
-        .guest-notice {
-
-            background:
-                #eef8fd;
-
-            border:
-                1px solid #d5ebf6;
-
-            color:
-                #527487;
-
-            border-radius:
-                6px;
-
-            padding:
-                10px 15px;
-
-            margin-bottom:
-                20px;
-
-            font-size:
-                0.9rem;
+            color: #fff;
         }
 
 
         /* =====================================================
            NO PROJECT
-        ====================================================== */
+        ===================================================== */
 
         .no-project {
 
-            text-align:
-                center;
+            text-align: center;
 
-            padding:
-                60px 20px;
+            padding: 70px 20px;
 
-            color:
-                #888888;
+            background: #fff;
+
+            border-radius: 18px;
+
+            border:
+                1px solid #e3edf2;
+
+            color: #89979e;
         }
 
 
         .no-project i {
 
-            font-size:
-                50px;
+            font-size: 55px;
 
-            color:
-                #b9dced;
+            color: #b8dcea;
+
+            display: block;
+
+            margin-bottom: 12px;
         }
 
 
         .no-project h5 {
 
-            color:
-                #666666;
+            color: #536d7b;
+
+            font-weight: 700;
+        }
+
+
+        /* =====================================================
+           FOOTER
+        ===================================================== */
+
+        .site-footer {
+
+            margin-top: 60px;
+
+            padding: 35px 0 25px;
+
+            background:
+                linear-gradient(
+                    180deg,
+                    #edf8fd 0%,
+                    #e5f3fa 100%
+                );
+
+            border-top:
+                1px solid #d5eaf4;
+
+            color: #78909c;
+
+            text-align: center;
+
+            font-size: .9rem;
+        }
+
+
+        .footer-title {
+
+            color: #287cab;
+
+            font-size: 1rem;
+
+            font-weight: 700;
+        }
+
+
+        .footer-description {
+
+            margin-top: 5px;
+
+            color: #78909c;
+
+            font-size: .88rem;
+        }
+
+
+        /* =====================================================
+           QR CODE FEEDBACK CARD
+        ===================================================== */
+
+        .qr-feedback-card {
+
+            width: 100%;
+
+            max-width: 520px;
+
+            margin: 24px auto 0;
+
+            padding: 20px;
+
+            background:
+                rgba(255,255,255,.96);
+
+            border:
+                1px solid #d5e9f2;
+
+            border-radius: 20px;
+
+            box-shadow:
+                0 10px 30px
+                rgba(36, 116, 170, .10);
+
+            text-align: left;
+
+            transition:
+                .25s ease;
+        }
+
+
+        .qr-feedback-card:hover {
+
+            transform:
+                translateY(-3px);
+
+            box-shadow:
+                0 14px 35px
+                rgba(36, 116, 170, .15);
+        }
+
+
+        /* =====================================================
+           QR TITLE
+        ===================================================== */
+
+        .qr-feedback-title {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+            color: #245d80;
+
+            font-size: 1.02rem;
+
+            font-weight: 700;
+
+            line-height: 1.5;
+
+            margin-bottom: 16px;
+        }
+
+
+        .qr-feedback-title i {
+
+            width: 40px;
+
+            height: 40px;
+
+            flex-shrink: 0;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            border-radius: 11px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #e5f5fc,
+                    #d7eef8
+                );
+
+            color: #287cab;
+
+            font-size: 1.3rem;
+        }
+
+
+        /* =====================================================
+           QR CONTENT
+        ===================================================== */
+
+        .qr-feedback-content {
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            gap: 20px;
+        }
+
+
+        /* =====================================================
+           QR IMAGE
+        ===================================================== */
+
+        .qr-image-box {
+
+            width: 165px;
+
+            height: 165px;
+
+            flex-shrink: 0;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            padding: 9px;
+
+            background: #fff;
+
+            border:
+                1px solid #dcebf2;
+
+            border-radius: 14px;
+
+            box-shadow:
+                0 5px 15px
+                rgba(0,0,0,.06);
+        }
+
+
+        .qr-feedback-image {
+
+            width: 100%;
+
+            height: 100%;
+
+            object-fit: contain;
+
+            display: block;
+        }
+
+
+        /* =====================================================
+           QR TEXT
+        ===================================================== */
+
+        .qr-feedback-text {
+
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 7px;
+
+            color: #71818a;
+
+            font-size: .88rem;
+
+            line-height: 1.7;
+
+            flex: 1;
+        }
+
+
+        .qr-feedback-text strong {
+
+            color: #287cab;
+
+            font-size: 1rem;
+
+            font-weight: 700;
+        }
+
+
+        .qr-feedback-text span {
+
+            color: #71818a;
+        }
+
+
+        /* =====================================================
+           FOOTER BOTTOM
+        ===================================================== */
+
+        .footer-bottom {
+
+            margin-top: 24px;
+
+            padding-top: 15px;
+
+            border-top:
+                1px solid #d5e7ef;
+
+            color: #8a9ca5;
+
+            font-size: .82rem;
         }
 
 
         /* =====================================================
            MOBILE
-        ====================================================== */
+        ===================================================== */
 
-        @media (max-width: 576px) {
+        @media (max-width: 768px) {
 
-            .main-menu .nav-link {
+            .hero {
 
-                margin-right:
-                    8px;
+                padding: 30px 22px;
 
-                font-size:
-                    0.95rem;
+                border-radius: 18px;
             }
 
 
+            .about-section {
+
+                padding: 22px 17px;
+            }
+
+
+            .filter-section {
+
+                padding: 18px;
+            }
+
+
+            .project-item {
+
+                padding: 18px;
+            }
+
+
+            .main-menu .nav-link {
+
+                font-size: .9rem;
+
+                padding:
+                    7px 8px;
+            }
+
+
+            .qr-feedback-card {
+
+                max-width: 400px;
+            }
+
+        }
+
+
+        @media (max-width: 576px) {
+
             .sdu-logo {
 
-                width:
-                    40px;
+                width: 40px;
+                height: 40px;
+            }
 
-                height:
-                    40px;
+
+            .header-inner {
+
+                min-height: 45px;
             }
 
 
             .btn-login {
 
-                min-height:
-                    40px;
+                min-height: 39px;
 
                 padding:
                     0 12px;
 
-                font-size:
-                    0.85rem;
+                font-size: .85rem;
             }
 
 
             .btn-upload-project {
 
-                width:
-                    40px;
-
-                height:
-                    40px;
+                width: 39px;
+                height: 39px;
             }
 
 
             .profile-image {
 
-                width:
-                    40px;
+                width: 39px;
+                height: 39px;
+            }
 
-                height:
-                    40px;
+
+            .language-button {
+
+                min-height: 36px;
+
+                padding:
+                    0 9px;
+
+                gap: 5px;
+            }
+
+
+            .language-button .language-flag {
+
+                width: 23px;
+
+                height: 15px;
+            }
+
+
+            .hero h1 {
+
+                font-size: 1.7rem;
+            }
+
+
+            .hero p {
+
+                font-size: .95rem;
+            }
+
+
+            .site-footer {
+
+                margin-top: 45px;
+
+                padding:
+                    30px 15px 20px;
+            }
+
+
+            .qr-feedback-card {
+
+                max-width: 340px;
+
+                padding: 16px;
+
+                border-radius: 17px;
+            }
+
+
+            .qr-feedback-title {
+
+                font-size: .92rem;
+
+                margin-bottom: 13px;
+            }
+
+
+            .qr-feedback-content {
+
+                flex-direction: column;
+
+                gap: 14px;
+
+                text-align: center;
+            }
+
+
+            .qr-image-box {
+
+                width: 155px;
+
+                height: 155px;
+            }
+
+
+            .qr-feedback-text {
+
+                align-items: center;
+
+                font-size: .82rem;
+            }
+
+
+            .qr-feedback-text strong {
+
+                font-size: .92rem;
             }
 
         }
@@ -1081,28 +2171,27 @@ $result = mysqli_stmt_get_result($stmt);
 
         <div
             class="
+                header-inner
                 d-flex
                 justify-content-between
                 align-items-center
-                flex-wrap
-                mt-2
             "
         >
 
 
-            <!-- =================================================
-                 ด้านซ้าย
-            ================================================== -->
+            <!-- LEFT -->
 
             <div
                 class="
                     d-flex
                     align-items-center
-                    gap-3
+                    gap-2
                 "
             >
 
-                <a href="index2.php">
+                <a
+                    href="index2.php?lang=<?php echo urlencode($lang); ?>"
+                >
 
                     <img
                         src="https://it-btech.dusit.ac.th/wp-content/uploads/2022/05/SDU2016.png"
@@ -1113,120 +2202,199 @@ $result = mysqli_stmt_get_result($stmt);
                 </a>
 
 
-                <ul
-                    class="
-                        nav
-                        main-menu
-                    "
-                >
+                <ul class="main-menu">
 
-                    <li class="nav-item">
+                    <li>
 
                         <a
                             class="nav-link"
-                            href="index2.php"
+                            href="index2.php?lang=<?php echo urlencode($lang); ?>"
                         >
 
-                            <i
-                                class="
-                                    bi
-                                    bi-house-fill
-                                "
-                            ></i>
+                            <i class="bi bi-house-fill"></i>
 
-                            หน้าแรก
+                            <?php echo t('home'); ?>
 
                         </a>
 
                     </li>
 
+                </ul>
 
-                    <?php if (
-                        $logged_in &&
-                        $user_role === 'admin'
-                    ): ?>
 
-                        <li class="nav-item">
+                <?php if (
+                    $logged_in &&
+                    $user_role === 'admin'
+                ): ?>
+
+                    <ul class="main-menu">
+
+                        <li>
 
                             <a
                                 class="nav-link"
                                 href="admin.php"
                             >
 
-                                <i
-                                    class="
-                                        bi
-                                        bi-shield-lock-fill
-                                    "
-                                ></i>
+                                <i class="bi bi-shield-lock-fill"></i>
 
-                                Admin
+                                <?php echo t('admin'); ?>
 
                             </a>
 
                         </li>
 
-                    <?php endif; ?>
+                    </ul>
 
-                </ul>
+                <?php endif; ?>
 
             </div>
 
 
-            <!-- =================================================
-                 ด้านขวา
-            ================================================== -->
+            <!-- RIGHT -->
 
-            <div
-                class="
-                    d-flex
-                    align-items-center
-                    gap-3
-                "
-            >
+            <div class="header-right">
+
+
+                <!-- LANGUAGE -->
+
+                <div class="dropdown">
+
+                    <button
+                        type="button"
+                        class="language-button dropdown-toggle"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                    >
+
+                        <?php if ($lang === 'th'): ?>
+
+                            <img
+                                src="images/thailand-flag.png"
+                                alt="ไทย"
+                                class="language-flag"
+                            >
+
+                            <span>TH</span>
+
+                        <?php else: ?>
+
+                            <img
+                                src="images/england-flag.png"
+                                alt="English"
+                                class="language-flag"
+                            >
+
+                            <span>EN</span>
+
+                        <?php endif; ?>
+
+                    </button>
+
+
+                    <ul
+                        class="
+                            dropdown-menu
+                            dropdown-menu-end
+                            language-menu
+                            mt-2
+                        "
+                    >
+
+                        <li>
+
+                            <a
+                                class="dropdown-item"
+                                href="<?php echo e(language_url('th')); ?>"
+                            >
+
+                                <img
+                                    src="images/thailand-flag.png"
+                                    alt="ไทย"
+                                    class="language-flag"
+                                >
+
+                                <span class="language-name">
+                                    ไทย
+                                </span>
+
+                                <?php if ($lang === 'th'): ?>
+
+                                    <i
+                                        class="bi bi-check-lg text-primary"
+                                    ></i>
+
+                                <?php endif; ?>
+
+                            </a>
+
+                        </li>
+
+
+                        <li>
+
+                            <a
+                                class="dropdown-item"
+                                href="<?php echo e(language_url('en')); ?>"
+                            >
+
+                                <img
+                                    src="images/england-flag.png"
+                                    alt="English"
+                                    class="language-flag"
+                                >
+
+                                <span class="language-name">
+                                    English
+                                </span>
+
+                                <?php if ($lang === 'en'): ?>
+
+                                    <i
+                                        class="bi bi-check-lg text-primary"
+                                    ></i>
+
+                                <?php endif; ?>
+
+                            </a>
+
+                        </li>
+
+                    </ul>
+
+                </div>
+
 
                 <?php if ($logged_in): ?>
 
 
-                    <?php if (
-                        $user_role === 'student' ||
-                        $user_role === 'teacher' ||
-                        $user_role === 'admin'
-                    ): ?>
+                    <!-- UPLOAD -->
 
-                        <a
-                            href="create.php"
-                            class="btn-upload-project"
-                            title="ส่งโปรเจกต์"
-                        >
+                    <a
+                        href="create.php"
+                        class="btn-upload-project"
+                        title="<?php echo e(t('upload_project')); ?>"
+                    >
 
-                            <i
-                                class="
-                                    bi
-                                    bi-plus-lg
-                                "
-                            ></i>
+                        <i class="bi bi-plus-lg"></i>
 
-                        </a>
-
-                    <?php endif; ?>
+                    </a>
 
 
-                    <!-- Profile -->
+                    <!-- PROFILE -->
 
                     <div class="dropdown">
 
                         <a
                             href="#"
                             role="button"
-                            id="profileDropdown"
                             data-bs-toggle="dropdown"
                             aria-expanded="false"
                         >
 
                             <img
                                 src="<?php echo e($profile_image_url); ?>"
-                                alt="โปรไฟล์"
+                                alt="<?php echo e(t('profile')); ?>"
                                 class="profile-image"
                             >
 
@@ -1240,7 +2408,6 @@ $result = mysqli_stmt_get_result($stmt);
                                 custom-profile-menu
                                 mt-2
                             "
-                            aria-labelledby="profileDropdown"
                         >
 
                             <li>
@@ -1250,14 +2417,9 @@ $result = mysqli_stmt_get_result($stmt);
                                     href="profile.php"
                                 >
 
-                                    <i
-                                        class="
-                                            bi
-                                            bi-person-fill
-                                        "
-                                    ></i>
+                                    <i class="bi bi-person-fill"></i>
 
-                                    ข้อมูลส่วนตัว
+                                    <?php echo t('profile'); ?>
 
                                 </a>
 
@@ -1275,14 +2437,9 @@ $result = mysqli_stmt_get_result($stmt);
                                         href="admin.php"
                                     >
 
-                                        <i
-                                            class="
-                                                bi
-                                                bi-shield-lock-fill
-                                            "
-                                        ></i>
+                                        <i class="bi bi-shield-lock-fill"></i>
 
-                                        จัดการระบบ
+                                        <?php echo t('manage_system'); ?>
 
                                     </a>
 
@@ -1311,13 +2468,10 @@ $result = mysqli_stmt_get_result($stmt);
                                 >
 
                                     <i
-                                        class="
-                                            bi
-                                            bi-box-arrow-right
-                                        "
+                                        class="bi bi-box-arrow-right"
                                     ></i>
 
-                                    ออกจากระบบ
+                                    <?php echo t('logout'); ?>
 
                                 </a>
 
@@ -1331,19 +2485,18 @@ $result = mysqli_stmt_get_result($stmt);
                 <?php else: ?>
 
 
+                    <!-- LOGIN -->
+
                     <a
                         href="login.php"
                         class="btn-login"
                     >
 
                         <i
-                            class="
-                                bi
-                                bi-box-arrow-in-right
-                            "
+                            class="bi bi-box-arrow-in-right"
                         ></i>
 
-                        เข้าสู่ระบบ
+                        <?php echo t('login'); ?>
 
                     </a>
 
@@ -1362,75 +2515,289 @@ $result = mysqli_stmt_get_result($stmt);
      MAIN
 ===================================================== -->
 
-<div
-    class="
-        container
-        mt-4
-        mb-5
-    "
->
+<main class="container pb-5">
 
 
-    <!-- =================================================
-         แจ้งบุคคลทั่วไป
-    ================================================== -->
+    <!-- HERO -->
+
+    <section class="hero">
+
+        <div class="hero-icon">
+
+            <i class="bi bi-folder2-open"></i>
+
+        </div>
+
+
+        <h1>
+
+            <?php echo t('project_archive'); ?>
+
+        </h1>
+
+
+        <p>
+
+            <?php echo t('hero_description'); ?>
+
+        </p>
+
+    </section>
+
+
+    <!-- ABOUT -->
+
+    <section class="about-section">
+
+        <div class="section-title">
+
+            <i
+                class="bi bi-info-circle-fill me-2"
+            ></i>
+
+            <?php echo t('about_title'); ?>
+
+        </div>
+
+
+        <p class="section-description">
+
+            <?php echo t('about_description'); ?>
+
+        </p>
+
+
+        <div class="row g-3">
+
+
+            <!-- SEARCH -->
+
+            <div class="col-md-4">
+
+                <div class="feature-card">
+
+                    <div class="feature-icon">
+
+                        <i class="bi bi-search"></i>
+
+                    </div>
+
+
+                    <h5>
+
+                        <?php echo t('search_project'); ?>
+
+                    </h5>
+
+
+                    <p>
+
+                        <?php
+
+                        if (
+                            $lang === 'th'
+                        ) {
+
+                            echo
+                                'ค้นหาโปรเจกต์จากชื่อผลงาน
+                                ระดับการศึกษา และสาขาวิชา
+                                เพื่อค้นหาข้อมูลที่ต้องการได้รวดเร็ว';
+
+                        } else {
+
+                            echo
+                                'Search projects by title,
+                                education level, and department
+                                to quickly find the information you need.';
+
+                        }
+
+                        ?>
+
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- STORE -->
+
+            <div class="col-md-4">
+
+                <div class="feature-card">
+
+                    <div class="feature-icon">
+
+                        <i
+                            class="bi bi-archive-fill"
+                        ></i>
+
+                    </div>
+
+
+                    <h5>
+
+                        <?php
+
+                        echo $lang === 'th'
+                            ? 'จัดเก็บผลงาน'
+                            : 'Store Projects';
+
+                        ?>
+
+                    </h5>
+
+
+                    <p>
+
+                        <?php
+
+                        if (
+                            $lang === 'th'
+                        ) {
+
+                            echo
+                                'รวบรวมโปรเจกต์ของนักศึกษาไว้ในระบบเดียว
+                                พร้อมข้อมูลผู้จัดทำ อาจารย์ที่ปรึกษา
+                                และเอกสารประกอบโครงงาน';
+
+                        } else {
+
+                            echo
+                                'Collect student projects in one system
+                                with author information, advisors,
+                                and supporting project documents.';
+
+                        }
+
+                        ?>
+
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- DOCUMENT -->
+
+            <div class="col-md-4">
+
+                <div class="feature-card">
+
+                    <div class="feature-icon">
+
+                        <i
+                            class="bi bi-file-earmark-pdf-fill"
+                        ></i>
+
+                    </div>
+
+
+                    <h5>
+
+                        <?php
+
+                        echo $lang === 'th'
+                            ? 'เข้าถึงเอกสาร'
+                            : 'Access Documents';
+
+                        ?>
+
+                    </h5>
+
+
+                    <p>
+
+                        <?php
+
+                        if (
+                            $lang === 'th'
+                        ) {
+
+                            echo
+                                'ผู้ใช้งานสามารถดูข้อมูลโปรเจกต์
+                                และเปิดดูเอกสาร PDF
+                                หรือ GitHub ของโครงงานที่เผยแพร่ไว้ได้';
+
+                        } else {
+
+                            echo
+                                'Users can view project information
+                                and access published PDF documents
+                                or GitHub repositories.';
+
+                        }
+
+                        ?>
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- GUEST -->
 
     <?php if (!$logged_in): ?>
 
         <div class="guest-notice">
 
             <i
-                class="
-                    bi
-                    bi-eye-fill
-                "
+                class="bi bi-eye-fill me-1"
             ></i>
 
-            กำลังเข้าชมในฐานะบุคคลทั่วไป
-            สามารถค้นหาและดูโปรเจกต์ได้
+            <?php echo t('guest'); ?>
 
         </div>
 
     <?php endif; ?>
 
 
-    <!-- =================================================
-         SEARCH / FILTER
-    ================================================== -->
+    <!-- SEARCH -->
 
-    <div
-        class="
-            filter-section
-            mb-4
-        "
-    >
+    <section class="filter-section">
+
+        <div class="filter-title">
+
+            <i
+                class="bi bi-funnel-fill me-2"
+            ></i>
+
+            <?php echo t('search_filter'); ?>
+
+        </div>
+
 
         <form
             action="index2.php"
             method="GET"
-            class="
-                row
-                g-3
-                align-items-end
-            "
+            class="row g-3 align-items-end"
         >
 
+            <input
+                type="hidden"
+                name="lang"
+                value="<?php echo e($lang); ?>"
+            >
 
-            <!-- ค้นหา -->
+
+            <!-- KEYWORD -->
 
             <div class="col-md-4">
 
                 <label
                     for="searchKeyword"
-                    class="
-                        form-label
-                        fw-bold
-                        text-secondary
-                        mb-1
-                    "
+                    class="form-label"
                 >
 
-                    ค้นหาโปรเจกต์:
+                    <?php echo t('search_project'); ?>
 
                 </label>
 
@@ -1439,29 +2806,24 @@ $result = mysqli_stmt_get_result($stmt);
                     type="text"
                     name="keyword"
                     id="searchKeyword"
-                    class="form-control form-control-sm"
-                    placeholder="พิมพ์ชื่อโปรเจกต์..."
+                    class="form-control"
+                    placeholder="<?php echo e(t('search_placeholder')); ?>"
                     value="<?php echo e($keyword); ?>"
                 >
 
             </div>
 
 
-            <!-- ระดับ -->
+            <!-- DEGREE -->
 
             <div class="col-md-3">
 
                 <label
                     for="degreeSelect"
-                    class="
-                        form-label
-                        fw-bold
-                        text-secondary
-                        mb-1
-                    "
+                    class="form-label"
                 >
 
-                    ระดับหลักสูตร:
+                    <?php echo t('degree'); ?>
 
                 </label>
 
@@ -1469,64 +2831,61 @@ $result = mysqli_stmt_get_result($stmt);
                 <select
                     name="degree"
                     id="degreeSelect"
-                    class="
-                        form-select
-                        form-select-sm
-                    "
+                    class="form-select"
                 >
 
                     <option
                         value="all"
-                        <?php
-                        echo $degree === 'all'
+                        <?php echo
+                            $degree === 'all'
                             ? 'selected'
                             : '';
                         ?>
                     >
 
-                        ทุกระดับการศึกษา
+                        <?php echo t('all_degree'); ?>
 
                     </option>
 
 
                     <option
                         value="bachelor"
-                        <?php
-                        echo $degree === 'bachelor'
+                        <?php echo
+                            $degree === 'bachelor'
                             ? 'selected'
                             : '';
                         ?>
                     >
 
-                        ปริญญาตรี
+                        <?php echo t('bachelor'); ?>
 
                     </option>
 
 
                     <option
                         value="master"
-                        <?php
-                        echo $degree === 'master'
+                        <?php echo
+                            $degree === 'master'
                             ? 'selected'
                             : '';
                         ?>
                     >
 
-                        ปริญญาโท
+                        <?php echo t('master'); ?>
 
                     </option>
 
 
                     <option
                         value="doctorate"
-                        <?php
-                        echo $degree === 'doctorate'
+                        <?php echo
+                            $degree === 'doctorate'
                             ? 'selected'
                             : '';
                         ?>
                     >
 
-                        ปริญญาเอก
+                        <?php echo t('doctorate'); ?>
 
                     </option>
 
@@ -1535,21 +2894,16 @@ $result = mysqli_stmt_get_result($stmt);
             </div>
 
 
-            <!-- สาขา -->
+            <!-- MAJOR -->
 
             <div class="col-md-3">
 
                 <label
                     for="majorSelect"
-                    class="
-                        form-label
-                        fw-bold
-                        text-secondary
-                        mb-1
-                    "
+                    class="form-label"
                 >
 
-                    สาขาวิชา:
+                    <?php echo t('major'); ?>
 
                 </label>
 
@@ -1557,78 +2911,75 @@ $result = mysqli_stmt_get_result($stmt);
                 <select
                     name="major"
                     id="majorSelect"
-                    class="
-                        form-select
-                        form-select-sm
-                    "
+                    class="form-select"
                 >
 
                     <option
                         value="all"
-                        <?php
-                        echo $major === 'all'
+                        <?php echo
+                            $major === 'all'
                             ? 'selected'
                             : '';
                         ?>
                     >
 
-                        ทุกสาขาวิชา
+                        <?php echo t('all_major'); ?>
 
                     </option>
 
 
                     <option
                         value="it"
-                        <?php
-                        echo $major === 'it'
+                        <?php echo
+                            $major === 'it'
                             ? 'selected'
                             : '';
                         ?>
                     >
 
-                        เทคโนโลยีสารสนเทศ
+                        <?php echo t('it'); ?>
 
                     </option>
 
 
                     <option
                         value="cs"
-                        <?php
-                        echo $major === 'cs'
+                        <?php echo
+                            $major === 'cs'
                             ? 'selected'
                             : '';
                         ?>
                     >
 
-                        วิทยาการคอมพิวเตอร์
+                        <?php echo t('cs'); ?>
 
                     </option>
 
 
                     <option
                         value="env"
-                        <?php
-                        echo $major === 'env'
+                        <?php echo
+                            $major === 'env'
                             ? 'selected'
                             : '';
                         ?>
                     >
 
-                        วิทยาศาสตร์สิ่งแวดล้อม
+                        <?php echo t('env'); ?>
 
                     </option>
 
 
                     <option
                         value="food"
-                        <?php
-                        echo $major === 'food'
+                        <?php echo
+                            $major === 'food'
                             ? 'selected'
                             : '';
                         ?>
                     >
 
-                        เทคโนโลยีการประกอบอาหาร
+                        <?php echo t('food'); ?>
 
                     </option>
 
@@ -1637,7 +2988,7 @@ $result = mysqli_stmt_get_result($stmt);
             </div>
 
 
-            <!-- ค้นหา -->
+            <!-- BUTTON -->
 
             <div class="col-md-2">
 
@@ -1645,20 +2996,17 @@ $result = mysqli_stmt_get_result($stmt);
                     type="submit"
                     class="
                         btn
-                        btn-primary
-                        btn-sm
+                        btn-search
+                        text-white
                         w-100
                     "
                 >
 
                     <i
-                        class="
-                            bi
-                            bi-search
-                        "
+                        class="bi bi-search me-1"
                     ></i>
 
-                    ค้นหา
+                    <?php echo t('search'); ?>
 
                 </button>
 
@@ -1666,38 +3014,39 @@ $result = mysqli_stmt_get_result($stmt);
 
         </form>
 
-    </div>
+    </section>
 
 
-    <!-- =================================================
-         จำนวนโปรเจกต์
-    ================================================== -->
+    <!-- RESULT COUNT -->
 
-    <div
-        class="
-            mb-3
-            text-secondary
-        "
-    >
+    <div class="result-count">
 
         <small>
 
-            พบโปรเจกต์
+            <i
+                class="bi bi-collection-fill me-1"
+            ></i>
+
+            <?php echo t('found'); ?>
 
             <strong>
 
                 <?php
-                echo mysqli_num_rows($result);
+                echo mysqli_num_rows(
+                    $result
+                );
                 ?>
 
             </strong>
 
-            รายการ
+            <?php echo t('items'); ?>
 
 
-            <?php if ($keyword !== ''): ?>
+            <?php if (
+                $keyword !== ''
+            ): ?>
 
-                สำหรับคำค้นหา
+                <?php echo t('for_keyword'); ?>
 
                 <strong>
 
@@ -1712,9 +3061,7 @@ $result = mysqli_stmt_get_result($stmt);
     </div>
 
 
-    <!-- =================================================
-         PROJECT LIST
-    ================================================== -->
+    <!-- PROJECT LIST -->
 
     <?php if (
         mysqli_num_rows($result) > 0
@@ -1727,134 +3074,134 @@ $result = mysqli_stmt_get_result($stmt);
         ): ?>
 
 
-            <div class="project-item">
+            <article
+                class="project-item"
+            >
 
 
-                <!-- =================================================
-                     ชื่อโปรเจกต์
-                ================================================== -->
+                <!-- TITLE -->
 
-                <a
-                    href="project-detail.php?id=<?php echo (int)$project['id']; ?>"
-                    class="project-title"
-                >
+                <div class="mb-2">
 
-                    <?php
+                    <a
+                        href="project-detail.php?id=<?php echo (int)$project['id']; ?>&lang=<?php echo urlencode($lang); ?>"
+                        class="project-title"
+                    >
 
-                    $display_title =
-                        trim(
-                            $project['title'] ?? ''
-                        );
-
-
-                    if (
-                        $display_title === ''
-                    ) {
+                        <?php
 
                         $display_title =
                             trim(
-                                $project['project_name']
+                                $project['title']
                                 ?? ''
                             );
-                    }
 
 
-                    if (
-                        $display_title === ''
-                    ) {
+                        if (
+                            $display_title === ''
+                        ) {
 
-                        $display_title =
-                            'ไม่ระบุชื่อโปรเจกต์';
-                    }
-
-
-                    echo e(
-                        $display_title
-                    );
-
-                    ?>
-
-                </a>
+                            $display_title =
+                                trim(
+                                    $project['project_name']
+                                    ?? ''
+                                );
+                        }
 
 
-                <!-- =================================================
-                     ระดับการศึกษา
-                ================================================== -->
+                        if (
+                            $display_title === ''
+                        ) {
 
-                <?php if (
-                    !empty(
-                        $project['degree']
-                    )
-                ): ?>
+                            $display_title =
+                                t(
+                                    'not_specified'
+                                );
+                        }
 
-                    <span
-                        class="
-                            badge
-                            bg-light
-                            text-dark
-                            ms-2
-                            border
-                        "
-                    >
 
-                        <?php
                         echo e(
+                            $display_title
+                        );
+
+                        ?>
+
+                    </a>
+
+
+                    <?php if (
+                        !empty(
                             $project['degree']
-                        );
-                        ?>
+                        )
+                    ): ?>
 
-                    </span>
+                        <span
+                            class="
+                                badge
+                                bg-light
+                                text-dark
+                                border
+                                ms-1
+                            "
+                        >
 
-                <?php endif; ?>
+                            <?php
+
+                            echo e(
+                                $project['degree']
+                            );
+
+                            ?>
+
+                        </span>
+
+                    <?php endif; ?>
 
 
-                <!-- =================================================
-                     สาขา
-                ================================================== -->
-
-                <?php if (
-                    !empty(
-                        $project['department']
-                    )
-                ): ?>
-
-                    <span
-                        class="
-                            badge
-                            bg-info
-                            text-dark
-                            ms-1
-                        "
-                    >
-
-                        <?php
-                        echo e(
+                    <?php if (
+                        !empty(
                             $project['department']
-                        );
-                        ?>
+                        )
+                    ): ?>
 
-                    </span>
+                        <span
+                            class="
+                                badge
+                                bg-info
+                                text-dark
+                                ms-1
+                            "
+                        >
 
-                <?php endif; ?>
+                            <?php
+
+                            echo e(
+                                $project['department']
+                            );
+
+                            ?>
+
+                        </span>
+
+                    <?php endif; ?>
+
+                </div>
 
 
-                <!-- =================================================
-                     เจ้าของโปรเจกต์
-                ================================================== -->
+                <!-- OWNER -->
 
                 <?php
 
                 $owner_name =
                     trim(
-                        $project['student_name'] ?? ''
+                        $project['student_name']
+                        ?? ''
                     );
 
 
-                /*
-                 * ถ้า student_name มีหลายบรรทัด
-                 * ใช้เฉพาะบรรทัดแรกเป็นเจ้าของ
-                 */
-                if ($owner_name !== '') {
+                if (
+                    $owner_name !== ''
+                ) {
 
                     $owner_lines =
                         preg_split(
@@ -1864,7 +3211,8 @@ $result = mysqli_stmt_get_result($stmt);
 
                     $owner_name =
                         trim(
-                            $owner_lines[0] ?? ''
+                            $owner_lines[0]
+                            ?? ''
                         );
                 }
 
@@ -1875,57 +3223,44 @@ $result = mysqli_stmt_get_result($stmt);
                     $owner_name !== ''
                 ): ?>
 
-                    <p
-                        class="
-                            info-text
-                            mt-2
-                            mb-1
-                        "
-                    >
+                    <div class="info-text">
 
-                        <span
-                            class="info-label"
-                        >
+                        <span class="info-label">
 
-                            เจ้าของโปรเจกต์:
+                            <i
+                                class="bi bi-person-fill"
+                            ></i>
+
+                            <?php echo t('owner'); ?>:
 
                         </span>
 
                         <?php
+
                         echo e(
                             $owner_name
                         );
+
                         ?>
 
-                    </p>
+                    </div>
 
                 <?php endif; ?>
 
 
-                <!-- =================================================
-                     ข้อมูลสมาชิก
-                     แสดงเฉพาะผู้ Login
-                ================================================== -->
+                <!-- MEMBERS -->
 
-                <?php if ($logged_in): ?>
+                <?php if (
+                    $logged_in
+                ): ?>
 
 
                     <?php
 
-                    /*
-                     * authors:
-                     *
-                     * Fiw
-                     * Mario
-                     * Aomsin
-                     * Icedusit
-                     *
-                     * จะตัด Fiw ซึ่งเป็นเจ้าของออก
-                     */
-
                     $authors_text =
                         trim(
-                            $project['authors'] ?? ''
+                            $project['authors']
+                            ?? ''
                         );
 
                     $member_list = [];
@@ -1948,7 +3283,9 @@ $result = mysqli_stmt_get_result($stmt);
                         ) {
 
                             $author =
-                                trim($author);
+                                trim(
+                                    $author
+                                );
 
 
                             if (
@@ -1959,21 +3296,17 @@ $result = mysqli_stmt_get_result($stmt);
                             }
 
 
-                            /*
-                             * ไม่เอาเจ้าของมาแสดงซ้ำ
-                             */
                             if (
-                                $owner_name !== '' &&
-                                $author === $owner_name
+                                $owner_name !== ''
+                                &&
+                                $author ===
+                                $owner_name
                             ) {
 
                                 continue;
                             }
 
 
-                            /*
-                             * ป้องกันสมาชิกซ้ำ
-                             */
                             if (
                                 !in_array(
                                     $author,
@@ -1985,32 +3318,30 @@ $result = mysqli_stmt_get_result($stmt);
                                 $member_list[] =
                                     $author;
                             }
+
                         }
                     }
 
                     ?>
 
 
-                    <!-- =================================================
-                         สมาชิกกลุ่ม
-                    ================================================== -->
-
                     <?php if (
-                        !empty($member_list)
+                        !empty(
+                            $member_list
+                        )
                     ): ?>
 
-                        <div
-                            class="
-                                info-text
-                                mb-1
-                            "
-                        >
+                        <div class="info-text">
 
                             <span
                                 class="info-label"
                             >
 
-                                สมาชิกกลุ่ม:
+                                <i
+                                    class="bi bi-people-fill"
+                                ></i>
+
+                                <?php echo t('members'); ?>:
 
                             </span>
 
@@ -2026,12 +3357,16 @@ $result = mysqli_stmt_get_result($stmt);
 
                                     <div>
 
-                                        •
+                                        <i
+                                            class="bi bi-person"
+                                        ></i>
 
                                         <?php
+
                                         echo e(
                                             $member
                                         );
+
                                         ?>
 
                                     </div>
@@ -2048,33 +3383,28 @@ $result = mysqli_stmt_get_result($stmt);
                 <?php endif; ?>
 
 
-                <!-- =================================================
-                     อาจารย์ที่ปรึกษา
-                     
-                     สำคัญ:
-                     แสดงทั้งคน Login และบุคคลทั่วไป
-                ================================================== -->
+                <!-- ADVISOR -->
 
                 <?php if (
                     !empty(
                         trim(
-                            $project['advisor'] ?? ''
+                            $project['advisor']
+                            ?? ''
                         )
                     )
                 ): ?>
 
-                    <p
-                        class="
-                            info-text
-                            mb-1
-                        "
-                    >
+                    <div class="info-text">
 
                         <span
                             class="info-label"
                         >
 
-                            อาจารย์ที่ปรึกษา:
+                            <i
+                                class="bi bi-person-workspace"
+                            ></i>
+
+                            <?php echo t('advisor'); ?>:
 
                         </span>
 
@@ -2088,16 +3418,12 @@ $result = mysqli_stmt_get_result($stmt);
 
                         ?>
 
-                    </p>
+                    </div>
 
                 <?php endif; ?>
 
 
-                <!-- =================================================
-                     วันที่ลงโปรเจกต์
-                     
-                     แสดงทั้งคน Login และบุคคลทั่วไป
-                ================================================== -->
+                <!-- DATE -->
 
                 <?php if (
                     !empty(
@@ -2105,18 +3431,17 @@ $result = mysqli_stmt_get_result($stmt);
                     )
                 ): ?>
 
-                    <p
-                        class="
-                            info-text
-                            mb-1
-                        "
-                    >
+                    <div class="info-text">
 
                         <span
                             class="info-label"
                         >
 
-                            วันที่ลงโปรเจกต์:
+                            <i
+                                class="bi bi-calendar3"
+                            ></i>
+
+                            <?php echo t('date'); ?>:
 
                         </span>
 
@@ -2129,7 +3454,8 @@ $result = mysqli_stmt_get_result($stmt);
 
 
                         if (
-                            $created_timestamp !== false
+                            $created_timestamp !==
+                            false
                         ) {
 
                             echo e(
@@ -2148,34 +3474,35 @@ $result = mysqli_stmt_get_result($stmt);
 
                         ?>
 
-                    </p>
+                    </div>
 
                 <?php endif; ?>
 
 
-                <!-- =================================================
-                     คำอธิบาย
-                ================================================== -->
+                <!-- DESCRIPTION -->
 
                 <?php if (
                     !empty(
-                        $project['description']
+                        trim(
+                            $project['description']
+                            ?? ''
+                        )
                     )
                 ): ?>
 
-                    <p
-                        class="
-                            description-text
-                        "
+                    <div
+                        class="description-text"
                     >
 
                         <span
-                            class="
-                                description-label
-                            "
+                            class="description-label"
                         >
 
-                            คำอธิบาย:
+                            <?php
+                            echo t(
+                                'description'
+                            );
+                            ?>:
 
                         </span>
 
@@ -2201,24 +3528,25 @@ $result = mysqli_stmt_get_result($stmt);
                                     0,
                                     250,
                                     'UTF-8'
-                                ) . '...';
+                                ) .
+                                '...';
                         }
 
 
                         echo nl2br(
-                            e($description)
+                            e(
+                                $description
+                            )
                         );
 
                         ?>
 
-                    </p>
+                    </div>
 
                 <?php endif; ?>
 
 
-                <!-- =================================================
-                     จำนวนหน้า
-                ================================================== -->
+                <!-- PAGES -->
 
                 <?php if (
                     !empty(
@@ -2226,88 +3554,83 @@ $result = mysqli_stmt_get_result($stmt);
                     )
                 ): ?>
 
-                    <p
-                        class="page-text"
-                    >
+                    <div class="page-text">
+
+                        <i
+                            class="bi bi-file-text"
+                        ></i>
 
                         <?php
+
                         echo e(
                             $project['pages']
                         );
+
                         ?>
 
-                    </p>
+                    </div>
 
                 <?php endif; ?>
 
 
-                <!-- =================================================
-                     PDF
-                ================================================== -->
+                <!-- ACTIONS -->
 
-                <?php if (
-                    !empty(
-                        $project['pdf_file']
-                    )
-                ): ?>
-
-                    <a
-                        href="view-pdf.php?id=<?php echo (int)$project['id']; ?>"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="
-                            btn
-                            btn-pdf
-                            mt-1
-                        "
-                    >
-
-                        <i
-                            class="
-                                bi
-                                bi-file-earmark-pdf
-                            "
-                        ></i>
-
-                        PDF
-
-                    </a>
-
-                <?php endif; ?>
+                <div
+                    class="project-actions"
+                >
 
 
-                <!-- =================================================
-                     GitHub
-                ================================================== -->
+                    <?php if (
+                        !empty(
+                            $project['pdf_file']
+                        )
+                    ): ?>
 
-                <?php if (
-                    !empty(
-                        $project['github_url']
-                    )
-                ): ?>
+                        <a
+                            href="view-pdf.php?id=<?php echo (int)$project['id']; ?>"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="btn-pdf"
+                        >
 
-                    <a
-                        href="<?php echo e($project['github_url']); ?>"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="btn-github"
-                    >
+                            <i
+                                class="bi bi-file-earmark-pdf"
+                            ></i>
 
-                        <i
-                            class="
-                                bi
-                                bi-github
-                            "
-                        ></i>
+                            <?php echo t('pdf'); ?>
 
-                        GitHub
+                        </a>
 
-                    </a>
-
-                <?php endif; ?>
+                    <?php endif; ?>
 
 
-            </div>
+                    <?php if (
+                        !empty(
+                            $project['github_url']
+                        )
+                    ): ?>
+
+                        <a
+                            href="<?php echo e($project['github_url']); ?>"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="btn-github"
+                        >
+
+                            <i
+                                class="bi bi-github"
+                            ></i>
+
+                            <?php echo t('github'); ?>
+
+                        </a>
+
+                    <?php endif; ?>
+
+
+                </div>
+
+            </article>
 
 
         <?php endwhile; ?>
@@ -2316,46 +3639,177 @@ $result = mysqli_stmt_get_result($stmt);
     <?php else: ?>
 
 
-        <!-- =================================================
-             ไม่พบโปรเจกต์
-        ================================================== -->
-
         <div class="no-project">
 
             <i
-                class="
-                    bi
-                    bi-folder-x
-                "
+                class="bi bi-folder-x"
             ></i>
 
 
             <h5>
 
-                ไม่พบโปรเจกต์
+                <?php echo t('no_project'); ?>
 
             </h5>
 
 
             <p>
 
-                ยังไม่มีโปรเจกต์
-                ที่ตรงกับข้อมูลที่ค้นหา
+                <?php
+                echo t(
+                    'no_project_description'
+                );
+                ?>
 
             </p>
 
         </div>
 
-
     <?php endif; ?>
 
 
-</div>
+</main>
 
 
 <!-- =====================================================
-     Bootstrap JS
+     FOOTER
 ===================================================== -->
+
+<footer class="site-footer">
+
+    <div class="container">
+
+
+        <!-- ชื่อระบบ -->
+
+        <div class="footer-title">
+
+            <i
+                class="bi bi-folder2-open me-1"
+            ></i>
+
+            <?php
+            echo t(
+                'project_archive'
+            );
+            ?>
+
+        </div>
+
+
+        <!-- คำอธิบาย -->
+
+        <div class="footer-description">
+
+            <?php
+            echo t(
+                'footer_description'
+            );
+            ?>
+
+        </div>
+
+
+        <!-- =================================================
+             GOOGLE FORMS / QR CODE
+        ================================================== -->
+
+        <div class="qr-feedback-card">
+
+
+            <!-- TITLE -->
+
+            <div class="qr-feedback-title">
+
+                <i
+                    class="bi bi-chat-square-text-fill"
+                ></i>
+
+                <span>
+
+                    <?php
+                    echo e(
+                        t(
+                            'feedback_title'
+                        )
+                    );
+                    ?>
+
+                </span>
+
+            </div>
+
+
+            <!-- CONTENT -->
+
+            <div class="qr-feedback-content">
+
+
+                <!-- QR CODE -->
+
+                <div class="qr-image-box">
+
+                    <img
+                        src="<?php echo e($feedback_qr_url); ?>"
+                        alt="QR Code Google Forms"
+                        class="qr-feedback-image"
+                    >
+
+                </div>
+
+
+                <!-- TEXT -->
+
+                <div class="qr-feedback-text">
+
+                    <strong>
+
+                        <?php
+                        echo e(
+                            t(
+                                'scan_qr'
+                            )
+                        );
+                        ?>
+
+                    </strong>
+
+
+                    <span>
+
+                        <?php
+                        echo e(
+                            t(
+                                'feedback_description'
+                            )
+                        );
+                        ?>
+
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- COPYRIGHT -->
+
+        <div class="footer-bottom">
+
+            © <?php echo date('Y'); ?>
+
+            Suan Dusit University
+
+        </div>
+
+    </div>
+
+</footer>
+
+
+<!-- Bootstrap JS -->
 
 <script
     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
@@ -2369,6 +3823,8 @@ $result = mysqli_stmt_get_result($stmt);
 
 <?php
 
-mysqli_stmt_close($stmt);
+mysqli_stmt_close(
+    $stmt
+);
 
 ?>

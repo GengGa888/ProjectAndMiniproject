@@ -2176,7 +2176,7 @@
                             id="members"
                             class="form-control"
                             rows="4"
-                            placeholder="กรอกชื่อสมาชิกกลุ่มเพิ่มเติม คนละ 1 บรรทัด"
+                            placeholder="กรอกชื่อสมาชิกกลุ่ม"
                         ><?php echo e($members); ?></textarea>
 
 

@@ -55,6 +55,165 @@ if ($admin_name === '') {
 }
 
 // =====================================================
+// ตัวแปรระบบสร้างรหัสสมัคร Admin
+// =====================================================
+
+$generated_admin_code = '';
+$admin_code_message = '';
+$admin_code_error = '';
+
+// =====================================================
+// สร้างรหัสสมัคร Admin
+// =====================================================
+
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST' &&
+    isset($_POST['generate_admin_code'])
+) {
+
+    $characters =
+        'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+    $new_code = '';
+
+    $max_attempts = 20;
+    $attempt = 0;
+    $code_exists = false;
+
+    do {
+
+        $random_part = '';
+
+        for ($i = 0; $i < 6; $i++) {
+
+            $random_part .=
+                $characters[
+                    random_int(
+                        0,
+                        strlen($characters) - 1
+                    )
+                ];
+        }
+
+        $new_code = 'ADM-' . $random_part;
+
+        $check_stmt = mysqli_prepare(
+            $conn,
+            "SELECT id
+             FROM admin_register_codes
+             WHERE code = ?
+             LIMIT 1"
+        );
+
+        if (!$check_stmt) {
+
+            $admin_code_error =
+                "ไม่สามารถตรวจสอบรหัสได้: " .
+                mysqli_error($conn);
+
+            break;
+        }
+
+        mysqli_stmt_bind_param(
+            $check_stmt,
+            "s",
+            $new_code
+        );
+
+        mysqli_stmt_execute($check_stmt);
+
+        $check_result =
+            mysqli_stmt_get_result($check_stmt);
+
+        $code_exists =
+            $check_result &&
+            mysqli_num_rows($check_result) > 0;
+
+        mysqli_stmt_close($check_stmt);
+
+        $attempt++;
+
+    } while (
+        $code_exists &&
+        $attempt < $max_attempts
+    );
+
+    // =================================================
+    // บันทึกรหัส
+    // =================================================
+
+    if ($admin_code_error === '') {
+
+        if ($code_exists) {
+
+            $admin_code_error =
+                "ไม่สามารถสร้างรหัสใหม่ได้ กรุณาลองอีกครั้ง";
+
+        } else {
+
+            $insert_stmt = mysqli_prepare(
+                $conn,
+                "INSERT INTO admin_register_codes
+                (
+                    code,
+                    created_by,
+                    used,
+                    created_at
+                )
+                VALUES
+                (
+                    ?,
+                    ?,
+                    0,
+                    NOW()
+                )"
+            );
+
+            if (!$insert_stmt) {
+
+                $admin_code_error =
+                    "ไม่สามารถบันทึกรหัสได้: " .
+                    mysqli_error($conn);
+
+            } else {
+
+                mysqli_stmt_bind_param(
+                    $insert_stmt,
+                    "si",
+                    $new_code,
+                    $current_user_id
+                );
+
+                if (
+                    mysqli_stmt_execute(
+                        $insert_stmt
+                    )
+                ) {
+
+                    $generated_admin_code =
+                        $new_code;
+
+                    $admin_code_message =
+                        "สร้างรหัสสมัคร Admin สำเร็จ";
+
+                } else {
+
+                    $admin_code_error =
+                        "ไม่สามารถบันทึกรหัสได้: " .
+                        mysqli_stmt_error(
+                            $insert_stmt
+                        );
+                }
+
+                mysqli_stmt_close(
+                    $insert_stmt
+                );
+            }
+        }
+    }
+}
+
+// =====================================================
 // ตัวแปร Dashboard
 // =====================================================
 
@@ -63,7 +222,7 @@ $total_students = 0;
 $total_teachers = 0;
 $total_admins = 0;
 $total_projects = 0;
-$total_downloads = 0;
+$total_site_visits = 0;
 
 // =====================================================
 // จำนวน Users ทั้งหมด
@@ -71,15 +230,21 @@ $total_downloads = 0;
 
 $result = mysqli_query(
     $conn,
-    "SELECT COUNT(*) AS total FROM users"
+    "SELECT COUNT(*) AS total
+     FROM users"
 );
 
 if (!$result) {
-    die("SQL Error: " . e(mysqli_error($conn)));
+    die(
+        "SQL Error: " .
+        e(mysqli_error($conn))
+    );
 }
 
 $row = mysqli_fetch_assoc($result);
-$total_users = (int)($row['total'] ?? 0);
+
+$total_users =
+    (int)($row['total'] ?? 0);
 
 // =====================================================
 // จำนวน Student
@@ -93,11 +258,16 @@ $result = mysqli_query(
 );
 
 if (!$result) {
-    die("SQL Error: " . e(mysqli_error($conn)));
+    die(
+        "SQL Error: " .
+        e(mysqli_error($conn))
+    );
 }
 
 $row = mysqli_fetch_assoc($result);
-$total_students = (int)($row['total'] ?? 0);
+
+$total_students =
+    (int)($row['total'] ?? 0);
 
 // =====================================================
 // จำนวน Teacher
@@ -111,11 +281,16 @@ $result = mysqli_query(
 );
 
 if (!$result) {
-    die("SQL Error: " . e(mysqli_error($conn)));
+    die(
+        "SQL Error: " .
+        e(mysqli_error($conn))
+    );
 }
 
 $row = mysqli_fetch_assoc($result);
-$total_teachers = (int)($row['total'] ?? 0);
+
+$total_teachers =
+    (int)($row['total'] ?? 0);
 
 // =====================================================
 // จำนวน Admin
@@ -129,11 +304,16 @@ $result = mysqli_query(
 );
 
 if (!$result) {
-    die("SQL Error: " . e(mysqli_error($conn)));
+    die(
+        "SQL Error: " .
+        e(mysqli_error($conn))
+    );
 }
 
 $row = mysqli_fetch_assoc($result);
-$total_admins = (int)($row['total'] ?? 0);
+
+$total_admins =
+    (int)($row['total'] ?? 0);
 
 // =====================================================
 // จำนวน Projects
@@ -141,32 +321,43 @@ $total_admins = (int)($row['total'] ?? 0);
 
 $result = mysqli_query(
     $conn,
-    "SELECT COUNT(*) AS total FROM projects"
-);
-
-if (!$result) {
-    die("SQL Error: " . e(mysqli_error($conn)));
-}
-
-$row = mysqli_fetch_assoc($result);
-$total_projects = (int)($row['total'] ?? 0);
-
-// =====================================================
-// จำนวน Downloads ทั้งหมด
-// =====================================================
-
-$result = mysqli_query(
-    $conn,
-    "SELECT COALESCE(SUM(downloads), 0) AS total
+    "SELECT COUNT(*) AS total
      FROM projects"
 );
 
 if (!$result) {
-    die("SQL Error (Downloads): " . e(mysqli_error($conn)));
+    die(
+        "SQL Error: " .
+        e(mysqli_error($conn))
+    );
 }
 
 $row = mysqli_fetch_assoc($result);
-$total_downloads = (int)($row['total'] ?? 0);
+
+$total_projects =
+    (int)($row['total'] ?? 0);
+
+// =====================================================
+// จำนวนเข้าชมเว็บไซต์ทั้งหมด
+// =====================================================
+
+$result = mysqli_query(
+    $conn,
+    "SELECT COUNT(*) AS total
+     FROM site_visits"
+);
+
+if (!$result) {
+    die(
+        "SQL Error (Site Visits): " .
+        e(mysqli_error($conn))
+    );
+}
+
+$row = mysqli_fetch_assoc($result);
+
+$total_site_visits =
+    (int)($row['total'] ?? 0);
 
 // =====================================================
 // ดึง Users
@@ -191,7 +382,10 @@ $result = mysqli_query(
 );
 
 if (!$result) {
-    die("SQL Error (Users): " . e(mysqli_error($conn)));
+    die(
+        "SQL Error (Users): " .
+        e(mysqli_error($conn))
+    );
 }
 
 while ($row = mysqli_fetch_assoc($result)) {
@@ -221,7 +415,6 @@ $result = mysqli_query(
         github_url,
         status,
         views,
-        downloads,
         created_at
     FROM projects
     ORDER BY id DESC
@@ -229,7 +422,10 @@ $result = mysqli_query(
 );
 
 if (!$result) {
-    die("SQL Error (Projects): " . e(mysqli_error($conn)));
+    die(
+        "SQL Error (Projects): " .
+        e(mysqli_error($conn))
+    );
 }
 
 while ($row = mysqli_fetch_assoc($result)) {
@@ -567,11 +763,88 @@ body {
 }
 
 /* =====================================================
+   ADMIN CODE BOX
+===================================================== */
+
+.admin-code-box {
+    background: #eef8fd;
+
+    border: 1px solid #cceaf8;
+
+    border-radius: 12px;
+
+    padding: 20px;
+}
+
+.admin-code-description {
+    margin: 0 0 15px;
+
+    color: #555;
+
+    line-height: 1.7;
+}
+
+.admin-code-result {
+    margin-top: 20px;
+
+    background: white;
+
+    border-radius: 10px;
+
+    padding: 18px;
+
+    border: 2px solid #198754;
+}
+
+.admin-code-success {
+    color: #198754;
+
+    font-weight: bold;
+
+    margin-bottom: 8px;
+}
+
+.admin-code-value {
+    font-size: 28px;
+
+    font-weight: bold;
+
+    letter-spacing: 3px;
+
+    color: #287cab;
+
+    margin: 10px 0;
+
+    word-break: break-all;
+}
+
+.admin-code-note {
+    color: #777;
+
+    font-size: 13px;
+
+    line-height: 1.7;
+}
+
+.admin-code-error {
+    margin-top: 15px;
+
+    background: #f8d7da;
+
+    color: #842029;
+
+    padding: 12px;
+
+    border-radius: 8px;
+}
+
+/* =====================================================
    TABLE
 ===================================================== */
 
 .table-wrapper {
     overflow-x: auto;
+
     width: 100%;
 }
 
@@ -687,28 +960,6 @@ tbody tr:hover td {
 }
 
 .view-count i {
-    font-size: 16px;
-}
-
-/* =====================================================
-   DOWNLOAD COUNT
-===================================================== */
-
-.download-count {
-    display: inline-flex;
-
-    align-items: center;
-
-    gap: 6px;
-
-    color: #198754;
-
-    font-weight: 600;
-
-    white-space: nowrap;
-}
-
-.download-count i {
     font-size: 16px;
 }
 
@@ -834,6 +1085,7 @@ tbody tr:hover td {
 
     .page-title {
         align-items: flex-start;
+
         flex-direction: column;
     }
 
@@ -851,6 +1103,10 @@ tbody tr:hover td {
 
     .page-title h1 {
         font-size: 25px;
+    }
+
+    .admin-code-value {
+        font-size: 22px;
     }
 
 }
@@ -882,7 +1138,7 @@ tbody tr:hover td {
             </a>
 
             <div class="header-title">
-                คลังโปรเจกต์ SDU
+                Admin SDU
             </div>
 
         </div>
@@ -1074,25 +1330,131 @@ tbody tr:hover td {
 
         </div>
 
-        <!-- DOWNLOADS -->
+        <!-- WEBSITE VISITS -->
 
         <div class="card">
 
             <div class="card-icon">
-                <i class="bi bi-download"></i>
+                <i class="bi bi-globe2"></i>
             </div>
 
             <div>
 
                 <h3>
-                    <?= number_format($total_downloads) ?>
+                    <?= number_format($total_site_visits) ?>
                 </h3>
 
                 <p>
-                    ดาวน์โหลดทั้งหมด
+                    ยอดเข้าชมเว็บไซต์
                 </p>
 
             </div>
+
+        </div>
+
+    </div>
+
+    <!-- =================================================
+         ADMIN REGISTER CODE
+    ================================================== -->
+
+    <div class="section">
+
+        <div class="section-header">
+
+            <h2>
+
+                <i class="bi bi-shield-lock-fill"></i>
+
+                รหัสสมัคร Admin
+
+            </h2>
+
+        </div>
+
+        <div class="admin-code-box">
+
+            <p class="admin-code-description">
+
+                สร้างรหัสสำหรับให้ผู้ที่ได้รับอนุญาต
+                ใช้สมัครบัญชี Admin
+
+                <br>
+
+                <strong>
+                    รหัสที่สร้างสามารถใช้สมัครได้เพียงครั้งเดียว
+                </strong>
+
+            </p>
+
+            <form
+                method="POST"
+                action=""
+            >
+
+                <button
+                    type="submit"
+                    name="generate_admin_code"
+                    value="1"
+                    class="btn btn-success"
+                >
+
+                    <i class="bi bi-key-fill"></i>
+
+                    สร้างรหัสสมัคร Admin
+
+                </button>
+
+            </form>
+
+            <?php if ($generated_admin_code !== ''): ?>
+
+                <div class="admin-code-result">
+
+                    <div class="admin-code-success">
+
+                        <i class="bi bi-check-circle-fill"></i>
+
+                        <?= e($admin_code_message) ?>
+
+                    </div>
+
+                    <div class="admin-code-value">
+
+                        <?= e($generated_admin_code) ?>
+
+                    </div>
+
+                    <div class="admin-code-note">
+
+                        นำรหัสนี้ให้ผู้ที่ต้องการสมัคร Admin
+
+                        <br>
+
+                        รหัสนี้ใช้ได้เพียงครั้งเดียว
+
+                        <br>
+
+                        เมื่อมีการสมัครสำเร็จ
+                        รหัสจะถูกปิดการใช้งานทันที
+
+                    </div>
+
+                </div>
+
+            <?php endif; ?>
+
+            <?php if ($admin_code_error !== ''): ?>
+
+                <div class="admin-code-error">
+
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+
+                    <?= e($admin_code_error) ?>
+
+                </div>
+
+            <?php endif; ?>
 
         </div>
 
@@ -1138,11 +1500,17 @@ tbody tr:hover td {
                         <tr>
 
                             <th>ID</th>
+
                             <th>Username</th>
+
                             <th>ชื่อ - นามสกุล</th>
+
                             <th>Email</th>
+
                             <th>Role</th>
+
                             <th>สาขา</th>
+
                             <th>จัดการ</th>
 
                         </tr>
@@ -1183,7 +1551,9 @@ tbody tr:hover td {
                             <td>
 
                                 <strong>
-                                    <?= e($row['username'] ?? '-') ?>
+                                    <?= e(
+                                        $row['username'] ?? '-'
+                                    ) ?>
                                 </strong>
 
                             </td>
@@ -1197,16 +1567,22 @@ tbody tr:hover td {
                             <!-- EMAIL -->
 
                             <td>
-                                <?= e($row['email'] ?? '-') ?>
+                                <?= e(
+                                    $row['email'] ?? '-'
+                                ) ?>
                             </td>
 
                             <!-- ROLE -->
 
                             <td>
 
-                                <?php if ($user_role === 'admin'): ?>
+                                <?php if (
+                                    $user_role === 'admin'
+                                ): ?>
 
-                                    <span class="role role-admin">
+                                    <span
+                                        class="role role-admin"
+                                    >
 
                                         <i class="bi bi-shield-fill"></i>
 
@@ -1214,9 +1590,13 @@ tbody tr:hover td {
 
                                     </span>
 
-                                <?php elseif ($user_role === 'teacher'): ?>
+                                <?php elseif (
+                                    $user_role === 'teacher'
+                                ): ?>
 
-                                    <span class="role role-teacher">
+                                    <span
+                                        class="role role-teacher"
+                                    >
 
                                         <i class="bi bi-person-workspace"></i>
 
@@ -1226,7 +1606,9 @@ tbody tr:hover td {
 
                                 <?php else: ?>
 
-                                    <span class="role role-student">
+                                    <span
+                                        class="role role-student"
+                                    >
 
                                         <i class="bi bi-person-fill"></i>
 
@@ -1241,7 +1623,11 @@ tbody tr:hover td {
                             <!-- DEPARTMENT -->
 
                             <td>
-                                <?= e($row['department'] ?? '-') ?>
+
+                                <?= e(
+                                    $row['department'] ?? '-'
+                                ) ?>
+
                             </td>
 
                             <!-- ACTION -->
@@ -1284,7 +1670,9 @@ tbody tr:hover td {
 
                                     <?php else: ?>
 
-                                        <span class="role role-admin">
+                                        <span
+                                            class="role role-admin"
+                                        >
 
                                             <i class="bi bi-person-check-fill"></i>
 
@@ -1351,16 +1739,25 @@ tbody tr:hover td {
                         <tr>
 
                             <th>ID</th>
+
                             <th>ชื่อโปรเจกต์</th>
+
                             <th>เจ้าของโปรเจกต์</th>
+
                             <th>สมาชิกกลุ่ม</th>
+
                             <th>ระดับ</th>
+
                             <th>สาขา</th>
+
                             <th>อาจารย์ที่ปรึกษา</th>
+
                             <th>สถานะ</th>
+
                             <th>ยอดเข้าชม</th>
-                            <th>ยอดดาวน์โหลด</th>
+
                             <th>วันที่ส่ง</th>
+
                             <th>จัดการ</th>
 
                         </tr>
@@ -1388,7 +1785,6 @@ tbody tr:hover td {
                                 trim(
                                     $row['project_name'] ?? ''
                                 );
-
                         }
 
                         if ($display_title === '') {
@@ -1403,11 +1799,6 @@ tbody tr:hover td {
                             trim(
                                 $row['student_name'] ?? ''
                             );
-
-                        /*
-                         * ถ้า student_name มีหลายบรรทัด
-                         * ใช้บรรทัดแรกเป็นเจ้าของ
-                         */
 
                         if ($owner_name !== '') {
 
@@ -1458,11 +1849,7 @@ tbody tr:hover td {
                                     continue;
                                 }
 
-                                /*
-                                 * ตัดเจ้าของออก
-                                 * เพื่อไม่ให้แสดงซ้ำ
-                                 */
-
+                                // ตัดเจ้าของออก
                                 if (
                                     $owner_name !== '-' &&
                                     $author === $owner_name
@@ -1470,10 +1857,7 @@ tbody tr:hover td {
                                     continue;
                                 }
 
-                                /*
-                                 * ป้องกันสมาชิกซ้ำ
-                                 */
-
+                                // ป้องกันสมาชิกซ้ำ
                                 if (
                                     !in_array(
                                         $author,
@@ -1503,7 +1887,6 @@ tbody tr:hover td {
                                 trim(
                                     $row['project_type'] ?? ''
                                 );
-
                         }
 
                         if ($display_degree === '') {
@@ -1517,15 +1900,6 @@ tbody tr:hover td {
                         $view_count =
                             (int)(
                                 $row['views'] ?? 0
-                            );
-
-                        // =================================================
-                        // Downloads
-                        // =================================================
-
-                        $download_count =
-                            (int)(
-                                $row['downloads'] ?? 0
                             );
 
                         // =================================================
@@ -1561,7 +1935,9 @@ tbody tr:hover td {
 
                                 <div class="project-title">
 
-                                    <?= e($display_title) ?>
+                                    <?= e(
+                                        $display_title
+                                    ) ?>
 
                                 </div>
 
@@ -1573,7 +1949,9 @@ tbody tr:hover td {
 
                                 <div class="owner-name">
 
-                                    <?= e($owner_name) ?>
+                                    <?= e(
+                                        $owner_name
+                                    ) ?>
 
                                 </div>
 
@@ -1585,7 +1963,9 @@ tbody tr:hover td {
 
                                 <div class="member-list">
 
-                                    <?php if (!empty($member_list)): ?>
+                                    <?php if (
+                                        !empty($member_list)
+                                    ): ?>
 
                                         <?php foreach (
                                             $member_list
@@ -1611,7 +1991,9 @@ tbody tr:hover td {
                             <!-- DEGREE -->
 
                             <td>
-                                <?= e($display_degree) ?>
+                                <?= e(
+                                    $display_degree
+                                ) ?>
                             </td>
 
                             <!-- DEPARTMENT -->
@@ -1625,13 +2007,22 @@ tbody tr:hover td {
                             <!-- ADVISOR -->
 
                             <td>
-                                <?= e(
+
+                                <?php
+
+                                $advisor =
                                     trim(
                                         $row['advisor'] ?? ''
-                                    ) !== ''
-                                        ? $row['advisor']
+                                    );
+
+                                ?>
+
+                                <?= e(
+                                    $advisor !== ''
+                                        ? $advisor
                                         : '-'
                                 ) ?>
+
                             </td>
 
                             <!-- STATUS -->
@@ -1670,24 +2061,6 @@ tbody tr:hover td {
 
                             </td>
 
-                            <!-- DOWNLOADS -->
-
-                            <td>
-
-                                <span class="download-count">
-
-                                    <i class="bi bi-download"></i>
-
-                                    <?= number_format(
-                                        $download_count
-                                    ) ?>
-
-                                    ครั้ง
-
-                                </span>
-
-                            </td>
-
                             <!-- CREATED -->
 
                             <td>
@@ -1705,11 +2078,11 @@ tbody tr:hover td {
                                             $row['created_at']
                                         );
 
-                                    if (
-                                        $created_timestamp !== false
-                                    ):
-
                                     ?>
+
+                                    <?php if (
+                                        $created_timestamp !== false
+                                    ): ?>
 
                                         <?= e(
                                             date(
@@ -1777,9 +2150,9 @@ tbody tr:hover td {
                                             class="btn btn-primary"
                                         >
 
-                                            <i class="bi bi-download"></i>
+                                            <i class="bi bi-file-earmark-pdf-fill"></i>
 
-                                            ดาวน์โหลด PDF
+                                            ดู PDF
 
                                         </a>
 
