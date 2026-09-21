@@ -15,7 +15,7 @@ function e($value)
    Google Forms
 ===================================================== */
 $feedback_form_url =
-    'https://docs.google.com/forms/d/e/1FAIpQLScDQbZ7bW4TH0MDOZhqfnMhaO6aBI1R9WcfMV4DNXxz-T6rYA/viewform';
+    'https://docs.google.com/forms/d/e/1FAIpQLSdQ-ZUl1xnAAQ_tUqrl6iwZKvx7U9mhXEVvRcJGWsPUPcsegw/viewform';
 
 /* สร้าง QR Code จาก Google Forms อัตโนมัติ */
 $feedback_qr_url =
